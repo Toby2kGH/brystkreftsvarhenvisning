@@ -39,7 +39,7 @@ export function evaluateCQL(clinicalData) {
   const erPositive = erStatus === true || erStatus === 'positive';
   const prPositive = prStatus === true || prStatus === 'positive';
   const her2Negative = her2Status === false || her2Status === 'negative';
-  const hrPositiveHer2Negative = erPositive && her2Negative;
+  const hrPositiveHer2Negative = (erPositive || prPositive) && her2Negative;
 
   // ECOG validering
   const ecog = typeof ecogScore === 'number' ? ecogScore : parseInt(ecogScore, 10);

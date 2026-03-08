@@ -92,6 +92,7 @@ function evaluateRule(rule, context) {
  * - Eksakt verdi: 'high' matcher 'high'
  * - Array (disjunksjon): ['pre', 'peri'] matcher 'pre' eller 'peri'
  * - Objekt med 'not': { not: 'high' } matcher alt unntatt 'high'
+ * - Objekt med 'gte'/'lte'/'gt'/'lt': { gte: 30 } matcher >= 30
  * - Boolean: true/false eksakt match
  * - Null/undefined: behandles som "any" (wildcard)
  */
@@ -99,9 +100,18 @@ function matchCondition(expected, actual) {
   // Null/undefined condition = wildcard (matches anything)
   if (expected == null) return true;
 
-  // Negasjon: { not: value }
-  if (typeof expected === 'object' && !Array.isArray(expected) && 'not' in expected) {
-    return !matchCondition(expected.not, actual);
+  // Objekt-betingelser (negasjon, range)
+  if (typeof expected === 'object' && !Array.isArray(expected)) {
+    if ('not' in expected) return !matchCondition(expected.not, actual);
+
+    // Range-sammenligninger (FEEL-semantikk)
+    if (actual == null) return false;
+    let match = true;
+    if ('gte' in expected) match = match && actual >= expected.gte;
+    if ('gt' in expected) match = match && actual > expected.gt;
+    if ('lte' in expected) match = match && actual <= expected.lte;
+    if ('lt' in expected) match = match && actual < expected.lt;
+    return match;
   }
 
   // Array = disjunksjon (OR)

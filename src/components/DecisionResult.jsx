@@ -31,9 +31,13 @@ export default function DecisionResult({ result }) {
 
         <p className="rationale">{recommendation.rationale}</p>
 
-        {recommendation.combinationPartner && (
+        {(recommendation.endocrinePartner || recommendation.combinationPartner) && (
           <div className="combination">
-            <strong>Kombinasjonspartner:</strong> {recommendation.combinationPartner}
+            <strong>Kombinasjonspartner:</strong>{' '}
+            {recommendation.endocrinePartner || recommendation.combinationPartner}
+            {recommendation.endocrineRationale && (
+              <span className="endocrine-rationale"> — {recommendation.endocrineRationale}</span>
+            )}
           </div>
         )}
 
@@ -81,6 +85,11 @@ export default function DecisionResult({ result }) {
           <p>
             <strong>Treff:</strong> {dmnResult.matched ? 'Ja' : 'Nei'}
           </p>
+          {dmnResult.endocrinePartner && (
+            <p>
+              <strong>Endokrinterapi:</strong> {dmnResult.endocrinePartner.partner} — {dmnResult.endocrinePartner.rationale}
+            </p>
+          )}
           {dmnResult.matchedRules && (
             <div>
               <strong>Matchede regler:</strong>

@@ -12,7 +12,7 @@
 import express from 'express';
 import cors from 'cors';
 import { evaluateCQL, validateClinicalData } from '../src/cql/cqlEngine.js';
-import { evaluateDecisionTable, formatRecommendation } from '../src/dmn/dmnEngine.js';
+import { evaluateDecisionTable, evaluateDecisionChain, formatRecommendation } from '../src/dmn/dmnEngine.js';
 import { CDK46_DECISION_TABLE, ENDOCRINE_PARTNER_TABLE } from '../src/dmn/decisionTables.js';
 import { buildPatientBundle } from '../src/fhir/mCodeProfiles.js';
 
@@ -50,10 +50,20 @@ app.post('/api/evaluate', (req, res) => {
     // Steg 1: CQL-evaluering (datahenting og beregning)
     const cqlOutput = evaluateCQL(clinicalData);
 
-    // Steg 2: DMN-evaluering (beslutningslogikk)
-    const table = decisionTables['cdk46-inhibitor-selection'];
-    const dmnResult = evaluateDecisionTable(table, cqlOutput);
-    const recommendation = formatRecommendation(dmnResult);
+    // Steg 2: DMN-evaluering (beslutningslogikk) - kjeder CDK4/6i + endokrinterapi-tabeller
+    const cdk46Table = decisionTables['cdk46-inhibitor-selection'];
+    const endocrineTable = decisionTables['endocrine-partner-selection'];
+    const chainResult = evaluateDecisionChain([cdk46Table, endocrineTable], cqlOutput);
+
+    const cdk46Result = chainResult.tableResults[0];
+    const endocrineResult = chainResult.tableResults[1];
+    const recommendation = formatRecommendation(cdk46Result);
+
+    // Berik anbefaling med endokrinterapi-partner fra egen tabell
+    if (endocrineResult.matched && endocrineResult.result) {
+      recommendation.endocrinePartner = endocrineResult.result.partner;
+      recommendation.endocrineRationale = endocrineResult.result.rationale;
+    }
 
     // Steg 3: Bygg FHIR Bundle (for audit trail)
     const fhirBundle = buildPatientBundle({
@@ -65,12 +75,15 @@ app.post('/api/evaluate', (req, res) => {
       recommendation,
       cqlOutput,
       dmnResult: {
-        tableId: dmnResult.tableId,
-        matched: dmnResult.matched,
-        matchedRules: dmnResult.matchedRules?.map((r) => ({
+        tableId: cdk46Result.tableId,
+        matched: cdk46Result.matched,
+        matchedRules: cdk46Result.matchedRules?.map((r) => ({
           ruleId: r.ruleId,
           description: r.description,
         })),
+        endocrinePartner: endocrineResult.matched
+          ? { partner: endocrineResult.result?.partner, rationale: endocrineResult.result?.rationale }
+          : null,
       },
       fhirBundle,
       timestamp: new Date().toISOString(),
@@ -167,8 +180,8 @@ app.post('/cds-services/cdk46-inhibitor-cds', (req, res) => {
   try {
     const { context, prefetch } = req.body;
 
-    // Ekstraher kliniske data fra prefetch FHIR-ressurser
-    const clinicalData = extractFromPrefetch(prefetch);
+    // Ekstraher kliniske data fra prefetch FHIR-ressurser + kontekst
+    const clinicalData = extractFromPrefetch(prefetch, context);
     const cqlOutput = evaluateCQL(clinicalData);
     const table = decisionTables['cdk46-inhibitor-selection'];
     const dmnResult = evaluateDecisionTable(table, cqlOutput);
@@ -203,7 +216,7 @@ app.post('/cds-services/cdk46-inhibitor-cds', (req, res) => {
 /**
  * Ekstraher kliniske data fra FHIR prefetch-ressurser
  */
-function extractFromPrefetch(prefetch) {
+function extractFromPrefetch(prefetch, context = {}) {
   const data = {
     erStatus: null,
     prStatus: null,
@@ -211,6 +224,14 @@ function extractFromPrefetch(prefetch) {
     ki67: null,
     ecogScore: null,
     metastatic: null,
+    menopausalStatus: context.menopausalStatus || 'unknown',
+    priorTherapyLines: context.priorTherapyLines ?? 0,
+    hepaticFunction: context.hepaticFunction || 'normal',
+    renalFunction: context.renalFunction || 'normal',
+    cardiacRisk: context.cardiacRisk || 'low',
+    neutropeniaRisk: context.neutropeniaRisk || 'low',
+    diarrhoeaRisk: context.diarrhoeaRisk || 'low',
+    needMonotherapy: context.needMonotherapy || 'no',
   };
 
   if (prefetch?.tumorMarkers?.entry) {
@@ -228,6 +249,19 @@ function extractFromPrefetch(prefetch) {
 
   if (prefetch?.ecog?.entry?.[0]) {
     data.ecogScore = prefetch.ecog.entry[0].resource?.valueInteger;
+  }
+
+  // Sjekk metastatisk status fra Condition-ressurser
+  if (prefetch?.conditions?.entry) {
+    for (const entry of prefetch.conditions.entry) {
+      const condition = entry.resource;
+      const metastaticExt = condition?.extension?.find(
+        (e) => e.url?.includes('histology-morphology-behavior')
+      );
+      if (metastaticExt?.valueCodeableConcept?.coding?.[0]?.code === '14799000') {
+        data.metastatic = 'yes';
+      }
+    }
   }
 
   return data;

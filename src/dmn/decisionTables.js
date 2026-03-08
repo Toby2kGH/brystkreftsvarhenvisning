@@ -40,6 +40,7 @@ export const CDK46_DECISION_TABLE = {
     { id: 'needMonotherapy', label: 'Behov for monoterapi', type: 'boolean' },
     { id: 'menopausalStatus', label: 'Menopausal status', type: 'string', allowedValues: ['pre', 'peri', 'post', 'unknown'] },
     { id: 'priorTherapyLines', label: 'Antall tidligere behandlingslinjer', type: 'number' },
+    { id: 'ki67Value', label: 'Ki-67 proliferasjonsindeks (%)', type: 'number' },
   ],
 
   outputs: [
@@ -128,7 +129,7 @@ export const CDK46_DECISION_TABLE = {
     // Regel 4: Høy diarérisiko → Unngå abemaciclib
     {
       id: 'R4',
-      priority: 8,
+      priority: 7,
       description: 'Høy diarérisiko - unngå abemaciclib',
       conditions: {
         eligible: true,
@@ -148,7 +149,7 @@ export const CDK46_DECISION_TABLE = {
     // Regel 5: Nedsatt leverfunksjon → Dosejustering nødvendig
     {
       id: 'R5',
-      priority: 7,
+      priority: 6,
       description: 'Nedsatt leverfunksjon - palbociclib best dokumentert',
       conditions: {
         eligible: true,
@@ -167,7 +168,7 @@ export const CDK46_DECISION_TABLE = {
     // Regel 6: Premenopausal + førstelinjebehandling → Ribociclib (MONALEESA-7)
     {
       id: 'R6',
-      priority: 6,
+      priority: 5,
       description: 'Premenopausal førstelinjebehandling - ribociclib (MONALEESA-7 data)',
       conditions: {
         eligible: true,
@@ -188,7 +189,7 @@ export const CDK46_DECISION_TABLE = {
     // Regel 7: Postmenopausal + førstelinjebehandling → Ribociclib (overlevelsesdata)
     {
       id: 'R7',
-      priority: 5,
+      priority: 4,
       description: 'Postmenopausal førstelinjebehandling - ribociclib foretrukket',
       conditions: {
         eligible: true,
@@ -209,7 +210,7 @@ export const CDK46_DECISION_TABLE = {
     // Regel 8: Andrelinje etter endokrinterapi → Alle tre er aktuelle
     {
       id: 'R8',
-      priority: 4,
+      priority: 3,
       description: 'Andrelinje etter progresjon på endokrinterapi',
       conditions: {
         eligible: true,
@@ -222,6 +223,26 @@ export const CDK46_DECISION_TABLE = {
         rationale: 'Etter progresjon på endokrinterapi er alle CDK4/6-inhibitorer aktuelle. Palbociclib i kombinasjon med fulvestrant har bred dokumentasjon (PALOMA-3)',
         warnings: ['Nøytropeni krever regelmessig blodprøvekontroll'],
         combinationPartner: 'Fulvestrant',
+      },
+    },
+
+    // Regel 10: Høy Ki-67 (≥30%) → Ribociclib (sterkest proliferasjonshemming)
+    {
+      id: 'R10',
+      priority: 2,
+      description: 'Høy Ki-67 proliferasjon (≥30%) - ribociclib kan være gunstig',
+      conditions: {
+        eligible: true,
+        ki67Value: { gte: 30 },
+        cardiacRisk: { not: 'high' },
+        needMonotherapy: false,
+      },
+      outputs: {
+        recommendation: 'Ribociclib',
+        confidence: 'moderate',
+        rationale: 'Ved høy Ki-67 (≥30%) kan ribociclib være gunstig grunnet dokumentert overlevelsesgevinst i MONALEESA-studiene, spesielt ved aggressiv tumorbiologi',
+        warnings: ['QTc-monitorering anbefales', 'Nøytropeni krever blodprøvekontroll'],
+        combinationPartner: 'Aromatasehemmer eller fulvestrant',
       },
     },
 
