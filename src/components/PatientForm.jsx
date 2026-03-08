@@ -27,7 +27,7 @@ const INITIAL_STATE = {
   surgeryType: 'bcs',
 };
 
-export default function PatientForm({ onSubmit, loading }) {
+export default function PatientForm({ onSubmit, loading, onShowTables }) {
   const [form, setForm] = useState(INITIAL_STATE);
 
   function handleChange(e) {
@@ -256,6 +256,14 @@ export default function PatientForm({ onSubmit, loading }) {
       <button type="submit" className="submit-btn" disabled={loading}>
         {loading ? 'Evaluerer...' : 'Evaluer behandlingsvalg'}
       </button>
+
+      {onShowTables && (
+        <p className="tables-link">
+          <a href="#beslutningslogikk" onClick={(e) => { e.preventDefault(); onShowTables(); }}>
+            Vis bakenforliggende beslutningsstruktur
+          </a>
+        </p>
+      )}
     </form>
   );
 }

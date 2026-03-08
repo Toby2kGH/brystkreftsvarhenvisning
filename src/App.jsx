@@ -59,7 +59,7 @@ export default function App() {
       <main className="main">
         {page === 'form' && (
           <>
-            <PatientForm onSubmit={handleEvaluate} loading={loading} />
+            <PatientForm onSubmit={handleEvaluate} loading={loading} onShowTables={() => setPage('tables')} />
 
             {error && (
               <div className="error-banner">

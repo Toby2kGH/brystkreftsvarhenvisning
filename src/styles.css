@@ -183,6 +183,21 @@ legend {
   cursor: not-allowed;
 }
 
+.tables-link {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.tables-link a {
+  color: var(--primary-light);
+  text-decoration: none;
+}
+
+.tables-link a:hover {
+  text-decoration: underline;
+}
+
 /* Error Banner */
 .error-banner {
   background: #fdf0ed;
