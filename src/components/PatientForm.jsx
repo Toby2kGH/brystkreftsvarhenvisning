@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
 
 const INITIAL_STATE = {
+  treatmentMode: 'adjuvant',
+  // Receptor
   erStatus: 'positive',
+  erPercent: '',
   prStatus: 'positive',
-  her2Status: 'negative',
+  prPercent: '',
+  // HER2
+  her2ihc: '',
+  her2sish: '',
+  // Tumor
   ki67: '',
-  ecogScore: '0',
-  metastatic: 'yes',
+  grade: '',
+  tumorSizeMm: '',
+  tStageOverride: '',
+  nStage: 'N0',
+  // Gene expression
+  geneTest: 'none',
+  rorScore: '',
+  rsScore: '',
+  prosignaSubtype: '',
+  // Patient
   menopausalStatus: 'post',
-  priorTherapyLines: '0',
-  hepaticFunction: 'normal',
-  renalFunction: 'normal',
-  cardiacRisk: 'low',
-  neutropeniaRisk: 'low',
-  diarrhoeaRisk: 'low',
-  needMonotherapy: 'no',
+  age: '',
+  surgeryType: 'bcs',
 };
 
 export default function PatientForm({ onSubmit, loading }) {
@@ -26,82 +36,205 @@ export default function PatientForm({ onSubmit, loading }) {
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit(form);
+    // Convert numeric fields
+    const data = {
+      ...form,
+      erPercent: form.erPercent !== '' ? Number(form.erPercent) : undefined,
+      prPercent: form.prPercent !== '' ? Number(form.prPercent) : undefined,
+      ki67: form.ki67 !== '' ? Number(form.ki67) : undefined,
+      grade: form.grade !== '' ? Number(form.grade) : undefined,
+      tumorSizeMm: form.tumorSizeMm !== '' ? Number(form.tumorSizeMm) : undefined,
+      age: form.age !== '' ? Number(form.age) : undefined,
+      rorScore: form.rorScore !== '' ? Number(form.rorScore) : undefined,
+      rsScore: form.rsScore !== '' ? Number(form.rsScore) : undefined,
+      tStageOverride: form.tStageOverride || undefined,
+      her2ihc: form.her2ihc || undefined,
+      her2sish: form.her2sish || undefined,
+      geneTest: form.geneTest || undefined,
+      prosignaSubtype: form.prosignaSubtype || undefined,
+    };
+    onSubmit(data);
   }
+
+  const showSISH = form.her2ihc === '2+';
+  const showProsigna = form.geneTest === 'prosigna';
+  const showOncotype = form.geneTest === 'oncotypedx';
 
   return (
     <form className="patient-form" onSubmit={handleSubmit}>
-      <h2>Pasientdata</h2>
+      <h2>Pasientdata — Brystkreft Beslutningsstøtte</h2>
 
+      {/* Treatment Mode */}
       <fieldset>
-        <legend>Tumorkarakteristikk</legend>
-
+        <legend>Behandlingsmodus</legend>
         <div className="form-row">
           <label>
-            Østrogenreseptor (ER)
+            Modus
+            <select name="treatmentMode" value={form.treatmentMode} onChange={handleChange}>
+              <option value="adjuvant">Adjuvant (postoperativ)</option>
+              <option value="neoadjuvant">Neoadjuvant (preoperativ)</option>
+            </select>
+          </label>
+          <label>
+            Kirurgitype
+            <select name="surgeryType" value={form.surgeryType} onChange={handleChange}>
+              <option value="bcs">Brystbevarende (BCS)</option>
+              <option value="mastectomy">Mastektomi</option>
+              <option value="">Ikke angitt</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      {/* Receptor Status */}
+      <fieldset>
+        <legend>Reseptorstatus</legend>
+        <div className="form-row">
+          <label>
+            ER-status
             <select name="erStatus" value={form.erStatus} onChange={handleChange}>
               <option value="positive">Positiv</option>
               <option value="negative">Negativ</option>
             </select>
           </label>
-
           <label>
-            Progesteronreseptor (PR)
+            ER %
+            <input type="number" name="erPercent" value={form.erPercent} onChange={handleChange}
+              min="0" max="100" placeholder="%" />
+          </label>
+          <label>
+            PR-status
             <select name="prStatus" value={form.prStatus} onChange={handleChange}>
               <option value="positive">Positiv</option>
               <option value="negative">Negativ</option>
             </select>
           </label>
-        </div>
-
-        <div className="form-row">
           <label>
-            HER2-status
-            <select name="her2Status" value={form.her2Status} onChange={handleChange}>
-              <option value="negative">Negativ</option>
-              <option value="positive">Positiv</option>
-            </select>
-          </label>
-
-          <label>
-            Ki-67 (%)
-            <input
-              type="number"
-              name="ki67"
-              value={form.ki67}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              placeholder="f.eks. 25"
-            />
+            PR %
+            <input type="number" name="prPercent" value={form.prPercent} onChange={handleChange}
+              min="0" max="100" placeholder="%" />
           </label>
         </div>
       </fieldset>
 
+      {/* HER2 */}
       <fieldset>
-        <legend>Pasientstatus</legend>
-
+        <legend>HER2-bestemmelse</legend>
         <div className="form-row">
           <label>
-            Metastatisk sykdom
-            <select name="metastatic" value={form.metastatic} onChange={handleChange}>
-              <option value="yes">Ja</option>
-              <option value="no">Nei</option>
+            HER2 IHC
+            <select name="her2ihc" value={form.her2ihc} onChange={handleChange}>
+              <option value="">Ikke angitt</option>
+              <option value="0">0</option>
+              <option value="1+">1+</option>
+              <option value="2+">2+ (krever SISH)</option>
+              <option value="3+">3+</option>
             </select>
           </label>
+          {showSISH && (
+            <label>
+              HER2 SISH/ISH
+              <select name="her2sish" value={form.her2sish} onChange={handleChange}>
+                <option value="">Ikke utført</option>
+                <option value="positive">Positiv (amplifisert)</option>
+                <option value="negative">Negativ (ikke amplifisert)</option>
+              </select>
+            </label>
+          )}
+        </div>
+      </fieldset>
 
+      {/* Tumor Characteristics */}
+      <fieldset>
+        <legend>Tumorkarakteristikk</legend>
+        <div className="form-row">
           <label>
-            ECOG funksjonsstatus
-            <select name="ecogScore" value={form.ecogScore} onChange={handleChange}>
-              <option value="0">0 - Fullt aktiv</option>
-              <option value="1">1 - Begrenset fysisk</option>
-              <option value="2">2 - Oppegående &gt;50%</option>
-              <option value="3">3 - Sengeliggende &gt;50%</option>
-              <option value="4">4 - Helt sengeliggende</option>
+            Tumorstørrelse (mm)
+            <input type="number" name="tumorSizeMm" value={form.tumorSizeMm} onChange={handleChange}
+              min="1" max="200" placeholder="mm" />
+          </label>
+          <label>
+            T-stadium (override)
+            <select name="tStageOverride" value={form.tStageOverride} onChange={handleChange}>
+              <option value="">Beregn fra størrelse</option>
+              <option value="T4">T4 (brystvegg/hud)</option>
             </select>
           </label>
         </div>
+        <div className="form-row">
+          <label>
+            Histologisk grad
+            <select name="grade" value={form.grade} onChange={handleChange}>
+              <option value="">Ikke angitt</option>
+              <option value="1">Grad 1 (lav)</option>
+              <option value="2">Grad 2 (intermediær)</option>
+              <option value="3">Grad 3 (høy)</option>
+            </select>
+          </label>
+          <label>
+            Ki-67 (%)
+            <input type="number" name="ki67" value={form.ki67} onChange={handleChange}
+              min="0" max="100" placeholder="%" />
+          </label>
+        </div>
+        <div className="form-row">
+          <label>
+            N-stadium (lymfeknuter)
+            <select name="nStage" value={form.nStage} onChange={handleChange}>
+              <option value="N0">N0 (ingen spredning)</option>
+              <option value="N1mi">N1mi (mikrometastase)</option>
+              <option value="N1">N1 (1-3 positive)</option>
+              <option value="N2">N2 (4-9 positive)</option>
+              <option value="N3">N3 (≥10 positive)</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
 
+      {/* Gene Expression */}
+      <fieldset>
+        <legend>Genekspresjonstest</legend>
+        <div className="form-row">
+          <label>
+            Test
+            <select name="geneTest" value={form.geneTest} onChange={handleChange}>
+              <option value="none">Ingen / Ikke utført</option>
+              <option value="prosigna">Prosigna (PAM50)</option>
+              <option value="oncotypedx">OncotypeDX</option>
+            </select>
+          </label>
+          {showProsigna && (
+            <>
+              <label>
+                ROR-score
+                <input type="number" name="rorScore" value={form.rorScore} onChange={handleChange}
+                  min="0" max="100" placeholder="0-100" />
+              </label>
+              <label>
+                PAM50 subtype
+                <select name="prosignaSubtype" value={form.prosignaSubtype} onChange={handleChange}>
+                  <option value="">Ikke angitt</option>
+                  <option value="lumA">Luminal A</option>
+                  <option value="lumB">Luminal B</option>
+                  <option value="her2enriched">HER2-enriched</option>
+                  <option value="basallike">Basal-like</option>
+                </select>
+              </label>
+            </>
+          )}
+          {showOncotype && (
+            <label>
+              Recurrence Score (RS)
+              <input type="number" name="rsScore" value={form.rsScore} onChange={handleChange}
+                min="0" max="100" placeholder="0-100" />
+            </label>
+          )}
+        </div>
+      </fieldset>
+
+      {/* Patient Factors */}
+      <fieldset>
+        <legend>Pasientfaktorer</legend>
         <div className="form-row">
           <label>
             Menopausal status
@@ -112,80 +245,10 @@ export default function PatientForm({ onSubmit, loading }) {
               <option value="unknown">Ukjent</option>
             </select>
           </label>
-
           <label>
-            Tidligere behandlingslinjer
-            <select name="priorTherapyLines" value={form.priorTherapyLines} onChange={handleChange}>
-              <option value="0">0 - Førstelinjebehandling</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3+</option>
-            </select>
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Risikofaktorer og organfunksjon</legend>
-
-        <div className="form-row">
-          <label>
-            Kardial risiko
-            <select name="cardiacRisk" value={form.cardiacRisk} onChange={handleChange}>
-              <option value="low">Lav</option>
-              <option value="moderate">Moderat</option>
-              <option value="high">Høy (QTc-forlengelse)</option>
-            </select>
-          </label>
-
-          <label>
-            Nøytropenirisiko
-            <select name="neutropeniaRisk" value={form.neutropeniaRisk} onChange={handleChange}>
-              <option value="low">Lav</option>
-              <option value="moderate">Moderat</option>
-              <option value="high">Høy</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="form-row">
-          <label>
-            Diarérisiko
-            <select name="diarrhoeaRisk" value={form.diarrhoeaRisk} onChange={handleChange}>
-              <option value="low">Lav</option>
-              <option value="moderate">Moderat</option>
-              <option value="high">Høy</option>
-            </select>
-          </label>
-
-          <label>
-            Leverfunksjon
-            <select name="hepaticFunction" value={form.hepaticFunction} onChange={handleChange}>
-              <option value="normal">Normal</option>
-              <option value="mild">Lett nedsatt</option>
-              <option value="moderate">Moderat nedsatt</option>
-              <option value="severe">Alvorlig nedsatt</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="form-row">
-          <label>
-            Nyrefunksjon
-            <select name="renalFunction" value={form.renalFunction} onChange={handleChange}>
-              <option value="normal">Normal</option>
-              <option value="mild">Lett nedsatt</option>
-              <option value="moderate">Moderat nedsatt</option>
-              <option value="severe">Alvorlig nedsatt</option>
-            </select>
-          </label>
-
-          <label>
-            Behov for monoterapi
-            <select name="needMonotherapy" value={form.needMonotherapy} onChange={handleChange}>
-              <option value="no">Nei</option>
-              <option value="yes">Ja (tåler ikke kombinasjon)</option>
-            </select>
+            Alder
+            <input type="number" name="age" value={form.age} onChange={handleChange}
+              min="18" max="110" placeholder="år" />
           </label>
         </div>
       </fieldset>

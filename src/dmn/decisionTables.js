@@ -1,310 +1,354 @@
 /**
- * DMN Decision Tables for CDK4/6-inhibitorvalg ved HR+/HER2- metastatisk brystkreft.
+ * DMN Decision Tables for CDK4/6-inhibitor adjuvant behandling.
  *
- * Basert på kliniske retningslinjer:
- * - NBCG (Norsk Bryst Cancer Gruppe) retningslinjer
- * - ESMO Clinical Practice Guidelines
- * - FDA/EMA godkjenningsindikasjoner
+ * Basert på NBCG Handlingsprogram (mars 2025) + CDK4/6-oppdatering (september 2025).
  *
- * Tre godkjente CDK4/6-inhibitorer:
- * 1. Palbociclib (Ibrance) - bred indikasjon, mest klinisk erfaring
- * 2. Ribociclib (Kisqali) - overlevelsesdata, OBS QTc-forlengelse
- * 3. Abemaciclib (Verzenio) - kan brukes som monoterapi, OBS diaré
+ * Adjuvant CDK4/6-inhibitorer:
+ * 1. Abemaciclib (Verzenios) — MonarchE-studien, 2 år adjuvant
+ * 2. Ribociclib (Kisqali) — NATALEE-studien, 3 år adjuvant
  *
- * Beslutningstabellen er strukturert i DMN-format med:
- * - Input: Kliniske variabler fra CQL-evaluering
- * - Rules: Betingelser med hit policy PRIORITY (P)
- * - Output: Anbefalt behandling med begrunnelse
+ * Indikasjoner basert på stadium (T+N) og tumorgrad/genekspresjonstest.
  */
 
 /**
- * Hovedbeslutningstabellen for CDK4/6-inhibitorvalg.
- * Hit Policy: PRIORITY - første treff med høyest prioritet vinner.
+ * CDK4/6-inhibitor adjuvant beslutningstabel.
+ * Hit Policy: PRIORITY — høyeste prioritet vinner.
  *
- * Klinisk-redigerbar struktur: Klinikere kan legge til/endre regler
- * uten å endre kode.
+ * Input fra CQL: cdk46eligible, tSimple, nStage, grade, gesHighRisk, gesLowRisk, geneTestDone
+ * Output: abemaciclib og ribociclib anbefalinger
  */
 export const CDK46_DECISION_TABLE = {
-  id: 'cdk46-inhibitor-selection',
-  name: 'CDK4/6-inhibitor Valg',
+  id: 'cdk46-adjuvant-selection',
+  name: 'CDK4/6-inhibitor Adjuvant Valg (NBCG sept 2025)',
   hitPolicy: 'PRIORITY',
-  version: '1.0.0',
-  lastUpdated: '2026-03-07',
+  version: '2.0.0',
+  lastUpdated: '2026-03-08',
 
   inputs: [
-    { id: 'eligible', label: 'Kvalifisert for CDK4/6i', type: 'boolean' },
-    { id: 'cardiacRisk', label: 'Kardial risiko', type: 'string', allowedValues: ['low', 'moderate', 'high'] },
-    { id: 'neutropeniaRisk', label: 'Nøytropenirisiko', type: 'string', allowedValues: ['low', 'moderate', 'high'] },
-    { id: 'diarrhoeaRisk', label: 'Diarérisiko', type: 'string', allowedValues: ['low', 'moderate', 'high'] },
-    { id: 'hepaticFunction', label: 'Leverfunksjon', type: 'string', allowedValues: ['normal', 'mild', 'moderate', 'severe'] },
-    { id: 'needMonotherapy', label: 'Behov for monoterapi', type: 'boolean' },
-    { id: 'menopausalStatus', label: 'Menopausal status', type: 'string', allowedValues: ['pre', 'peri', 'post', 'unknown'] },
-    { id: 'priorTherapyLines', label: 'Antall tidligere behandlingslinjer', type: 'number' },
-    { id: 'ki67Value', label: 'Ki-67 proliferasjonsindeks (%)', type: 'number' },
+    { id: 'cdk46eligible', label: 'Kvalifisert for CDK4/6i (HR+HER2-, adjuvant)', type: 'boolean' },
+    { id: 'tSimple', label: 'T-stadium (forenklet)', type: 'string', allowedValues: ['T1', 'T2', 'T3', 'T4'] },
+    { id: 'nStage', label: 'N-stadium', type: 'string', allowedValues: ['N0', 'N1mi', 'N1', 'N2', 'N3'] },
+    { id: 'grade', label: 'Histologisk grad', type: 'number', allowedValues: [1, 2, 3] },
+    { id: 'gesHighRisk', label: 'Genekspresjonstest høy risiko', type: 'boolean' },
+    { id: 'gesLowRisk', label: 'Genekspresjonstest lav risiko', type: 'boolean' },
+    { id: 'geneTestDone', label: 'Genekspresjonstest utført', type: 'boolean' },
+    { id: 'tumorSizeMm', label: 'Tumorstørrelse (mm)', type: 'number' },
   ],
 
   outputs: [
-    { id: 'recommendation', label: 'Anbefalt CDK4/6-inhibitor', type: 'string' },
-    { id: 'confidence', label: 'Konfidens', type: 'string', allowedValues: ['high', 'moderate', 'low'] },
+    { id: 'abemaciclib', label: 'Abemaciclib anbefaling', type: 'string', allowedValues: ['yes', 'no', 'first_choice', 'if_G3'] },
+    { id: 'ribociclib', label: 'Ribociclib anbefaling', type: 'string', allowedValues: ['yes', 'no', 'if_high_risk', 'if_G3_or_gesHigh'] },
     { id: 'rationale', label: 'Begrunnelse', type: 'string' },
     { id: 'warnings', label: 'Advarsler', type: 'string[]' },
-    { id: 'combinationPartner', label: 'Kombinasjonspartner', type: 'string' },
   ],
 
   rules: [
-    // Regel 0: Ikke kvalifisert
+    // R0: Ikke kvalifisert
     {
       id: 'R0',
       priority: 0,
-      description: 'Ikke kvalifisert for CDK4/6-inhibitor',
+      description: 'Ikke kvalifisert for adjuvant CDK4/6-inhibitor',
       conditions: {
-        eligible: false,
+        cdk46eligible: false,
       },
       outputs: {
-        recommendation: 'INGEN',
-        confidence: 'high',
-        rationale: 'Pasienten oppfyller ikke kriteriene for CDK4/6-inhibitorbehandling (krever HR+/HER2-, metastatisk, ECOG ≤2)',
+        abemaciclib: 'no',
+        ribociclib: 'no',
+        rationale: 'Pasienten oppfyller ikke kriteriene for adjuvant CDK4/6-inhibitor (krever HR+HER2-, adjuvant setting)',
         warnings: [],
-        combinationPartner: null,
       },
     },
 
-    // Regel 1: Monoterapi påkrevd → Abemaciclib (eneste godkjent som monoterapi)
+    // R1: Stadium I (T1 N0) — Ingen CDK4/6i
     {
       id: 'R1',
-      priority: 10,
-      description: 'Monoterapi nødvendig - kun abemaciclib godkjent',
+      priority: 12,
+      description: 'Stadium I (T1 N0): Ingen CDK4/6-inhibitor',
       conditions: {
-        eligible: true,
-        needMonotherapy: true,
+        cdk46eligible: true,
+        tSimple: 'T1',
+        nStage: 'N0',
       },
       outputs: {
-        recommendation: 'Abemaciclib',
-        confidence: 'high',
-        rationale: 'Abemaciclib er den eneste CDK4/6-inhibitoren godkjent som monoterapi etter progresjon på endokrinterapi',
-        warnings: ['Diaré er svært vanlig (>80%) - krever proaktiv håndtering med loperamid'],
-        combinationPartner: null,
+        abemaciclib: 'no',
+        ribociclib: 'no',
+        rationale: 'Stadium I (T1 N0): Lav risiko, CDK4/6-inhibitor ikke indisert',
+        warnings: [],
       },
     },
 
-    // Regel 2: Høy kardial risiko → Unngå ribociclib (QTc-forlengelse)
+    // R2: Stadium IIA (T2 N0) — Ribociclib kun ved G3 eller GES høy risiko
     {
       id: 'R2',
-      priority: 9,
-      description: 'Høy kardial risiko - unngå ribociclib pga QTc-forlengelse',
+      priority: 11,
+      description: 'Stadium IIA (T2 N0): Ribociclib kun ved G3 eller høyrisiko GES',
       conditions: {
-        eligible: true,
-        cardiacRisk: 'high',
-        needMonotherapy: false,
+        cdk46eligible: true,
+        tSimple: 'T2',
+        nStage: 'N0',
       },
       outputs: {
-        recommendation: 'Palbociclib',
-        confidence: 'high',
-        rationale: 'Ribociclib kontraindisert ved høy kardial risiko grunnet QTc-forlengelse. Palbociclib anbefalt pga gunstig sikkerhetsprofil',
-        warnings: ['Nøytropeni krever regelmessig blodprøvekontroll'],
-        combinationPartner: 'Letrozol eller fulvestrant',
+        abemaciclib: 'no',
+        ribociclib: 'if_G3_or_gesHigh',
+        rationale: 'Stadium IIA (T2 N0): Ribociclib kan vurderes ved G3 eller høyrisiko genekspresjonstest',
+        warnings: ['Abemaciclib ikke indisert ved T2 N0'],
       },
     },
 
-    // Regel 3: Høy nøytropenirisiko → Abemaciclib (lavere nøytropenirisiko)
+    // R2b: Stadium IIA (T1 N1mi) — Lignende T2N0
+    {
+      id: 'R2b',
+      priority: 11,
+      description: 'T1 N1mi: Ribociclib kun ved G3 eller høyrisiko GES',
+      conditions: {
+        cdk46eligible: true,
+        tSimple: 'T1',
+        nStage: 'N1mi',
+      },
+      outputs: {
+        abemaciclib: 'no',
+        ribociclib: 'if_G3_or_gesHigh',
+        rationale: 'T1 N1mi: Ribociclib kan vurderes ved G3 eller høyrisiko genekspresjonstest',
+        warnings: [],
+      },
+    },
+
+    // R3: Stadium IIA (T1 N1) — Abemaciclib ved G3, Ribociclib ved G3/GES høy
     {
       id: 'R3',
-      priority: 8,
-      description: 'Høy nøytropenirisiko - abemaciclib gir mindre nøytropeni',
+      priority: 10,
+      description: 'Stadium IIA (T1 N1): Abemaciclib ved G3, Ribociclib ved G3/GES høy risiko',
       conditions: {
-        eligible: true,
-        neutropeniaRisk: 'high',
-        diarrhoeaRisk: { not: 'high' },
-        needMonotherapy: false,
+        cdk46eligible: true,
+        tSimple: 'T1',
+        nStage: 'N1',
       },
       outputs: {
-        recommendation: 'Abemaciclib',
-        confidence: 'moderate',
-        rationale: 'Abemaciclib har lavere forekomst av alvorlig nøytropeni sammenlignet med palbociclib og ribociclib',
-        warnings: ['Diaré er vanlig - proaktiv håndtering anbefales', 'Tromboembolisk risiko bør vurderes'],
-        combinationPartner: 'Letrozol eller fulvestrant',
+        abemaciclib: 'if_G3',
+        ribociclib: 'if_G3_or_gesHigh',
+        rationale: 'Stadium IIA (T1 N1): Abemaciclib ved grad 3 (MonarchE). Ribociclib ved grad 3 eller høyrisiko GES (NATALEE)',
+        warnings: [],
       },
     },
 
-    // Regel 4: Høy diarérisiko → Unngå abemaciclib
+    // R4: Stadium IIB (T2 N1) — Abemaciclib ved G3, Ribociclib ja (unntatt GES lav)
     {
       id: 'R4',
-      priority: 7,
-      description: 'Høy diarérisiko - unngå abemaciclib',
+      priority: 9,
+      description: 'Stadium IIB (T2 N1): Abemaciclib ved G3, Ribociclib ja',
       conditions: {
-        eligible: true,
-        diarrhoeaRisk: 'high',
-        cardiacRisk: { not: 'high' },
-        needMonotherapy: false,
+        cdk46eligible: true,
+        tSimple: 'T2',
+        nStage: 'N1',
       },
       outputs: {
-        recommendation: 'Ribociclib',
-        confidence: 'moderate',
-        rationale: 'Abemaciclib unngås ved høy diarérisiko. Ribociclib anbefalt pga dokumentert overlevelsesgevinst (MONALEESA-studiene)',
-        warnings: ['QTc-monitorering anbefales', 'Nøytropeni krever blodprøvekontroll'],
-        combinationPartner: 'Letrozol eller fulvestrant',
+        abemaciclib: 'if_G3',
+        ribociclib: 'yes',
+        rationale: 'Stadium IIB (T2 N1): Abemaciclib ved grad 3. Ribociclib anbefalt (unntatt ved lav risiko GES)',
+        warnings: ['Ved lav risiko genekspresjonstest: Vurder å avstå fra ribociclib'],
       },
     },
 
-    // Regel 5: Nedsatt leverfunksjon → Dosejustering nødvendig
+    // R5: Stadium IIB (T3 N0) — Abemaciclib ved G3, Ribociclib ja
     {
       id: 'R5',
-      priority: 6,
-      description: 'Nedsatt leverfunksjon - palbociclib best dokumentert',
+      priority: 9,
+      description: 'Stadium IIB (T3 N0): Abemaciclib ved G3, Ribociclib ja',
       conditions: {
-        eligible: true,
-        hepaticFunction: ['moderate', 'severe'],
-        needMonotherapy: false,
+        cdk46eligible: true,
+        tSimple: 'T3',
+        nStage: 'N0',
       },
       outputs: {
-        recommendation: 'Palbociclib',
-        confidence: 'moderate',
-        rationale: 'Palbociclib har best dokumentasjon for dosejustering ved nedsatt leverfunksjon. Dosereduksjon kan være nødvendig',
-        warnings: ['Dosejustering ved nedsatt leverfunksjon', 'Tett monitorering av leverprøver'],
-        combinationPartner: 'Letrozol eller fulvestrant',
+        abemaciclib: 'if_G3',
+        ribociclib: 'yes',
+        rationale: 'Stadium IIB (T3 N0): Abemaciclib ved grad 3. Ribociclib anbefalt (unntatt ved lav risiko GES)',
+        warnings: ['Ved lav risiko genekspresjonstest: Vurder å avstå fra ribociclib'],
       },
     },
 
-    // Regel 6: Premenopausal + førstelinjebehandling → Ribociclib (MONALEESA-7)
+    // R6: Stadium IIIA (N2 eller T3N1) — Abemaciclib førstevalg, Ribociclib ja
     {
       id: 'R6',
-      priority: 5,
-      description: 'Premenopausal førstelinjebehandling - ribociclib (MONALEESA-7 data)',
+      priority: 8,
+      description: 'Stadium IIIA (N2/T3N1): Abemaciclib førstevalg, Ribociclib ja',
       conditions: {
-        eligible: true,
-        menopausalStatus: ['pre', 'peri'],
-        priorTherapyLines: 0,
-        cardiacRisk: { not: 'high' },
-        needMonotherapy: false,
+        cdk46eligible: true,
+        nStage: 'N2',
       },
       outputs: {
-        recommendation: 'Ribociclib',
-        confidence: 'high',
-        rationale: 'Ribociclib har sterkest evidens for premenopausale pasienter i førstelinjebehandling (MONALEESA-7: signifikant OS-gevinst)',
-        warnings: ['Krever ovarisk suppresjon (GnRH-agonist)', 'QTc-monitorering ved oppstart'],
-        combinationPartner: 'Letrozol + goserelin',
+        abemaciclib: 'first_choice',
+        ribociclib: 'yes',
+        rationale: 'Stadium IIIA (N2): Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt (NATALEE)',
+        warnings: ['Høyrisikogruppe — CDK4/6-inhibitor sterkt anbefalt'],
       },
     },
 
-    // Regel 7: Postmenopausal + førstelinjebehandling → Ribociclib (overlevelsesdata)
+    // R6b: T3 N1
+    {
+      id: 'R6b',
+      priority: 8,
+      description: 'Stadium IIIA (T3 N1): Abemaciclib førstevalg, Ribociclib ja',
+      conditions: {
+        cdk46eligible: true,
+        tSimple: 'T3',
+        nStage: 'N1',
+      },
+      outputs: {
+        abemaciclib: 'first_choice',
+        ribociclib: 'yes',
+        rationale: 'Stadium IIIA (T3 N1): Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt (NATALEE)',
+        warnings: ['Høyrisikogruppe — CDK4/6-inhibitor sterkt anbefalt'],
+      },
+    },
+
+    // R7: Stadium IIIB (T4) — Differensiert etter N-status
     {
       id: 'R7',
-      priority: 4,
-      description: 'Postmenopausal førstelinjebehandling - ribociclib foretrukket',
+      priority: 7,
+      description: 'T4 N0: Ribociclib ja',
       conditions: {
-        eligible: true,
-        menopausalStatus: 'post',
-        priorTherapyLines: 0,
-        cardiacRisk: { not: 'high' },
-        needMonotherapy: false,
+        cdk46eligible: true,
+        tSimple: 'T4',
+        nStage: 'N0',
       },
       outputs: {
-        recommendation: 'Ribociclib',
-        confidence: 'high',
-        rationale: 'Ribociclib har dokumentert total overlevelsesgevinst i MONALEESA-2 (postmenopausale, 1.linje)',
-        warnings: ['QTc-monitorering ved oppstart og under behandling'],
-        combinationPartner: 'Letrozol',
+        abemaciclib: 'no',
+        ribociclib: 'yes',
+        rationale: 'T4 N0: Ribociclib anbefalt (NATALEE)',
+        warnings: [],
       },
     },
 
-    // Regel 8: Andrelinje etter endokrinterapi → Alle tre er aktuelle
+    // R7b: T4 N1 — Abemaciclib ved G3 eller tumor ≥5cm
+    {
+      id: 'R7b',
+      priority: 7,
+      description: 'T4 N1: Abemaciclib ved G3/stor tumor, Ribociclib ja',
+      conditions: {
+        cdk46eligible: true,
+        tSimple: 'T4',
+        nStage: 'N1',
+      },
+      outputs: {
+        abemaciclib: 'if_G3',
+        ribociclib: 'yes',
+        rationale: 'T4 N1: Abemaciclib ved G3 eller tumorstørrelse ≥50mm. Ribociclib anbefalt',
+        warnings: ['Vurder abemaciclib ved stor tumor (≥5cm) uavhengig av grad'],
+      },
+    },
+
+    // R7c: T4 N2 — Abemaciclib førstevalg
+    {
+      id: 'R7c',
+      priority: 7,
+      description: 'T4 N2: Abemaciclib førstevalg, Ribociclib ja',
+      conditions: {
+        cdk46eligible: true,
+        tSimple: 'T4',
+        nStage: 'N2',
+      },
+      outputs: {
+        abemaciclib: 'first_choice',
+        ribociclib: 'yes',
+        rationale: 'T4 N2: Abemaciclib førstevalg. Ribociclib også aktuelt',
+        warnings: ['Høyrisikogruppe — CDK4/6-inhibitor sterkt anbefalt'],
+      },
+    },
+
+    // R8: N3 (uansett T) — Abemaciclib førstevalg, Ribociclib ja
     {
       id: 'R8',
-      priority: 3,
-      description: 'Andrelinje etter progresjon på endokrinterapi',
+      priority: 13,
+      description: 'N3 (≥10 positive lymfeknuter): Abemaciclib førstevalg',
       conditions: {
-        eligible: true,
-        priorTherapyLines: [1, 2],
-        needMonotherapy: false,
+        cdk46eligible: true,
+        nStage: 'N3',
       },
       outputs: {
-        recommendation: 'Palbociclib',
-        confidence: 'moderate',
-        rationale: 'Etter progresjon på endokrinterapi er alle CDK4/6-inhibitorer aktuelle. Palbociclib i kombinasjon med fulvestrant har bred dokumentasjon (PALOMA-3)',
-        warnings: ['Nøytropeni krever regelmessig blodprøvekontroll'],
-        combinationPartner: 'Fulvestrant',
+        abemaciclib: 'first_choice',
+        ribociclib: 'yes',
+        rationale: 'N3 (≥10 positive lymfeknuter): Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt (NATALEE)',
+        warnings: ['Svært høy risiko — CDK4/6-inhibitor sterkt anbefalt', 'Diaré vanlig med abemaciclib — proaktiv håndtering'],
       },
     },
 
-    // Regel 10: Høy Ki-67 (≥30%) → Ribociclib (sterkest proliferasjonshemming)
-    {
-      id: 'R10',
-      priority: 2,
-      description: 'Høy Ki-67 proliferasjon (≥30%) - ribociclib kan være gunstig',
-      conditions: {
-        eligible: true,
-        ki67Value: { gte: 30 },
-        cardiacRisk: { not: 'high' },
-        needMonotherapy: false,
-      },
-      outputs: {
-        recommendation: 'Ribociclib',
-        confidence: 'moderate',
-        rationale: 'Ved høy Ki-67 (≥30%) kan ribociclib være gunstig grunnet dokumentert overlevelsesgevinst i MONALEESA-studiene, spesielt ved aggressiv tumorbiologi',
-        warnings: ['QTc-monitorering anbefales', 'Nøytropeni krever blodprøvekontroll'],
-        combinationPartner: 'Aromatasehemmer eller fulvestrant',
-      },
-    },
-
-    // Regel 9: Standardanbefaling (fallback)
+    // R9: T2 N1mi — Mellomgruppe
     {
       id: 'R9',
-      priority: 1,
-      description: 'Standardanbefaling når ingen spesifikke kontraindikasjoner',
+      priority: 10,
+      description: 'T2 N1mi: Ribociclib ved G3/GES høy risiko',
       conditions: {
-        eligible: true,
+        cdk46eligible: true,
+        tSimple: 'T2',
+        nStage: 'N1mi',
       },
       outputs: {
-        recommendation: 'Palbociclib',
-        confidence: 'moderate',
-        rationale: 'Palbociclib anbefalt som standardvalg grunnet lengst klinisk erfaring og veletablert sikkerhetsprofil',
-        warnings: ['Nøytropeni er den vanligste bivirkningen - regelmessig blodprøvekontroll'],
-        combinationPartner: 'Aromatasehemmer eller fulvestrant',
+        abemaciclib: 'no',
+        ribociclib: 'if_G3_or_gesHigh',
+        rationale: 'T2 N1mi: Ribociclib kan vurderes ved G3 eller høyrisiko genekspresjonstest',
+        warnings: [],
+      },
+    },
+
+    // R10: Fallback for eligible patients
+    {
+      id: 'R10',
+      priority: 1,
+      description: 'Standardanbefaling kvalifiserte pasienter',
+      conditions: {
+        cdk46eligible: true,
+      },
+      outputs: {
+        abemaciclib: 'no',
+        ribociclib: 'if_G3_or_gesHigh',
+        rationale: 'Vurder CDK4/6-inhibitor basert på individuell risikoprofil',
+        warnings: ['Individuell vurdering nødvendig'],
       },
     },
   ],
 };
 
 /**
- * Tilleggsbeslutningstabellen: Endokrinterapi kombinasjonspartner
+ * Endokrinterapi kombinasjonspartner — beholdt fra v1 med oppdateringer.
  */
 export const ENDOCRINE_PARTNER_TABLE = {
   id: 'endocrine-partner-selection',
   name: 'Endokrinterapi Kombinasjonspartner',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
+  version: '2.0.0',
 
   inputs: [
     { id: 'menopausalStatus', label: 'Menopausal status', type: 'string' },
     { id: 'priorTherapyLines', label: 'Tidligere behandlingslinjer', type: 'number' },
-    { id: 'priorEndocrineTherapy', label: 'Tidligere endokrinterapi', type: 'boolean' },
+    { id: 'isHighRisk', label: 'Høyrisikopasient', type: 'boolean' },
   ],
 
   outputs: [
-    { id: 'partner', label: 'Kombinasjonspartner', type: 'string' },
+    { id: 'partner', label: 'Endokrinterapi', type: 'string' },
     { id: 'rationale', label: 'Begrunnelse', type: 'string' },
   ],
 
   rules: [
     {
       id: 'EP1',
-      conditions: { priorTherapyLines: 0, menopausalStatus: 'post' },
-      outputs: { partner: 'Letrozol', rationale: 'Aromatasehemmer i førstelinjebehandling for postmenopausale' },
+      conditions: { menopausalStatus: 'post' },
+      outputs: { partner: 'Aromatasehemmer (AI) 5 år', rationale: 'Standard for postmenopausale: AI (letrozol/anastrozol)' },
     },
     {
       id: 'EP2',
-      conditions: { priorTherapyLines: 0, menopausalStatus: ['pre', 'peri'] },
-      outputs: { partner: 'Letrozol + Goserelin', rationale: 'Aromatasehemmer + ovarisk suppresjon for premenopausale' },
+      conditions: { menopausalStatus: ['pre', 'peri'], isHighRisk: true },
+      outputs: { partner: 'Tamoxifen + OFS (evt. AI + OFS)', rationale: 'Høyrisiko pre/perimenopausal: Tamoxifen + ovarisk suppresjon, evt AI + OFS' },
     },
     {
       id: 'EP3',
-      conditions: { priorEndocrineTherapy: true },
-      outputs: { partner: 'Fulvestrant', rationale: 'Fulvestrant etter progresjon på aromatasehemmer' },
+      conditions: { menopausalStatus: ['pre', 'peri'] },
+      outputs: { partner: 'Tamoxifen 5-10 år', rationale: 'Standard for pre/perimenopausal: Tamoxifen' },
     },
     {
       id: 'EP4',
       conditions: {},
-      outputs: { partner: 'Aromatasehemmer', rationale: 'Standard endokrinterapi' },
+      outputs: { partner: 'Tamoxifen', rationale: 'Standard endokrinterapi' },
     },
   ],
 };
