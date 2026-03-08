@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import PatientForm from './components/PatientForm.jsx';
 import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
+import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
 import './styles.css';
 
 export default function App() {
-  const [page, setPage] = useState('form'); // 'form' | 'tables'
+  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree'
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,6 +49,12 @@ export default function App() {
             Pasientvurdering
           </button>
           <button
+            className={`nav-btn ${page === 'tree' ? 'active' : ''}`}
+            onClick={() => setPage('tree')}
+          >
+            Beslutningstre
+          </button>
+          <button
             className={`nav-btn ${page === 'tables' ? 'active' : ''}`}
             onClick={() => setPage('tables')}
           >
@@ -70,6 +77,8 @@ export default function App() {
             {result && <DecisionResult result={result} />}
           </>
         )}
+
+        {page === 'tree' && <InteractiveDecisionTree />}
 
         {page === 'tables' && <DecisionTableViewer />}
       </main>
