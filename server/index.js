@@ -1,8 +1,10 @@
 /**
  * Express-server for Brystkreft Beslutningsstøtte
  *
+ * Pipeline: Patient Form → CQL (fact derivation) → DMN (CDK4/6 adjuvant) → Treatment Builder → Display
+ *
  * Endepunkter:
- * - POST /api/evaluate       - Evaluer pasientdata mot beslutningstabeller
+ * - POST /api/evaluate       - Evaluer pasientdata mot full behandlingsprotokoll
  * - GET  /api/decision-tables - Hent beslutningstabeller (for redigering)
  * - PUT  /api/decision-tables/:id - Oppdater beslutningstabel
  * - GET  /cds-services       - CDS Hooks discovery
@@ -12,8 +14,9 @@
 import express from 'express';
 import cors from 'cors';
 import { evaluateCQL, validateClinicalData } from '../src/cql/cqlEngine.js';
-import { evaluateDecisionTable, evaluateDecisionChain, formatRecommendation } from '../src/dmn/dmnEngine.js';
+import { evaluateDecisionTable, formatRecommendation } from '../src/dmn/dmnEngine.js';
 import { CDK46_DECISION_TABLE, ENDOCRINE_PARTNER_TABLE } from '../src/dmn/decisionTables.js';
+import { buildTreatmentPlan, buildJournalText, buildReferralText } from '../src/dmn/treatmentBuilder.js';
 import { buildPatientBundle } from '../src/fhir/mCodeProfiles.js';
 
 const app = express();
@@ -22,7 +25,7 @@ app.use(express.json());
 
 // In-memory kopi av beslutningstabeller (kliniker-redigerbare)
 let decisionTables = {
-  'cdk46-inhibitor-selection': structuredClone(CDK46_DECISION_TABLE),
+  'cdk46-adjuvant-selection': structuredClone(CDK46_DECISION_TABLE),
   'endocrine-partner-selection': structuredClone(ENDOCRINE_PARTNER_TABLE),
 };
 
@@ -32,7 +35,7 @@ let decisionTables = {
 
 /**
  * POST /api/evaluate
- * Motta pasientdata, kjør CQL → DMN pipeline, returner anbefaling
+ * Full pipeline: CQL → DMN → Treatment Builder → Journal Text
  */
 app.post('/api/evaluate', (req, res) => {
   try {
@@ -47,44 +50,40 @@ app.post('/api/evaluate', (req, res) => {
       });
     }
 
-    // Steg 1: CQL-evaluering (datahenting og beregning)
+    // Steg 1: CQL-evaluering (full fact derivation)
     const cqlOutput = evaluateCQL(clinicalData);
 
-    // Steg 2: DMN-evaluering (beslutningslogikk) - kjeder CDK4/6i + endokrinterapi-tabeller
-    const cdk46Table = decisionTables['cdk46-inhibitor-selection'];
-    const endocrineTable = decisionTables['endocrine-partner-selection'];
-    const chainResult = evaluateDecisionChain([cdk46Table, endocrineTable], cqlOutput);
+    // Steg 2: DMN CDK4/6 adjuvant evaluering
+    const cdk46Table = decisionTables['cdk46-adjuvant-selection'];
+    const cdk46Result = evaluateDecisionTable(cdk46Table, cqlOutput);
 
-    const cdk46Result = chainResult.tableResults[0];
-    const endocrineResult = chainResult.tableResults[1];
-    const recommendation = formatRecommendation(cdk46Result);
+    // Steg 3: Build complete treatment plan
+    const treatmentPlan = buildTreatmentPlan(cqlOutput, cdk46Result);
 
-    // Berik anbefaling med endokrinterapi-partner fra egen tabell
-    if (endocrineResult.matched && endocrineResult.result) {
-      recommendation.endocrinePartner = endocrineResult.result.partner;
-      recommendation.endocrineRationale = endocrineResult.result.rationale;
-    }
+    // Steg 4: Generate texts
+    const journalText = buildJournalText(cqlOutput, treatmentPlan);
+    const referralText = cqlOutput.isNeoadjuvant ? buildReferralText(cqlOutput) : null;
 
-    // Steg 3: Bygg FHIR Bundle (for audit trail)
+    // Steg 5: FHIR Bundle (audit trail)
     const fhirBundle = buildPatientBundle({
       patientId: clinicalData.patientId || 'anonymous',
       ...clinicalData,
     });
 
     res.json({
-      recommendation,
+      treatmentPlan,
       cqlOutput,
       dmnResult: {
         tableId: cdk46Result.tableId,
         matched: cdk46Result.matched,
+        result: cdk46Result.result,
         matchedRules: cdk46Result.matchedRules?.map((r) => ({
           ruleId: r.ruleId,
           description: r.description,
         })),
-        endocrinePartner: endocrineResult.matched
-          ? { partner: endocrineResult.result?.partner, rationale: endocrineResult.result?.rationale }
-          : null,
       },
+      journalText,
+      referralText,
       fhirBundle,
       timestamp: new Date().toISOString(),
     });
@@ -98,46 +97,28 @@ app.post('/api/evaluate', (req, res) => {
 // Beslutningstabel-administrasjon (for kliniker-redigering)
 // ============================================================
 
-/**
- * GET /api/decision-tables
- * Hent alle beslutningstabeller
- */
 app.get('/api/decision-tables', (_req, res) => {
   res.json(Object.values(decisionTables));
 });
 
-/**
- * GET /api/decision-tables/:id
- * Hent én beslutningstabel
- */
 app.get('/api/decision-tables/:id', (req, res) => {
   const table = decisionTables[req.params.id];
   if (!table) return res.status(404).json({ error: 'Beslutningstabel ikke funnet' });
   res.json(table);
 });
 
-/**
- * PUT /api/decision-tables/:id
- * Oppdater en beslutningstabel (kliniker-redigering)
- */
 app.put('/api/decision-tables/:id', (req, res) => {
   const id = req.params.id;
   if (!decisionTables[id]) return res.status(404).json({ error: 'Beslutningstabel ikke funnet' });
-
   const updated = req.body;
   updated.lastUpdated = new Date().toISOString();
   decisionTables[id] = updated;
-
   res.json({ message: 'Beslutningstabel oppdatert', table: updated });
 });
 
-/**
- * POST /api/decision-tables/reset
- * Tilbakestill beslutningstabeller til standard
- */
 app.post('/api/decision-tables/reset', (_req, res) => {
   decisionTables = {
-    'cdk46-inhibitor-selection': structuredClone(CDK46_DECISION_TABLE),
+    'cdk46-adjuvant-selection': structuredClone(CDK46_DECISION_TABLE),
     'endocrine-partner-selection': structuredClone(ENDOCRINE_PARTNER_TABLE),
   };
   res.json({ message: 'Beslutningstabeller tilbakestilt' });
@@ -147,19 +128,15 @@ app.post('/api/decision-tables/reset', (_req, res) => {
 // CDS Hooks endepunkter
 // ============================================================
 
-/**
- * GET /cds-services
- * CDS Hooks Discovery - annonserer tilgjengelige tjenester
- */
 app.get('/cds-services', (_req, res) => {
   res.json({
     services: [
       {
         hook: 'patient-view',
-        id: 'cdk46-inhibitor-cds',
-        title: 'CDK4/6-inhibitor Beslutningsstøtte for Brystkreft',
+        id: 'breast-cancer-adjuvant-cds',
+        title: 'Brystkreft Adjuvant Beslutningsstøtte (NBCG)',
         description:
-          'Gir anbefalinger for valg av CDK4/6-inhibitor ved HR+/HER2- metastatisk brystkreft basert på kliniske risikofaktorer',
+          'Gir behandlingsanbefalinger for adjuvant brystkreftbehandling inkludert kjemoterapi, endokrinterapi, CDK4/6-inhibitorer, strålebehandling og bisfosfonater',
         prefetch: {
           patient: 'Patient/{{context.patientId}}',
           conditions: 'Condition?patient={{context.patientId}}&code=http://hl7.org/fhir/sid/icd-10-cm|C50',
@@ -172,34 +149,30 @@ app.get('/cds-services', (_req, res) => {
   });
 });
 
-/**
- * POST /cds-services/cdk46-inhibitor-cds
- * CDS Hooks Service - evaluer og returner anbefalingskort
- */
-app.post('/cds-services/cdk46-inhibitor-cds', (req, res) => {
+app.post('/cds-services/breast-cancer-adjuvant-cds', (req, res) => {
   try {
     const { context, prefetch } = req.body;
-
-    // Ekstraher kliniske data fra prefetch FHIR-ressurser + kontekst
     const clinicalData = extractFromPrefetch(prefetch, context);
     const cqlOutput = evaluateCQL(clinicalData);
-    const table = decisionTables['cdk46-inhibitor-selection'];
-    const dmnResult = evaluateDecisionTable(table, cqlOutput);
-    const rec = formatRecommendation(dmnResult);
+
+    const table = decisionTables['cdk46-adjuvant-selection'];
+    const cdk46Result = evaluateDecisionTable(table, cqlOutput);
+    const treatmentPlan = buildTreatmentPlan(cqlOutput, cdk46Result);
 
     const cards = [];
 
-    if (rec.recommendation && rec.recommendation !== 'INGEN') {
+    if (treatmentPlan.steps.length > 0) {
+      const stepSummary = treatmentPlan.steps.map((s) => s.name).join(', ');
       cards.push({
         uuid: crypto.randomUUID?.() || Date.now().toString(),
-        summary: `CDK4/6i anbefaling: ${rec.recommendation}`,
-        detail: `${rec.rationale}\n\nKombinasjonspartner: ${rec.combinationPartner || 'Ikke spesifisert'}`,
-        indicator: rec.confidence === 'high' ? 'info' : 'warning',
+        summary: `Behandlingsplan (${treatmentPlan.bioGroup}): ${stepSummary}`,
+        detail: buildJournalText(cqlOutput, treatmentPlan),
+        indicator: 'info',
         source: {
-          label: 'Brystkreft CDK4/6i CDS',
+          label: 'Brystkreft Adjuvant CDS (NBCG)',
           url: 'https://nbcg.no',
         },
-        suggestions: rec.warnings.map((w) => ({
+        suggestions: treatmentPlan.warnings.map((w) => ({
           label: w,
           uuid: crypto.randomUUID?.() || Date.now().toString(),
         })),
@@ -214,24 +187,24 @@ app.post('/cds-services/cdk46-inhibitor-cds', (req, res) => {
 });
 
 /**
- * Ekstraher kliniske data fra FHIR prefetch-ressurser
+ * Extract clinical data from FHIR prefetch resources
  */
 function extractFromPrefetch(prefetch, context = {}) {
   const data = {
     erStatus: null,
     prStatus: null,
-    her2Status: null,
+    her2ihc: null,
+    her2sish: null,
     ki67: null,
-    ecogScore: null,
-    metastatic: null,
+    nStage: context.nStage || 'N0',
+    tumorSizeMm: context.tumorSizeMm || null,
+    grade: context.grade || null,
     menopausalStatus: context.menopausalStatus || 'unknown',
-    priorTherapyLines: context.priorTherapyLines ?? 0,
-    hepaticFunction: context.hepaticFunction || 'normal',
-    renalFunction: context.renalFunction || 'normal',
-    cardiacRisk: context.cardiacRisk || 'low',
-    neutropeniaRisk: context.neutropeniaRisk || 'low',
-    diarrhoeaRisk: context.diarrhoeaRisk || 'low',
-    needMonotherapy: context.needMonotherapy || 'no',
+    treatmentMode: context.treatmentMode || 'adjuvant',
+    surgeryType: context.surgeryType || null,
+    geneTest: context.geneTest || 'none',
+    rorScore: context.rorScore || null,
+    rsScore: context.rsScore || null,
   };
 
   if (prefetch?.tumorMarkers?.entry) {
@@ -242,26 +215,17 @@ function extractFromPrefetch(prefetch, context = {}) {
 
       if (code === '85337-4') data.erStatus = isPositive ? 'positive' : 'negative';
       if (code === '85339-0') data.prStatus = isPositive ? 'positive' : 'negative';
-      if (code === '85319-2') data.her2Status = isPositive ? 'positive' : 'negative';
+      if (code === '85319-2') {
+        // HER2 IHC score from observation
+        const display = obs?.valueCodeableConcept?.coding?.[0]?.display;
+        if (display) data.her2ihc = display;
+      }
       if (code === '85329-1') data.ki67 = obs?.valueQuantity?.value;
     }
   }
 
   if (prefetch?.ecog?.entry?.[0]) {
     data.ecogScore = prefetch.ecog.entry[0].resource?.valueInteger;
-  }
-
-  // Sjekk metastatisk status fra Condition-ressurser
-  if (prefetch?.conditions?.entry) {
-    for (const entry of prefetch.conditions.entry) {
-      const condition = entry.resource;
-      const metastaticExt = condition?.extension?.find(
-        (e) => e.url?.includes('histology-morphology-behavior')
-      );
-      if (metastaticExt?.valueCodeableConcept?.coding?.[0]?.code === '14799000') {
-        data.metastatic = 'yes';
-      }
-    }
   }
 
   return data;

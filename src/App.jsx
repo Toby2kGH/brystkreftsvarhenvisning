@@ -39,7 +39,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>Brystkreft Beslutningsstøtte</h1>
-        <p className="subtitle">CDK4/6-inhibitorvalg ved HR+/HER2- metastatisk brystkreft</p>
+        <p className="subtitle">Adjuvant behandlingsprotokoll per NBCG Handlingsprogram</p>
         <nav className="nav">
           <button
             className={`nav-btn ${page === 'form' ? 'active' : ''}`}
