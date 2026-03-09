@@ -697,6 +697,252 @@ legend {
   cursor: pointer;
 }
 
+/* Add rule button */
+.rules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.rules-header h3 {
+  color: var(--primary);
+}
+
+.add-rule-btn {
+  padding: 6px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.add-rule-btn:hover {
+  opacity: 0.9;
+}
+
+.rule-card-new {
+  border-color: var(--accent);
+  border-width: 2px;
+  background: #f0faf4;
+}
+
+/* Delete rule button */
+.delete-rule-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.delete-rule-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* Add table button */
+.add-table-btn {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.add-table-btn:hover {
+  opacity: 0.9;
+}
+
+/* Delete table button */
+.delete-table-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.delete-table-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* New table form */
+.new-table-form {
+  background: #f0faf4;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.new-table-form h3 {
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.new-table-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.new-table-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.new-table-fields input,
+.new-table-fields select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .new-table-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Visual Condition Builder */
+.condition-builder {
+  margin: 8px 0;
+}
+
+.condition-builder > strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.condition-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.condition-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.cond-param {
+  flex: 2;
+  min-width: 160px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+}
+
+.cond-op {
+  flex: 1.2;
+  min-width: 120px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+}
+
+.cond-value {
+  flex: 1.5;
+  min-width: 100px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.cond-remove {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cond-remove:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.cond-add {
+  padding: 5px 14px;
+  border: 1px dashed var(--primary-light);
+  background: transparent;
+  color: var(--primary-light);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.cond-add:hover {
+  background: #eaf2f8;
+}
+
+/* Multi-select chips for IN operator */
+.cond-multi-select {
+  flex: 1.5;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 120px;
+}
+
+.cond-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.cond-chip input[type="checkbox"] {
+  display: none;
+}
+
+.cond-chip.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.cond-chip:hover {
+  border-color: var(--primary-light);
+}
+
 /* Architecture Info */
 .architecture-info {
   margin-top: 24px;

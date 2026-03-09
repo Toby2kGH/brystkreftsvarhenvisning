@@ -6,20 +6,49 @@
 
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { evaluateCQL, validateClinicalData } from '../src/cql/cqlEngine.js';
 import { evaluateDecisionTable } from '../src/dmn/dmnEngine.js';
 import { ALL_DECISION_TABLES } from '../src/dmn/decisionTables.js';
 import { buildTreatmentPlan, buildJournalText, buildReferralText } from '../src/dmn/treatmentBuilder.js';
 import { buildPatientBundle } from '../src/fhir/mCodeProfiles.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CUSTOM_TABLES_PATH = path.join(__dirname, 'custom-tables.json');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory editable copies of all decision tables
+// Load decision tables: custom from disk, fallback to defaults
 let decisionTables = {};
-for (const [id, table] of Object.entries(ALL_DECISION_TABLES)) {
-  decisionTables[id] = structuredClone(table);
+function loadTables() {
+  decisionTables = {};
+  for (const [id, table] of Object.entries(ALL_DECISION_TABLES)) {
+    decisionTables[id] = structuredClone(table);
+  }
+  // Overlay persisted custom tables
+  if (fs.existsSync(CUSTOM_TABLES_PATH)) {
+    try {
+      const custom = JSON.parse(fs.readFileSync(CUSTOM_TABLES_PATH, 'utf-8'));
+      for (const [id, table] of Object.entries(custom)) {
+        decisionTables[id] = table;
+      }
+    } catch (err) {
+      console.warn('Kunne ikke laste custom-tables.json:', err.message);
+    }
+  }
+}
+loadTables();
+
+function saveTables() {
+  try {
+    fs.writeFileSync(CUSTOM_TABLES_PATH, JSON.stringify(decisionTables, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Kunne ikke lagre custom-tables.json:', err.message);
+  }
 }
 
 // ============================================================
@@ -85,7 +114,30 @@ app.put('/api/decision-tables/:id', (req, res) => {
   const updated = req.body;
   updated.lastUpdated = new Date().toISOString();
   decisionTables[id] = updated;
+  saveTables();
   res.json({ message: 'Beslutningstabel oppdatert', table: updated });
+});
+
+// Create a new custom table
+app.post('/api/decision-tables', (req, res) => {
+  const table = req.body;
+  if (!table.id || !table.name) return res.status(400).json({ error: 'Tabell må ha id og navn' });
+  if (decisionTables[table.id]) return res.status(409).json({ error: 'Tabell med denne ID-en finnes allerede' });
+  table.lastUpdated = new Date().toISOString();
+  table.version = table.version || '1.0.0';
+  decisionTables[table.id] = table;
+  saveTables();
+  res.json({ message: 'Ny beslutningstabel opprettet', table });
+});
+
+// Delete a custom table (only non-default)
+app.delete('/api/decision-tables/:id', (req, res) => {
+  const id = req.params.id;
+  if (!decisionTables[id]) return res.status(404).json({ error: 'Beslutningstabel ikke funnet' });
+  if (ALL_DECISION_TABLES[id]) return res.status(403).json({ error: 'Kan ikke slette standardtabell — bruk tilbakestilling' });
+  delete decisionTables[id];
+  saveTables();
+  res.json({ message: 'Beslutningstabel slettet' });
 });
 
 app.post('/api/decision-tables/reset', (_req, res) => {
@@ -93,6 +145,8 @@ app.post('/api/decision-tables/reset', (_req, res) => {
   for (const [id, table] of Object.entries(ALL_DECISION_TABLES)) {
     decisionTables[id] = structuredClone(table);
   }
+  // Remove custom tables file
+  try { fs.unlinkSync(CUSTOM_TABLES_PATH); } catch {}
   res.json({ message: 'Alle beslutningstabeller tilbakestilt' });
 });
 

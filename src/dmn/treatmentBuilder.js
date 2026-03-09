@@ -108,6 +108,24 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     steps.push({ type: 'bisphosphonate', name: 'Zoledronsyre (Zometa)', detail: dmnResults.zometa.result.regimen, rationale: dmnResults.zometa.result.rationale });
   }
 
+  // 7. Evaluate any custom tables not in the standard set
+  const standardIds = new Set(Object.values(tables).map((t) => t.id));
+  for (const [id, table] of Object.entries(customTables)) {
+    if (!standardIds.has(id)) {
+      const result = evaluateDecisionTable(table, cqlOutput);
+      dmnResults[id] = result;
+      if (result.matched && result.result) {
+        const r = Array.isArray(result.result) ? result.result : [result.result];
+        for (const out of r) {
+          if (out.regimen || out.recommendation) {
+            steps.push({ type: out.type || 'custom', name: out.regimen || out.recommendation, detail: out.detail || out.rationale || '', rationale: out.rationale || '' });
+          }
+          if (out.warning) warnings.push(out.warning);
+        }
+      }
+    }
+  }
+
   return {
     bioGroup,
     steps,
