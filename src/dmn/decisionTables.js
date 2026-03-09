@@ -306,10 +306,10 @@ export const CHEMO_PATHWAY_TABLE = {
 
 export const CDK46_DECISION_TABLE = {
   id: 'cdk46-adjuvant-selection',
-  name: 'CDK4/6-inhibitor Adjuvant (NBCG sept 2025)',
+  name: 'CDK4/6-inhibitor Adjuvant (NBCG 04.09.25)',
   hitPolicy: 'PRIORITY',
-  version: '2.0.0',
-  lastUpdated: '2026-03-08',
+  version: '3.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'cdk46eligible', label: 'Kvalifisert (HR+HER2-, adjuvant)', type: 'boolean' },
@@ -322,27 +322,53 @@ export const CDK46_DECISION_TABLE = {
   ],
 
   outputs: [
-    { id: 'abemaciclib', label: 'Abemaciclib', type: 'string', allowedValues: ['yes', 'no', 'first_choice', 'if_G3'] },
-    { id: 'ribociclib', label: 'Ribociclib', type: 'string', allowedValues: ['yes', 'no', 'if_G3_or_gesHigh'] },
+    { id: 'abemaciclib', label: 'Abemaciclib', type: 'string', allowedValues: ['yes', 'no', 'first_choice', 'if_G3', 'if_G3_or_5cm'] },
+    { id: 'ribociclib', label: 'Ribociclib', type: 'string', allowedValues: ['yes', 'no', 'if_G3_or_gesHigh', 'yes_unless_low'] },
     { id: 'rationale', label: 'Begrunnelse', type: 'string' },
     { id: 'warnings', label: 'Advarsler', type: 'string[]' },
   ],
 
   rules: [
+    // Not eligible
     { id: 'R0', priority: 0, description: 'Ikke kvalifisert for CDK4/6i', conditions: { cdk46eligible: false }, outputs: { abemaciclib: 'no', ribociclib: 'no', rationale: 'Krever HR+HER2-, adjuvant setting', warnings: [] } },
-    { id: 'R1', priority: 12, description: 'Stadium I (T1 N0): Ingen CDK4/6i', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'no', rationale: 'T1 N0: Lav risiko, CDK4/6i ikke indisert', warnings: [] } },
-    { id: 'R2', priority: 11, description: 'T2 N0: Ribo kun ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'T2 N0: Ribociclib kan vurderes ved G3 eller høyrisiko GES', warnings: ['Abemaciclib ikke indisert ved T2 N0'] } },
-    { id: 'R2b', priority: 11, description: 'T1 N1mi: Ribo kun ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N1mi' }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'T1 N1mi: Ribociclib ved G3/GES høy risiko', warnings: [] } },
-    { id: 'R9', priority: 10, description: 'T2 N1mi: Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N1mi' }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'T2 N1mi: Ribociclib ved G3/GES høy risiko', warnings: [] } },
-    { id: 'R3', priority: 10, description: 'T1 N1: Abema ved G3, Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'if_G3_or_gesHigh', rationale: 'T1 N1: Abemaciclib ved G3 (MonarchE). Ribociclib ved G3/GES høy (NATALEE)', warnings: [] } },
-    { id: 'R4', priority: 9, description: 'T2 N1: Abema ved G3, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'yes', rationale: 'T2 N1: Abemaciclib ved G3. Ribociclib anbefalt', warnings: ['Ved lav risiko GES: Vurder å avstå fra ribociclib'] } },
-    { id: 'R5', priority: 9, description: 'T3 N0: Abema ved G3, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T3', nStage: 'N0' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'yes', rationale: 'T3 N0: Abemaciclib ved G3. Ribociclib anbefalt', warnings: ['Ved lav risiko GES: Vurder å avstå fra ribociclib'] } },
-    { id: 'R8', priority: 13, description: 'N3: Abema førstevalg', conditions: { cdk46eligible: true, nStage: 'N3' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'N3 (≥10 lymfeknuter): Abemaciclib førstevalg (MonarchE)', warnings: ['Svært høy risiko', 'Diaré vanlig med abemaciclib'] } },
-    { id: 'R6', priority: 8, description: 'N2: Abema førstevalg', conditions: { cdk46eligible: true, nStage: 'N2' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'N2: Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt', warnings: ['Høyrisikogruppe'] } },
-    { id: 'R6b', priority: 8, description: 'T3 N1: Abema førstevalg', conditions: { cdk46eligible: true, tSimple: 'T3', nStage: 'N1' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'T3 N1: Abemaciclib førstevalg', warnings: ['Høyrisikogruppe'] } },
-    { id: 'R7', priority: 7, description: 'T4 N0: Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'yes', rationale: 'T4 N0: Ribociclib anbefalt (NATALEE)', warnings: [] } },
-    { id: 'R7b', priority: 7, description: 'T4 N1: Abema ved G3, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'yes', rationale: 'T4 N1: Abemaciclib ved G3/stor tumor. Ribociclib anbefalt', warnings: ['Vurder abemaciclib ved ≥5cm'] } },
-    { id: 'R7c', priority: 7, description: 'T4 N2: Abema førstevalg', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N2' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'T4 N2: Abemaciclib førstevalg', warnings: ['Høyrisikogruppe'] } },
+
+    // N1mi: No indication (NBCG footnote: "Ingen behandlingsindikasjon ved pN1mic")
+    { id: 'R_N1mi', priority: 15, description: 'N1mi: Ingen CDK4/6i-indikasjon', conditions: { cdk46eligible: true, nStage: 'N1mi' }, outputs: { abemaciclib: 'no', ribociclib: 'no', rationale: 'N1mi (mikrometastase): Ingen behandlingsindikasjon for CDK4/6-hemmer (NBCG 04.09.25)', warnings: [] } },
+
+    // N3 (any T): Both yes, abema first choice
+    { id: 'R8', priority: 14, description: 'N3: Abema førstevalg', conditions: { cdk46eligible: true, nStage: 'N3' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'N3 (≥10 lymfeknuter): Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt. Ved begge indisert: abemaciclib foretrukket (lengre oppfølging, 2 vs 3 år)', warnings: ['Svært høy risiko'] } },
+
+    // T4 N2: Both yes, abema first choice
+    { id: 'R7c', priority: 13, description: 'T4 N2: Abema førstevalg', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N2' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'T4 N2: Abemaciclib førstevalg. Ribociclib også aktuelt', warnings: ['Høyrisikogruppe'] } },
+
+    // N2 (T0-T3): Both yes, abema first choice
+    { id: 'R6', priority: 12, description: 'N2: Abema førstevalg', conditions: { cdk46eligible: true, nStage: 'N2' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'N2 (4-9 lymfeknuter): Abemaciclib førstevalg (MonarchE). Ribociclib også aktuelt', warnings: ['Høyrisikogruppe'] } },
+
+    // T3 N1: Abema first choice, ribo yes
+    { id: 'R6b', priority: 11, description: 'T3 N1: Abema førstevalg', conditions: { cdk46eligible: true, tSimple: 'T3', nStage: 'N1' }, outputs: { abemaciclib: 'first_choice', ribociclib: 'yes', rationale: 'T3 N1: Abemaciclib førstevalg (MonarchE: N1 + T3)', warnings: [] } },
+
+    // T4 N1: Abema if G3 or ≥5cm (first choice), ribo yes
+    { id: 'R7b', priority: 10, description: 'T4 N1: Abema ved G3/≥5cm', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3_or_5cm', ribociclib: 'yes', rationale: 'T4 N1: Abemaciclib ved grad 3 eller tumor ≥5cm (førstevalg). Ribociclib anbefalt', warnings: [] } },
+
+    // T4 N0: Abema no, ribo yes
+    { id: 'R7', priority: 9, description: 'T4 N0: Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T4', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'yes', rationale: 'T4 N0: Ribociclib anbefalt (NATALEE). Abemaciclib ikke indisert', warnings: [] } },
+
+    // T3 N0 (Stage IIB): Abema no, ribo yes (avstå om G1/lavrisiko GES)
+    { id: 'R5', priority: 8, description: 'T3 N0: Ribo ja (ikke ved G1/lavrisiko)', conditions: { cdk46eligible: true, tSimple: 'T3', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'yes_unless_low', rationale: 'T3 N0 (Stadium IIB): Ribociclib anbefalt. Avstå ved grad 1 eller lavrisiko GES. Abemaciclib ikke indisert', warnings: [] } },
+
+    // T2 N1 (Stage IIB): Abema if G3 (first choice), ribo yes (avstå om G1/lavrisiko GES)
+    { id: 'R4', priority: 7, description: 'T2 N1: Abema ved G3, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'yes_unless_low', rationale: 'T2 N1 (Stadium IIB): Abemaciclib ved grad 3 (førstevalg, MonarchE). Ribociclib anbefalt, men avstå ved grad 1 eller lavrisiko GES', warnings: [] } },
+
+    // T1 N1 (Stage IIA): Abema if G3 (first choice), ribo if G3/gesHigh
+    { id: 'R3', priority: 6, description: 'T1 N1: Abema ved G3, Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'if_G3_or_gesHigh', rationale: 'T1 N1 (Stadium IIA): Abemaciclib ved grad 3 (førstevalg, MonarchE). Ribociclib ved grad 3 eller høyrisiko GES', warnings: [] } },
+
+    // T2 N0 (Stage IIA): Abema no, ribo if G3/gesHigh
+    { id: 'R2', priority: 5, description: 'T2 N0: Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'T2 N0 (Stadium IIA): Ribociclib kan vurderes ved grad 3 eller høyrisiko GES. Abemaciclib ikke indisert', warnings: [] } },
+
+    // T1 N0 (Stage I): Both no
+    { id: 'R1', priority: 4, description: 'Stadium I (T1 N0): Ingen CDK4/6i', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'no', rationale: 'T1 N0 (Stadium I): Lav risiko, CDK4/6i ikke indisert', warnings: [] } },
+
+    // Fallback
     { id: 'R10', priority: 1, description: 'Fallback kvalifiserte', conditions: { cdk46eligible: true }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'Individuell vurdering nødvendig', warnings: ['Individuell vurdering'] } },
   ],
 };
