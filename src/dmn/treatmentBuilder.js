@@ -140,7 +140,8 @@ function buildHRposHER2neg(cql, tables, dmnResults, steps, warnings) {
   dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cql);
   if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
     const r = dmnResults.endocrine.result;
-    steps.push({ type: 'endocrine', name: r.therapy === 'aromatasehemmer' ? 'Aromatasehemmer (AI)' : r.therapy === 'tamoxifen_ofs' ? 'Tamoxifen + OFS' : 'Tamoxifen', detail: r.detail, duration: r.duration, rationale: r.rationale });
+    const nameMap = { aromatasehemmer: 'Aromatasehemmer (AI)', ai_ofs: 'OFS + AI (foretrukket)', tamoxifen_ofs: 'OFS + Tamoxifen', tamoxifen: 'Tamoxifen' };
+    steps.push({ type: 'endocrine', name: nameMap[r.therapy] || r.therapy, detail: r.detail, duration: r.duration, rationale: r.rationale });
   }
 
   // CDK4/6

@@ -87,7 +87,7 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     // N2/N3: Always chemo
     // ==========================================
-    { id: 'CP1', conditions: { nStage: ['N2', 'N3'] }, outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: '≥4 positive lymfeknuter: Kjemoterapi alltid anbefalt. TC ×6 er akseptabelt alternativ ved kardiale risikofaktorer' } },
+    { id: 'CP1', conditions: { nStage: ['N2', 'N3'] }, outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN2-3 (≥4 positive lymfeknuter): EC90 ×4 eller TC ×4 → endokrin. Zoledronsyre ved postmenopausal status. Spesielt omfattende lymfeknutemetastasering kan gi grunnlag for EC90 ×4 + taxan' } },
 
     // ==========================================
     // N0, Prosigna — Luminal A, ROR 0-40
@@ -163,20 +163,48 @@ export const CHEMO_PATHWAY_TABLE = {
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, OncotypeDX RS >25: EC90 ×4 eller TC ×4 + endokrin behandling' } },
 
     // ==========================================
-    // N0 without gene test
+    // N0 without gene test — LumA-like (Ki67<10%, G1-2, HR>50%) per NBCG 17.12.24
+    // ==========================================
+    { id: 'CP_F1', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 }, tStage: ['T1a', 'T1b'] },
+      outputs: { pathway: 'none', regimen: 'Ingen systembehandling', rationale: 'pN0, Lum A-liknende (Ki67<10%, G1-2, HR>50%), pT1a-b: Ingen behandling' } },
+    { id: 'CP_F2', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T1c' },
+      outputs: { pathway: 'none', regimen: 'Ingen behandling', rationale: 'pN0, Lum A-liknende, pT1c, Grad 1: Ingen behandling' } },
+    { id: 'CP_F3', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T1c' },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT1c, Grad 2: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
+    { id: 'CP_F4', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T2' },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT2, Grad 1: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
+    { id: 'CP_F5', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2', menopausalStatus: ['pre', 'peri'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum A-liknende, pT2, Grad 2, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ til kjemoterapi' } },
+    { id: 'CP_F6', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2' },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT2, Grad 2, postmenopausal: Endokrin behandling og zoledronsyre' } },
+
+    // ==========================================
+    // N0 without gene test — LumB-like (Ki67>35% ELLER G3+høy Ki67 ELLER HR<50%) per NBCG 17.12.24
+    // ==========================================
+    { id: 'CP_G1', conditions: { nStage: 'N0', erPercent: { lt: 50 }, tStage: ['T1a', 'T1b'] },
+      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (ER <50%), pT1a-b: Endokrin behandling. Lav HR-positivitet kan gi grunnlag for kjemoterapi (EC90 ×4 eller TC ×4)' } },
+    { id: 'CP_G1b', conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1a', 'T1b'] },
+      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (Ki67>35%), pT1a-b: Endokrin behandling. Høy proliferasjon kan gi grunnlag for kjemoterapi' } },
+    { id: 'CP_G2', conditions: { nStage: 'N0', erPercent: { lt: 50 }, tStage: ['T1c', 'T2'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (ER <50%), pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Zoledronsyre ved postmenopausal status' } },
+    { id: 'CP_G2b', conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1c', 'T2'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (Ki67>35%), pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Svært høy proliferasjon kan gi grunnlag for EC90 ×4 + taxan (alternativt TC ×6)' } },
+    { id: 'CP_G3', conditions: { nStage: 'N0', grade: 3, tStage: ['T1a', 'T1b'] },
+      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Grad 3, pT1a-b: Endokrin behandling. Høy grad kan gi grunnlag for kjemoterapi' } },
+    { id: 'CP_G4', conditions: { nStage: 'N0', grade: 3, tStage: ['T1c', 'T2'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Grad 3, pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Svært høy proliferasjon kan gi grunnlag for EC90 ×4 + taxan' } },
+
+    // ==========================================
+    // N0 without gene test — Ikke-konklusiv luminal / fallback
     // ==========================================
     { id: 'CP16', conditions: { nStage: 'N0', tumorSizeMm: { lte: 10 } },
-      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'pN0, ≤10mm: Liten tumor — genekspresjonstest kan vurderes' } },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'pN0, ≤10mm: Liten tumor — genekspresjonstest kan vurderes. Individuell vurdering ved pT1a pN0' } },
     { id: 'CP21', conditions: { nStage: 'N0', grade: 1 },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'pN0, Grad 1: Lav risiko — endokrinterapi alene' } },
-    { id: 'CP22', conditions: { nStage: 'N0', grade: 3 },
-      outputs: { pathway: 'EC', regimen: 'EC90 ×4', rationale: 'pN0, Grad 3: EC90 ×4 anbefalt' } },
-    { id: 'CP23', conditions: { nStage: 'N0', grade: 2, ki67Value: { gte: 30 } },
-      outputs: { pathway: 'EC', regimen: 'EC90 ×4', rationale: 'pN0, Grad 2 + Ki-67 ≥30%: EC90 ×4 anbefalt — høy proliferasjon' } },
     { id: 'CP24', conditions: { nStage: 'N0', grade: 2 },
-      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'pN0, Grad 2: Genekspresjonstest anbefales for å avklare kjemoterapibehov' } },
+      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'pN0, Grad 2: Generell anbefaling ikke mulig uten genekspresjonstest. Gentest anbefales' } },
     { id: 'CP25_N0', conditions: { nStage: 'N0' },
-      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'pN0: Genekspresjonstest anbefales' } },
+      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'pN0: Genekspresjonstest anbefales for å avklare kjemoterapibehov' } },
 
     // ==========================================
     // N1, OncotypeDX — postmenopausal (NBCG tabell 17.12.24)
@@ -202,29 +230,62 @@ export const CHEMO_PATHWAY_TABLE = {
     { id: 'CP3b', conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { gt: 40, lte: 60 } },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4', rationale: 'N1, Prosigna ROR 41-60 (intermediær): Individuell vurdering — diskuter med pasient' } },
 
-    // N1 without gene test
+    // N1 without gene test — LumA-like (per NBCG 17.12.24)
+    { id: 'CP_H1', conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 }, menopausalStatus: ['pre', 'peri'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN1, Lum A-liknende, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ til kjemoterapi' } },
+    { id: 'CP_H2', conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 } },
+      outputs: { pathway: 'consider_chemo', regimen: 'Individuell vurdering', rationale: 'pN1, Lum A-liknende, postmenopausal: Tumorstørrelse og omfang av lymfeknutemetastaser kan gi grunnlag for kjemoterapi (EC90 ×4 alternativt TC ×4). Alternativt endokrin behandling. Zoledronsyre' } },
+
+    // N1 without gene test — LumB-like
+    { id: 'CP_H3', conditions: { nStage: 'N1', erPercent: { lt: 50 } },
+      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1, Lum B-liknende (ER <50%): EC90 ×4 + taxan. Alternativt EC90 ×4 eller TC ×4 avhengig av risikovurdering. TC ×6 akseptabelt alternativ' } },
+    { id: 'CP_H4', conditions: { nStage: 'N1', ki67Value: { gt: 35 } },
+      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1, Lum B-liknende (Ki67>35%): EC90 ×4 + taxan. Alternativt EC90 ×4 eller TC ×4. TC ×6 akseptabelt alternativ' } },
     { id: 'CP6', conditions: { nStage: 'N1', grade: 3 },
-      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'N1, Grad 3 uten gentest: Kjemoterapi anbefalt' } },
-    { id: 'CP7', conditions: { nStage: 'N1', grade: 1 },
-      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'N1, Grad 1: Gentest anbefales for avklaring' } },
-    { id: 'CP8', conditions: { nStage: 'N1', grade: 2 },
-      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'N1, Grad 2: Genekspresjonstest anbefales' } },
+      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'N1, Grad 3 uten gentest: Kjemoterapi anbefalt. TC ×6 akseptabelt alternativ' } },
+
+    // N1 without gene test — Ikke-konklusiv
+    { id: 'CP_H5', conditions: { nStage: 'N1', menopausalStatus: 'post' },
+      outputs: { pathway: 'consider_chemo', regimen: 'EC90 ×4 eller TC ×4, alternativt endokrin', rationale: 'pN1 postmenopausal, ikke-konklusiv luminal: EC90 ×4 eller TC ×4 → endokrin. Ved pN1 kan alternativt endokrin behandling alene vurderes. Zoledronsyre. Mange lymfeknutemetastaser → EC90 ×4 + taxan' } },
     { id: 'CP8b', conditions: { nStage: 'N1' },
-      outputs: { pathway: 'gene_test_needed', regimen: 'Genekspresjonstest anbefales', rationale: 'N1: Genekspresjonstest anbefales' } },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'N1: EC90 ×4 eller TC ×4 → endokrin behandling. Genekspresjonstest anbefales for å avklare behandlingsintensitet. Mange lymfeknutemetastaser → EC90 ×4 + taxan' } },
 
     // ==========================================
-    // N1mi (ikke eksplisitt i NBCG gentesttabell — behandles tilsvarende N0)
+    // N1mi with Prosigna — per NBCG pT1 pN1(mi) tabell (16.11.22)
     // ==========================================
-    { id: 'CP9', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { lte: 40 } },
-      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'N1mi, Prosigna ROR ≤40: Lav risiko, endokrinterapi alene' } },
-    { id: 'CP10', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { gt: 60 } },
-      outputs: { pathway: 'EC', regimen: 'EC90 ×4', rationale: 'N1mi, Prosigna ROR >60: EC90 ×4 anbefalt' } },
+    // Luminal A, ROR 0-40: Endokrin (lav ER → vurder EC)
+    { id: 'CP9', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { lte: 40 }, erPercent: { lt: 50 } },
+      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN1mi, Prosigna ROR ≤40, ER <50%: Endokrin behandling. Lav ER-ekspresjon kan gi grunnlag for EC90 ×4 eller TC ×4. Zoledronsyre ved postmenopausal status' } },
+    { id: 'CP9b', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { lte: 40 } },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN1mi, Prosigna Lum A, ROR ≤40: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
+
+    // Luminal A, ROR 41-60: Pre → EC/TC (goserelin alt), Post → endokrin
+    { id: 'CP10_A1', conditions: { nStage: 'N1mi', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, menopausalStatus: ['pre', 'peri'] },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN1mi, Luminal A, ROR 41-60, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ til kjemoterapi' } },
+    { id: 'CP10_A2', conditions: { nStage: 'N1mi', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 } },
+      outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN1mi, Luminal A, ROR 41-60, postmenopausal: Endokrin behandling. Zoledronsyre' } },
+
+    // Luminal B, ROR 41-60: ER≥50% → EC/TC, ER<50% → EC+taxan
+    { id: 'CP10_B1', conditions: { nStage: 'N1mi', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, erPercent: { gte: 50 } },
+      outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN1mi, Luminal B, ROR 41-60, ER ≥50%: EC90 ×4 eller TC ×4 + endokrin. Endokrin behandling kan vurderes ved G1-2 og lav absolutt ROR. Zoledronsyre ved postmenopausal status' } },
+    { id: 'CP10_B2', conditions: { nStage: 'N1mi', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 } },
+      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1mi, Luminal B, ROR 41-60, ER <50%: EC90 ×4 + taxan + endokrin. Zoledronsyre ved postmenopausal status' } },
+
+    // ROR 41-60 subtype not specified fallback
     { id: 'CP10b', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { gt: 40, lte: 60 } },
-      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4', rationale: 'N1mi, Prosigna ROR 41-60: Intermediær — individuell vurdering' } },
+      outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 — angi PAM50 subtype', rationale: 'pN1mi, Prosigna ROR 41-60: Angi PAM50 subtype for presis anbefaling' } },
+
+    // Luminal B, ROR >60: EC+taxan
+    { id: 'CP10_C1', conditions: { nStage: 'N1mi', geneTest: 'prosigna', rorScore: { gt: 60 } },
+      outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1mi, Prosigna ROR >60 (Luminal B): EC90 ×4 + taxan + endokrin. TC ×6 er akseptabelt alternativ ved kardiale risikofaktorer. Zoledronsyre ved postmenopausal status' } },
+
+    // N1mi with OncotypeDX
     { id: 'CP11', conditions: { nStage: 'N1mi', geneTest: 'oncotypedx', rsScore: { lte: 25 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'N1mi, OncotypeDX RS ≤25: Endokrinterapi alene' } },
     { id: 'CP12', conditions: { nStage: 'N1mi', geneTest: 'oncotypedx', rsScore: { gt: 25 } },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4', rationale: 'N1mi, OncotypeDX RS >25: EC90 ×4 anbefalt' } },
+
+    // N1mi without gene test
     { id: 'CP13', conditions: { nStage: 'N1mi', tumorSizeMm: { lte: 10 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'N1mi, liten tumor ≤10mm: Ingen kjemoterapi' } },
     { id: 'CP14', conditions: { nStage: 'N1mi', grade: 3 },
@@ -292,15 +353,16 @@ export const CDK46_DECISION_TABLE = {
 
 export const ENDOCRINE_THERAPY_TABLE = {
   id: 'endocrine-therapy-selection',
-  name: 'Endokrinterapi',
+  name: 'Endokrinterapi (NBCG 17.12.24)',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
-  lastUpdated: '2026-03-08',
+  version: '2.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'hrPositive', label: 'HR-positiv', type: 'boolean' },
     { id: 'menopausalStatus', label: 'Menopausal status', type: 'string', allowedValues: ['pre', 'peri', 'post', 'unknown'] },
     { id: 'isHighRisk', label: 'Høy risiko (N+, G3, GES høy, eller kjemoterapi)', type: 'boolean' },
+    { id: 'age', label: 'Alder', type: 'number' },
   ],
 
   outputs: [
@@ -312,9 +374,21 @@ export const ENDOCRINE_THERAPY_TABLE = {
 
   rules: [
     { id: 'ET0', conditions: { hrPositive: false }, outputs: { therapy: 'ingen', detail: 'Ikke HR-positiv — ingen endokrinterapi', duration: '-', rationale: 'Endokrinterapi kun ved HR+ tumorer' } },
-    { id: 'ET1', conditions: { hrPositive: true, menopausalStatus: 'post' }, outputs: { therapy: 'aromatasehemmer', detail: 'Aromatasehemmer (letrozol/anastrozol) i 5 år', duration: '5 år', rationale: 'Standard for postmenopausale: AI mer effektivt enn tamoxifen' } },
-    { id: 'ET2', conditions: { hrPositive: true, menopausalStatus: ['pre', 'peri'], isHighRisk: true }, outputs: { therapy: 'tamoxifen_ofs', detail: 'Tamoxifen + ovarisk suppresjon (GnRH-agonist/goserelin). Evt. AI + OFS ved svært høy risiko', duration: '5-10 år', rationale: 'SOFT/TEXT: OFS-tillegg ved høyrisiko premenopausale (alder <35, N+, G3, kjemoterapi)' } },
-    { id: 'ET3', conditions: { hrPositive: true, menopausalStatus: ['pre', 'peri'] }, outputs: { therapy: 'tamoxifen', detail: 'Tamoxifen 20mg daglig i 5-10 år', duration: '5-10 år', rationale: 'Standard for pre/perimenopausal uten høyrisikofaktorer' } },
+
+    // Postmenopausal — NBCG 17.12.24
+    { id: 'ET1', conditions: { hrPositive: true, menopausalStatus: 'post', isHighRisk: true }, outputs: { therapy: 'aromatasehemmer', detail: 'Aromatasehemmer (letrozol/anastrozol) i 5-10 år. Ved høy risiko: vurder 7-8 (opp til 10) års AI', duration: '5-10 år', rationale: 'Postmenopausal høyrisiko: AI er førstevalg. Utvidet behandling (7-10 år) ved høy risiko. Alternativer: Tamoxifen 2-3 år → AI 5 år, eller AI 2-3 år → Tamoxifen 2-3 år. Calcium/VitD anbefales ved AI' } },
+    { id: 'ET1b', conditions: { hrPositive: true, menopausalStatus: 'post' }, outputs: { therapy: 'aromatasehemmer', detail: 'Aromatasehemmer (letrozol/anastrozol) i 5 år', duration: '5 år', rationale: 'Postmenopausal standardrisiko: AI 5 år. Alternativer: Tamoxifen 5-10 år, Tamoxifen 2-3 år → AI 5 år. Calcium/VitD anbefales ved AI' } },
+
+    // Premenopausal <35 med høy risiko — NBCG 17.12.24
+    { id: 'ET2a', conditions: { hrPositive: true, menopausalStatus: ['pre', 'peri'], isHighRisk: true, age: { lt: 35 } }, outputs: { therapy: 'ai_ofs', detail: 'OFS (goserelin) 5 år + AI (foretrukket) eller tamoxifen. AI + OFS gir best sykdomsfri overlevelse. Oppstart OFS så snart som mulig', duration: '5-10 år', rationale: 'SOFT/TEXT: Under 35 med kjemoterapi-indikasjon: OFS alltid anbefalt. AI + OFS foretrukket over tamoxifen + OFS. Dersom menstruasjon ikke opphører etter kjemoterapi eller kommer tilbake innen 8 mnd → OFS bør legges til' } },
+
+    // Premenopausal ≥35 med høy risiko — NBCG 17.12.24
+    { id: 'ET2b', conditions: { hrPositive: true, menopausalStatus: ['pre', 'peri'], isHighRisk: true }, outputs: { therapy: 'ai_ofs', detail: 'OFS (goserelin) 5 år + AI (foretrukket), subsidiært OFS + tamoxifen. Oppstart OFS så snart som mulig', duration: '5-10 år', rationale: 'SOFT/TEXT: Premenopausal høyrisiko ≥35 år: OFS + AI foretrukket. OFS + tamoxifen ved tolerabilitetsproblemer. Dersom menstruasjon ikke opphører etter kjemoterapi eller kommer tilbake innen 8 mnd → OFS bør legges til. Utvidet beh: Ved OFS+AI i 5 år → tamoxifen 5 år eller AI 2-3 år videre' } },
+
+    // Premenopausal lav risiko — NBCG 17.12.24
+    { id: 'ET3', conditions: { hrPositive: true, menopausalStatus: ['pre', 'peri'] }, outputs: { therapy: 'tamoxifen', detail: 'Tamoxifen 20mg daglig i 5 år. Ved høyere risikoprofil uten kjemoterapi: vurder OFS-tillegg', duration: '5-10 år', rationale: 'Lav risiko premenopausal: Tamoxifen 5 år. Utvidet beh til 10 år ved risikoprofil. Dersom post etter 5 år: vurder AI 2-5 år' } },
+
+    // Ukjent menopausal status
     { id: 'ET4', conditions: { hrPositive: true }, outputs: { therapy: 'tamoxifen', detail: 'Tamoxifen (menopausal status ukjent)', duration: '5 år', rationale: 'Standard endokrinterapi når menopausal status ukjent' } },
   ],
 };
@@ -398,14 +472,15 @@ export const RADIATION_TABLE = {
 
 export const HRPOS_HER2POS_TABLE = {
   id: 'hrpos-her2pos-adjuvant',
-  name: 'HR+HER2+ Adjuvant behandling',
+  name: 'HR+HER2+ Adjuvant behandling (NBCG 17.12.24)',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
-  lastUpdated: '2026-03-08',
+  version: '2.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string' },
     { id: 'nStage', label: 'N-stadium', type: 'string' },
+    { id: 'tStage', label: 'T-stadium (detaljert)', type: 'string' },
     { id: 'tumorSizeMm', label: 'Tumorstørrelse (mm)', type: 'number' },
   ],
 
@@ -416,10 +491,14 @@ export const HRPOS_HER2POS_TABLE = {
   ],
 
   rules: [
-    { id: 'HH1', conditions: { bioGroup: 'HR+HER2+', nStage: 'N0', tumorSizeMm: { lte: 20 } }, outputs: { regimen: 'Paklitaxel ukentlig ×12 + Trastuzumab 1 år', detail: 'APT-regimet: Paklitaxel 80mg/m² ukentlig × 12 + trastuzumab q3w totalt 1 år', rationale: 'Lav risiko HR+HER2+ (T1 N0): APT-regimet tilstrekkelig (APT-studien)' } },
-    { id: 'HH2', conditions: { bioGroup: 'HR+HER2+', nStage: 'N0' }, outputs: { regimen: 'TC ×4 + HP 1 år', detail: 'Docetaxel/Cyklofosfamid × 4 + trastuzumab/pertuzumab q3w totalt 1 år', rationale: 'HR+HER2+ N0 med større tumor: TC-HP' } },
-    { id: 'HH3', conditions: { bioGroup: 'HR+HER2+', nStage: 'N1mi' }, outputs: { regimen: 'TC ×4 + HP 1 år', detail: 'Docetaxel/Cyklofosfamid × 4 + trastuzumab/pertuzumab q3w totalt 1 år', rationale: 'HR+HER2+ N1mi: TC-HP' } },
-    { id: 'HH4', conditions: { bioGroup: 'HR+HER2+' }, outputs: { regimen: 'EC ×4 → Taxan + HP 1 år', detail: 'EC × 4, deretter taxan + trastuzumab + pertuzumab. HP totalt 1 år. Pertuzumab ved nodepositiv', rationale: 'Nodepositiv HR+HER2+: Full kjemoterapi + dobbel HER2-blokade (APHINITY)' } },
+    // pT1 N0: Taxan/trastuzumab (individuell vurdering ved pT1a)
+    { id: 'HH1', conditions: { bioGroup: 'HR+HER2+', nStage: 'N0', tStage: ['T1a', 'T1b', 'T1c'] }, outputs: { regimen: 'Taxan/trastuzumab → trastuzumab + endokrin', detail: 'Taxan (paklitaxel 80mg/m² ukentlig ×12 eller docetaxel q3w) + trastuzumab q3w → trastuzumab totalt 1 år + endokrin', rationale: 'HR+HER2+ pT1 N0: Taxan/trastuzumab tilstrekkelig. Individuell vurdering ved pT1a. Spesielt høy risikoprofil → vurder EC90 ×4 + taxan/trastuzumab. Zoledronsyre ved postmenopausal status' } },
+    // pT2 N0: EC90+taxan/trastuzumab
+    { id: 'HH2', conditions: { bioGroup: 'HR+HER2+', nStage: 'N0' }, outputs: { regimen: 'EC90 ×4 → taxan/trastuzumab → trastuzumab + endokrin', detail: 'EC90 ×4, deretter taxan + trastuzumab q3w → trastuzumab totalt 1 år + endokrin. Alternativ: taxan/carboplatin', rationale: 'HR+HER2+ pT2 N0: EC90 ×4 + taxan/trastuzumab. Zoledronsyre ved postmenopausal status' } },
+    // N1mi: same as pT1 N0
+    { id: 'HH3', conditions: { bioGroup: 'HR+HER2+', nStage: 'N1mi' }, outputs: { regimen: 'Taxan/trastuzumab → trastuzumab + endokrin', detail: 'Taxan + trastuzumab q3w → trastuzumab totalt 1 år + endokrin', rationale: 'HR+HER2+ N1mi: Taxan/trastuzumab. Zoledronsyre ved postmenopausal status' } },
+    // N1-3: EC90+taxan/trastuzumab+pertuzumab
+    { id: 'HH4', conditions: { bioGroup: 'HR+HER2+' }, outputs: { regimen: 'EC90 ×4 → taxan + trastuzumab/pertuzumab → HP + endokrin', detail: 'EC90 ×4, deretter taxan + trastuzumab + pertuzumab q3w. Trastuzumab/pertuzumab totalt 1 år + endokrin. Alternativ: taxan/carboplatin', rationale: 'HR+HER2+ nodepositiv: Full kjemoterapi + dobbel HER2-blokade (APHINITY). Zoledronsyre ved postmenopausal status' } },
   ],
 };
 
@@ -429,14 +508,15 @@ export const HRPOS_HER2POS_TABLE = {
 
 export const HRNEG_HER2POS_TABLE = {
   id: 'hrneg-her2pos-adjuvant',
-  name: 'HR-HER2+ Adjuvant behandling',
+  name: 'HR-HER2+ Adjuvant behandling (NBCG 17.12.24)',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
-  lastUpdated: '2026-03-08',
+  version: '2.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string' },
     { id: 'nStage', label: 'N-stadium', type: 'string' },
+    { id: 'tStage', label: 'T-stadium (detaljert)', type: 'string' },
     { id: 'tumorSizeMm', label: 'Tumorstørrelse (mm)', type: 'number' },
   ],
 
@@ -447,9 +527,12 @@ export const HRNEG_HER2POS_TABLE = {
   ],
 
   rules: [
-    { id: 'NH1', conditions: { bioGroup: 'HR-HER2+', nStage: 'N0', tumorSizeMm: { lte: 20 } }, outputs: { regimen: 'Paklitaxel ×12 + Trastuzumab 1 år', detail: 'APT-regimet: Paklitaxel 80mg/m² ukentlig × 12 + trastuzumab q3w 1 år', rationale: 'Lav risiko HR-HER2+: APT-regimet (APT-studien)' } },
-    { id: 'NH2', conditions: { bioGroup: 'HR-HER2+', nStage: 'N0' }, outputs: { regimen: 'TC ×4 + Trastuzumab 1 år', detail: 'Docetaxel/Cyklofosfamid × 4 + trastuzumab q3w totalt 1 år', rationale: 'HR-HER2+ N0 med større tumor' } },
-    { id: 'NH3', conditions: { bioGroup: 'HR-HER2+' }, outputs: { regimen: 'EC ×4 → Taxan + HP 1 år', detail: 'EC × 4, deretter taxan + trastuzumab + pertuzumab q3w. HP totalt 1 år', rationale: 'Nodepositiv HR-HER2+: Full kjemoterapi + dobbel HER2-blokade (APHINITY)' } },
+    // pT1 N0: Taxan/trastuzumab (individuell vurdering ved pT1a)
+    { id: 'NH1', conditions: { bioGroup: 'HR-HER2+', nStage: 'N0', tStage: ['T1a', 'T1b', 'T1c'] }, outputs: { regimen: 'Taxan/trastuzumab → trastuzumab 1 år', detail: 'Taxan (paklitaxel 80mg/m² ukentlig ×12 eller docetaxel q3w) + trastuzumab → trastuzumab totalt 1 år', rationale: 'HR-HER2+ pT1 N0: Taxan/trastuzumab. Individuell vurdering ved pT1a. Spesielt høy risikoprofil → EC90 ×4 + taxan/trastuzumab eller taxan/carboplatin/trastuzumab. Zoledronsyre ved postmenopausal status' } },
+    // pT2 N0: EC90+taxan/trastuzumab
+    { id: 'NH2', conditions: { bioGroup: 'HR-HER2+', nStage: 'N0' }, outputs: { regimen: 'EC90 ×4 → taxan/trastuzumab → trastuzumab 1 år', detail: 'EC90 ×4, deretter taxan + trastuzumab q3w → trastuzumab totalt 1 år. Alternativ: taxan/carboplatin', rationale: 'HR-HER2+ pT2 N0: EC90 ×4 + taxan/trastuzumab. Zoledronsyre ved postmenopausal status' } },
+    // N1-3: EC90+taxan/trastuzumab+pertuzumab
+    { id: 'NH3', conditions: { bioGroup: 'HR-HER2+' }, outputs: { regimen: 'EC90 ×4 → taxan + trastuzumab/pertuzumab → HP 1 år', detail: 'EC90 ×4, deretter taxan + trastuzumab + pertuzumab q3w. Trastuzumab/pertuzumab totalt 1 år. Alternativ: taxan/carboplatin', rationale: 'HR-HER2+ nodepositiv: Full kjemoterapi + dobbel HER2-blokade (APHINITY). Zoledronsyre ved postmenopausal status' } },
   ],
 };
 
@@ -459,14 +542,15 @@ export const HRNEG_HER2POS_TABLE = {
 
 export const TN_TABLE = {
   id: 'tn-adjuvant',
-  name: 'Trippel negativ (TN) Adjuvant behandling',
+  name: 'Trippel negativ (TN) Adjuvant behandling (NBCG 17.12.24)',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
-  lastUpdated: '2026-03-08',
+  version: '2.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string' },
     { id: 'nStage', label: 'N-stadium', type: 'string' },
+    { id: 'tStage', label: 'T-stadium (detaljert)', type: 'string' },
     { id: 'tumorSizeMm', label: 'Tumorstørrelse (mm)', type: 'number' },
     { id: 'stadium', label: 'Stadium', type: 'string' },
   ],
@@ -479,10 +563,18 @@ export const TN_TABLE = {
   ],
 
   rules: [
-    { id: 'TN1', conditions: { bioGroup: 'TN', nStage: 'N0', tumorSizeMm: { lte: 10 } }, outputs: { regimen: 'Vurder kjemoterapi individuelt', detail: 'Liten TN tumor (≤10mm N0): Individuell vurdering', rationale: 'Svært liten TN: Prognose relativt god, men TN-biologi er aggressiv', warnings: ['Individuell vurdering — diskuter med pasient'] } },
-    { id: 'TN2', conditions: { bioGroup: 'TN', nStage: 'N0' }, outputs: { regimen: 'EC ×4 + Taxan', detail: 'Epirubicin/Cyklofosfamid × 4, deretter docetaxel/paklitaxel', rationale: 'TN N0: Standard adjuvant kjemoterapi', warnings: [] } },
-    { id: 'TN3', conditions: { bioGroup: 'TN', nStage: 'N1mi' }, outputs: { regimen: 'EC ×4 + Taxan', detail: 'EC × 4 + taxan', rationale: 'TN N1mi: Kjemoterapi anbefalt', warnings: [] } },
-    { id: 'TN4', conditions: { bioGroup: 'TN' }, outputs: { regimen: 'EC ×4 + Taxan ± Karboplatin + Pembrolizumab', detail: 'EC × 4, deretter taxan ± karboplatin. Vurder pembrolizumab ved stadium II-III (KEYNOTE-522)', rationale: 'Nodepositiv TN: Intensivert kjemoterapi ± immunterapi', warnings: ['Vurder pembrolizumab (Keytruda) ved stadium II-III (KEYNOTE-522)', 'Karboplatin kan gi økt hematologisk toksisitet'] } },
+    // pT1a N0: Ingen generell anbefaling
+    { id: 'TN1a', conditions: { bioGroup: 'TN', nStage: 'N0', tStage: 'T1a' }, outputs: { regimen: 'Ingen generell anbefaling om kjemoterapi', detail: 'pT1a pN0 TN: Ingen generell anbefaling. Individuell vurdering', rationale: 'pT1a pN0 TN: Ingen generell anbefaling om kjemoterapi', warnings: ['Individuell vurdering — diskuter med pasient'] } },
+    // pT1b N0: EC90+taxan (lav prolif/grad → TC×4 mulig)
+    { id: 'TN1b', conditions: { bioGroup: 'TN', nStage: 'N0', tStage: 'T1b' }, outputs: { regimen: 'EC90 ×4 + taxan', detail: 'EC90 ×4 + taxan. Alternativ: taxan/carboplatin. Lav proliferasjon og grad kan gi grunnlag for å utelate taxaner (evt kun TC ×4)', rationale: 'pT1b pN0 TN: EC90 ×4 + taxan. Individuell vurdering av grunnlag for kjemoterapi (TILs-analyse kan vurderes). Zoledronsyre ved postmenopausal status', warnings: [] } },
+    // pT1c N0: EC90+taxan
+    { id: 'TN1c', conditions: { bioGroup: 'TN', nStage: 'N0', tStage: 'T1c' }, outputs: { regimen: 'EC90 ×4 + taxan', detail: 'EC90 ×4 + taxan. Alternativ: taxan/carboplatin. Lav proliferasjon og grad kan gi grunnlag for å utelate taxaner', rationale: 'pT1c pN0 TN: EC90 ×4 + taxan. Individuell vurdering (TILs-analyse kan vurderes). Zoledronsyre ved postmenopausal status', warnings: [] } },
+    // N0 fallback (T2+): EC90+taxan
+    { id: 'TN2', conditions: { bioGroup: 'TN', nStage: 'N0' }, outputs: { regimen: 'EC90 ×4 + taxan', detail: 'EC90 ×4 + taxan. Alternativ: taxan/carboplatin', rationale: 'TN pN0: EC90 ×4 + taxan. Zoledronsyre ved postmenopausal status', warnings: [] } },
+    // N1mi
+    { id: 'TN3', conditions: { bioGroup: 'TN', nStage: 'N1mi' }, outputs: { regimen: 'EC90 ×4 + taxan', detail: 'EC90 ×4 + taxan', rationale: 'TN N1mi: Kjemoterapi anbefalt. Zoledronsyre ved postmenopausal status', warnings: [] } },
+    // N1-3 (dersom ikke neoadjuvant): Taxan/carboplatin → EC90 (NBCG sekvens)
+    { id: 'TN4', conditions: { bioGroup: 'TN' }, outputs: { regimen: 'Taxan/carboplatin → EC90 ×4', detail: 'Taxan/carboplatin (docetaxel 75mg/m² + carboplatin AUC 5-6 q3w, eller paklitaxel 80mg/m² + carboplatin AUC 1.5-2 ukentlig), deretter EC90 ×4. TC ×6 akseptabelt alternativ ved færre lymfeknutemetastaser og kardiale risikofaktorer', rationale: 'TN nodepositiv/pT2+: Dersom ikke neoadjuvant gitt: taxan/carboplatin → EC90 ×4. Zoledronsyre ved postmenopausal status', warnings: ['Vurder neoadjuvant med pembrolizumab (KEYNOTE-522) ved stadium II-III'] } },
   ],
 };
 
@@ -492,14 +584,15 @@ export const TN_TABLE = {
 
 export const NEOADJUVANT_TABLE = {
   id: 'neoadjuvant-treatment',
-  name: 'Neoadjuvant behandling (alle undergrupper)',
+  name: 'Neoadjuvant behandling (NBCG 15.11.23)',
   hitPolicy: 'FIRST',
-  version: '1.0.0',
-  lastUpdated: '2026-03-08',
+  version: '2.0.0',
+  lastUpdated: '2026-03-09',
 
   inputs: [
     { id: 'isNeoadjuvant', label: 'Neoadjuvant modus', type: 'boolean' },
     { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string', allowedValues: ['HR+HER2-', 'HR+HER2+', 'HR-HER2+', 'TN'] },
+    { id: 'luminalSubtype', label: 'Luminal subtype', type: 'string' },
   ],
 
   outputs: [
@@ -511,10 +604,19 @@ export const NEOADJUVANT_TABLE = {
 
   rules: [
     { id: 'NEO0', conditions: { isNeoadjuvant: false }, outputs: { regimen: '-', detail: 'Ikke neoadjuvant', rationale: '-', warnings: [] } },
-    { id: 'NEO1', conditions: { isNeoadjuvant: true, bioGroup: 'HR+HER2-' }, outputs: { regimen: 'EC ×4 → Taxan', detail: 'Neoadjuvant: EC × 4, deretter taxan × 12 uker. Endokrinterapi postoperativt', rationale: 'HR+HER2- neoadjuvant: Standard kjemoterapi', warnings: ['Henvisning til MDT/onkolog', 'Endokrinterapi planlegges postoperativt'] } },
-    { id: 'NEO2', conditions: { isNeoadjuvant: true, bioGroup: 'HR+HER2+' }, outputs: { regimen: 'EC ×4 → Taxan + HP', detail: 'Neoadjuvant: EC × 4, deretter taxan + trastuzumab + pertuzumab. HP totalt 1 år', rationale: 'HR+HER2+ neoadjuvant: Dobbel HER2-blokade (NeoSphere/TRYPHAENA)', warnings: ['Henvisning til MDT/onkolog', 'Ved pCR: Fortsett HP. Ved non-pCR: Vurder T-DM1 (KATHERINE)'] } },
-    { id: 'NEO3', conditions: { isNeoadjuvant: true, bioGroup: 'HR-HER2+' }, outputs: { regimen: 'EC ×4 → Taxan + HP', detail: 'Neoadjuvant: EC × 4, deretter taxan + trastuzumab + pertuzumab. HP totalt 1 år', rationale: 'HR-HER2+ neoadjuvant: Dobbel HER2-blokade', warnings: ['Henvisning til MDT/onkolog', 'Ved non-pCR: T-DM1 14 kurer (KATHERINE)'] } },
-    { id: 'NEO4', conditions: { isNeoadjuvant: true, bioGroup: 'TN' }, outputs: { regimen: 'Pembrolizumab + Karboplatin/Taxan → EC', detail: 'KEYNOTE-522: Pembrolizumab + karboplatin + paklitaxel × 12 uker, deretter pembrolizumab + EC × 4. Adjuvant pembrolizumab 9 kurer', rationale: 'TN neoadjuvant: Immunterapi + kjemoterapi (KEYNOTE-522)', warnings: ['Henvisning til MDT/onkolog', 'Immunterapi — screening for autoimmunitet', 'Ved non-pCR: Vurder capecitabin (CREATE-X)'] } },
+
+    // HR+HER2- — Sterkt ER+/Luminal A: Endokrin neoadjuvant (NBCG 15.11.23)
+    { id: 'NEO1a', conditions: { isNeoadjuvant: true, bioGroup: 'HR+HER2-', luminalSubtype: 'Luminal A' }, outputs: { regimen: 'Neoadjuvant endokrin behandling', detail: 'AI (+ goserelin for premenopausale) til maksimal respons (6-12 mnd). Klinisk responsevaluering hver 3-6 uke, billeddiagnostikk ved behov. MR mot slutten av behandlingstiden ved BCT-kandidat', rationale: 'HR+HER2- Luminal A / sterkt ER+: Neoadjuvant endokrin behandling (NBCG 15.11.23). Ved progresjon eller manglende respons: seponér og skift til kjemoterapi eller vurder operasjon', warnings: ['Henvisning til MDT/onkolog', 'Responsevaluering hver 3-6 uke', 'Ved progresjon: Skift til kjemoterapi'] } },
+
+    // HR+HER2- — Alle andre: EC90×4 → 12 uker taxan
+    { id: 'NEO1b', conditions: { isNeoadjuvant: true, bioGroup: 'HR+HER2-' }, outputs: { regimen: 'EC90 ×4 → taxan 12 uker', detail: 'Neoadjuvant: EC90 ×4, deretter taxan × 12 uker. Endokrinterapi postoperativt. Klinisk responsevaluering hver 3. uke. Mindre intens kjemoterapi kan vurderes individuelt (f.eks. klassiske lobulære carcinomer)', rationale: 'HR+HER2- (ikke Lum A) neoadjuvant: EC90 ×4 → 12 uker taxan (NBCG 15.11.23). Ved progresjon: seponér og skift til annen behandling eller vurder operasjon', warnings: ['Henvisning til MDT/onkolog', 'Endokrinterapi planlegges postoperativt', 'Ved progresjon: Skift behandling'] } },
+
+    // HER2+ (alle): EC90×4 → 12 uker taxan + trastuzumab + pertuzumab
+    { id: 'NEO2', conditions: { isNeoadjuvant: true, bioGroup: 'HR+HER2+' }, outputs: { regimen: 'EC90 ×4 → taxan + trastuzumab/pertuzumab', detail: 'Neoadjuvant: EC90 ×4, deretter taxan ×12 uker + trastuzumab + pertuzumab q3w. HP totalt 1 år + endokrin', rationale: 'HR+HER2+ neoadjuvant: EC90 + taxan + dobbel HER2-blokade (NBCG 15.11.23). Responsevaluering hver 3. uke', warnings: ['Henvisning til MDT/onkolog', 'Ved pCR: Fortsett HP. Ved non-pCR: Vurder T-DM1 (KATHERINE)', 'LVEF-måling før EC90 og før anti-HER2'] } },
+    { id: 'NEO3', conditions: { isNeoadjuvant: true, bioGroup: 'HR-HER2+' }, outputs: { regimen: 'EC90 ×4 → taxan + trastuzumab/pertuzumab', detail: 'Neoadjuvant: EC90 ×4, deretter taxan ×12 uker + trastuzumab + pertuzumab q3w. HP totalt 1 år', rationale: 'HR-HER2+ neoadjuvant: EC90 + taxan + dobbel HER2-blokade (NBCG 15.11.23)', warnings: ['Henvisning til MDT/onkolog', 'Ved non-pCR: T-DM1 14 kurer (KATHERINE)', 'LVEF-måling før EC90 og før anti-HER2'] } },
+
+    // TN: Pembrolizumab + paklitaxel/carboplatin → pembrolizumab + EC90 (KEYNOTE-522)
+    { id: 'NEO4', conditions: { isNeoadjuvant: true, bioGroup: 'TN' }, outputs: { regimen: 'Pembrolizumab + paklitaxel/carboplatin → pembrolizumab + EC90', detail: 'KEYNOTE-522: Pembrolizumab + karboplatin + paklitaxel × 12 uker, deretter pembrolizumab + EC90 × 4. Adjuvant pembrolizumab 9 kurer. Alternativ uten pembrolizumab: Paklitaxel/carboplatin → EC90 ×4. Andre alternativer: EC90 ×4 → taxan, dose-dense EC90 q2w → docetaxel q2w/paklitaxel ukentlig', rationale: 'TN neoadjuvant: Immunterapi + kjemoterapi (KEYNOTE-522, NBCG 15.11.23)', warnings: ['Henvisning til MDT/onkolog', 'Immunterapi — screening for autoimmunitet', 'Ved non-pCR: Vurder capecitabin (CREATE-X)'] } },
   ],
 };
 
