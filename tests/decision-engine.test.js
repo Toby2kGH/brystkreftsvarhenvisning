@@ -115,9 +115,9 @@ describe('DMN: HER2 Determination', () => {
 // ============================================================
 
 describe('DMN: Chemo Pathway HR+HER2-', () => {
-  it('N2 → always EC+taxan', () => {
+  it('N2 → always EC', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N2' });
-    expect(r.result.pathway).toBe('EC_taxan');
+    expect(r.result.pathway).toBe('EC');
   });
   it('N1 Prosigna ROR ≤40 → no chemo', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N1', geneTest: 'prosigna', rorScore: 35 });
@@ -143,9 +143,9 @@ describe('DMN: Chemo Pathway HR+HER2-', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N1', grade: 3 });
     expect(r.result.pathway).toBe('EC_taxan');
   });
-  it('N1 G2 no gene test → gene test needed', () => {
+  it('N1 G2 no gene test → EC', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N1', grade: 2 });
-    expect(r.result.pathway).toBe('gene_test_needed');
+    expect(r.result.pathway).toBe('EC');
   });
   it('N0 ≤10mm → no chemo', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', tumorSizeMm: 8 });
@@ -155,9 +155,9 @@ describe('DMN: Chemo Pathway HR+HER2-', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', geneTest: 'prosigna', rorScore: 30, tumorSizeMm: 18 });
     expect(r.result.pathway).toBe('none');
   });
-  it('N0 Prosigna ROR >60 → EC', () => {
+  it('N0 Prosigna ROR >60 → EC_taxan', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', geneTest: 'prosigna', rorScore: 65, tumorSizeMm: 18 });
-    expect(r.result.pathway).toBe('EC');
+    expect(r.result.pathway).toBe('EC_taxan');
   });
   it('N0 OncotypeDX RS ≤25 → no chemo', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', geneTest: 'oncotypedx', rsScore: 15, tumorSizeMm: 18 });
@@ -167,13 +167,13 @@ describe('DMN: Chemo Pathway HR+HER2-', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', grade: 1, tumorSizeMm: 18 });
     expect(r.result.pathway).toBe('none');
   });
-  it('N0 G3 → EC', () => {
+  it('N0 G3 → gene_test_needed', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', grade: 3, tumorSizeMm: 18 });
-    expect(r.result.pathway).toBe('EC');
+    expect(r.result.pathway).toBe('gene_test_needed');
   });
-  it('N0 G2 Ki67 ≥30 → EC', () => {
+  it('N0 G2 Ki67 ≥30 → gene_test_needed', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N0', grade: 2, ki67Value: 35, tumorSizeMm: 18 });
-    expect(r.result.pathway).toBe('EC');
+    expect(r.result.pathway).toBe('gene_test_needed');
   });
   it('N1mi Prosigna ROR ≤40 → no chemo', () => {
     const r = evaluateDecisionTable(CHEMO_PATHWAY_TABLE, { nStage: 'N1mi', geneTest: 'prosigna', rorScore: 30 });
@@ -218,7 +218,7 @@ describe('DMN: CDK4/6 Adjuvant', () => {
   it('T2 N1 → abema if G3, ribo yes', () => {
     const r = evaluateDecisionTable(CDK46_DECISION_TABLE, { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' });
     expect(r.result.abemaciclib).toBe('if_G3');
-    expect(r.result.ribociclib).toBe('yes');
+    expect(r.result.ribociclib).toBe('yes_unless_low');
   });
 });
 
@@ -235,9 +235,9 @@ describe('DMN: Endocrine Therapy', () => {
     const r = evaluateDecisionTable(ENDOCRINE_THERAPY_TABLE, { hrPositive: true, menopausalStatus: 'post' });
     expect(r.result.therapy).toBe('aromatasehemmer');
   });
-  it('HR+ pre high risk → tamoxifen+OFS', () => {
+  it('HR+ pre high risk → AI+OFS', () => {
     const r = evaluateDecisionTable(ENDOCRINE_THERAPY_TABLE, { hrPositive: true, menopausalStatus: 'pre', isHighRisk: true });
-    expect(r.result.therapy).toBe('tamoxifen_ofs');
+    expect(r.result.therapy).toBe('ai_ofs');
   });
   it('HR+ pre standard → tamoxifen', () => {
     const r = evaluateDecisionTable(ENDOCRINE_THERAPY_TABLE, { hrPositive: true, menopausalStatus: 'pre', isHighRisk: false });
@@ -297,9 +297,9 @@ describe('DMN: Radiation', () => {
 // ============================================================
 
 describe('DMN: HR+HER2+ Adjuvant', () => {
-  it('small N0 → APT', () => {
+  it('small N0 → EC90 + taxan/trastuzumab', () => {
     const r = evaluateDecisionTable(HRPOS_HER2POS_TABLE, { bioGroup: 'HR+HER2+', nStage: 'N0', tumorSizeMm: 12 });
-    expect(r.result.regimen).toContain('Paklitaxel');
+    expect(r.result.regimen).toContain('EC90');
   });
   it('N1 → EC+taxan+HP', () => {
     const r = evaluateDecisionTable(HRPOS_HER2POS_TABLE, { bioGroup: 'HR+HER2+', nStage: 'N1', tumorSizeMm: 30 });
@@ -308,13 +308,13 @@ describe('DMN: HR+HER2+ Adjuvant', () => {
 });
 
 describe('DMN: TN Adjuvant', () => {
-  it('small N0 → individual', () => {
+  it('small N0 → EC90 + taxan', () => {
     const r = evaluateDecisionTable(TN_TABLE, { bioGroup: 'TN', nStage: 'N0', tumorSizeMm: 8 });
-    expect(r.result.regimen).toContain('individuelt');
+    expect(r.result.regimen).toContain('EC90');
   });
-  it('N1 → chemo + possibly pembrolizumab', () => {
+  it('N1 → taxan/carboplatin → EC90', () => {
     const r = evaluateDecisionTable(TN_TABLE, { bioGroup: 'TN', nStage: 'N1', tumorSizeMm: 30 });
-    expect(r.result.regimen).toContain('Pembrolizumab');
+    expect(r.result.regimen).toContain('Taxan/carboplatin');
   });
 });
 
