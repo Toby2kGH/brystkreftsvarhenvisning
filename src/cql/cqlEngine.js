@@ -91,6 +91,7 @@ export function evaluateCQL(clinicalData) {
     hepaticFunction, renalFunction, cardiacRisk,
     neutropeniaRisk, diarrhoeaRisk, needMonotherapy,
     metastatic,
+    brcaStatus, histologicalType, pcrStatus,
   } = clinicalData;
 
   // --- Receptor status ---
@@ -140,6 +141,23 @@ export function evaluateCQL(clinicalData) {
   // --- Treatment mode ---
   const mode = treatmentMode || 'adjuvant';
   const isNeoadjuvant = mode === 'neoadjuvant';
+  const isPostNeoadjuvant = mode === 'post-neoadjuvant';
+
+  // --- BRCA status ---
+  const brcaVal = brcaStatus || 'not_tested';
+  const brcaMutated = brcaVal === 'BRCA1' || brcaVal === 'BRCA2';
+
+  // --- Olaparib eligibility (OlympiA: BRCA-mutated, HER2-negative, high-risk) ---
+  const olaparibEligible = brcaMutated && her2Negative && (
+    isHighRisk || nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
+    (validGrade && gradeNum === 3) || bioGroup === 'TN'
+  );
+
+  // --- Histological type ---
+  const histType = histologicalType || null;
+
+  // --- pCR status ---
+  const pcrVal = pcrStatus || 'not_applicable';
 
   // --- High risk (fact, not decision) ---
   const isHighRisk =
@@ -207,6 +225,18 @@ export function evaluateCQL(clinicalData) {
     treatmentMode: mode,
     isNeoadjuvant,
     surgeryType: surgeryType || null,
+
+    // BRCA / genetic
+    brcaStatus: brcaVal,
+    brcaMutated,
+    olaparibEligible,
+
+    // Histological type
+    histologicalType: histType,
+
+    // Post-neoadjuvant
+    pcrStatus: pcrVal,
+    isPostNeoadjuvant,
 
     // Risk flags (facts)
     isHighRisk,

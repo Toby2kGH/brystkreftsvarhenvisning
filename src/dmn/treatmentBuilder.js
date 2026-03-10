@@ -17,6 +17,8 @@ import {
   HRNEG_HER2POS_TABLE,
   TN_TABLE,
   NEOADJUVANT_TABLE,
+  POST_NEOADJUVANT_TABLE,
+  BRCA_OLAPARIB_TABLE,
   NEAR_CUTOFF_TABLE,
 } from './decisionTables.js';
 
@@ -36,13 +38,15 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     hrnegHer2pos: customTables['hrneg-her2pos-adjuvant'] || HRNEG_HER2POS_TABLE,
     tn: customTables['tn-adjuvant'] || TN_TABLE,
     neoadjuvant: customTables['neoadjuvant-treatment'] || NEOADJUVANT_TABLE,
+    postNeoadjuvant: customTables['post-neoadjuvant-treatment'] || POST_NEOADJUVANT_TABLE,
+    brcaOlaparib: customTables['brca-olaparib-eligibility'] || BRCA_OLAPARIB_TABLE,
     nearCutoff: customTables['near-cutoff-warnings'] || NEAR_CUTOFF_TABLE,
   };
 
   const dmnResults = {};
   const steps = [];
   const warnings = [];
-  const { bioGroup, isNeoadjuvant } = cqlOutput;
+  const { bioGroup, isNeoadjuvant, isPostNeoadjuvant } = cqlOutput;
 
   // 1. HER2 determination (for transparency)
   dmnResults.her2 = evaluateDecisionTable(tables.her2, cqlOutput);
@@ -78,6 +82,54 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     return { bioGroup, steps, warnings, isNeoadjuvant: true, dmnResults };
   }
 
+  // 3b. Post-neoadjuvant path (pCR-based decisions)
+  if (isPostNeoadjuvant) {
+    dmnResults.postNeoadjuvant = evaluateDecisionTable(tables.postNeoadjuvant, cqlOutput);
+    if (dmnResults.postNeoadjuvant.matched && dmnResults.postNeoadjuvant.result) {
+      const r = dmnResults.postNeoadjuvant.result;
+      if (r.regimen && r.regimen !== '-') {
+        steps.push({ type: 'chemo', name: r.regimen, detail: r.detail, rationale: r.rationale });
+      }
+      if (r.warnings) warnings.push(...r.warnings);
+    }
+
+    // BRCA/olaparib evaluation
+    dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
+    if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
+      const r = dmnResults.brcaOlaparib.result;
+      if (r.recommendation && !r.recommendation.includes('Ingen')) {
+        // Avoid duplicating olaparib if already in post-neo plan
+        const hasOlaparib = steps.some((s) => s.name?.toLowerCase().includes('olaparib'));
+        if (!hasOlaparib && r.recommendation.includes('laparib')) {
+          // Already handled by post-neoadjuvant table
+        } else if (!hasOlaparib) {
+          steps.push({ type: 'targeted', name: r.recommendation, detail: r.detail, rationale: r.rationale });
+        }
+        if (r.warnings) warnings.push(...r.warnings);
+      }
+    }
+
+    // Endocrine for HR+
+    if (cqlOutput.hrPositive) {
+      dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cqlOutput);
+      if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
+        const r = dmnResults.endocrine.result;
+        const hasEndocrine = steps.some((s) => s.type === 'endocrine');
+        if (!hasEndocrine) {
+          steps.push({ type: 'endocrine', name: 'Endokrinterapi', detail: r.detail, duration: r.duration, rationale: r.rationale });
+        }
+      }
+    }
+
+    // Radiation
+    dmnResults.radiation = evaluateDecisionTable(tables.radiation, cqlOutput);
+    if (dmnResults.radiation.matched && dmnResults.radiation.result?.recommended === true) {
+      steps.push({ type: 'radiation', name: 'Strålebehandling', detail: dmnResults.radiation.result.detail, rationale: dmnResults.radiation.result.rationale });
+    }
+
+    return { bioGroup, steps, warnings, isPostNeoadjuvant: true, dmnResults };
+  }
+
   // 4. Adjuvant path — biogroup-specific
   switch (bioGroup) {
     case 'HR+HER2-':
@@ -96,6 +148,19 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       warnings.push('Biologisk undergruppe ikke bestemt');
   }
 
+  // 4b. BRCA / Olaparib evaluation (all adjuvant biogroups)
+  dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
+  if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
+    const r = dmnResults.brcaOlaparib.result;
+    if (r.recommendation && r.recommendation.includes('laparib') && r.recommendation.includes('300mg')) {
+      steps.push({ type: 'targeted', name: 'Olaparib (Lynparza)', detail: r.detail, rationale: r.rationale });
+    }
+    if (r.recommendation && r.recommendation.includes('testing')) {
+      warnings.push(`BRCA: ${r.recommendation} — ${r.detail}`);
+    }
+    if (r.warnings && r.warnings.length > 0) warnings.push(...r.warnings);
+  }
+
   // 5. Radiation (all adjuvant)
   dmnResults.radiation = evaluateDecisionTable(tables.radiation, cqlOutput);
   if (dmnResults.radiation.matched && dmnResults.radiation.result?.recommended === true) {
@@ -106,6 +171,24 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
   dmnResults.zometa = evaluateDecisionTable(tables.zometa, cqlOutput);
   if (dmnResults.zometa.matched && dmnResults.zometa.result?.eligible === true) {
     steps.push({ type: 'bisphosphonate', name: 'Zoledronsyre (Zometa)', detail: dmnResults.zometa.result.regimen, rationale: dmnResults.zometa.result.rationale });
+  }
+
+  // 7. Evaluate any custom tables not in the standard set
+  const standardIds = new Set(Object.values(tables).map((t) => t.id));
+  for (const [id, table] of Object.entries(customTables)) {
+    if (!standardIds.has(id)) {
+      const result = evaluateDecisionTable(table, cqlOutput);
+      dmnResults[id] = result;
+      if (result.matched && result.result) {
+        const r = Array.isArray(result.result) ? result.result : [result.result];
+        for (const out of r) {
+          if (out.regimen || out.recommendation) {
+            steps.push({ type: out.type || 'custom', name: out.regimen || out.recommendation, detail: out.detail || out.rationale || '', rationale: out.rationale || '' });
+          }
+          if (out.warning) warnings.push(out.warning);
+        }
+      }
+    }
   }
 
   return {
@@ -140,15 +223,16 @@ function buildHRposHER2neg(cql, tables, dmnResults, steps, warnings) {
   dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cql);
   if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
     const r = dmnResults.endocrine.result;
-    steps.push({ type: 'endocrine', name: r.therapy === 'aromatasehemmer' ? 'Aromatasehemmer (AI)' : r.therapy === 'tamoxifen_ofs' ? 'Tamoxifen + OFS' : 'Tamoxifen', detail: r.detail, duration: r.duration, rationale: r.rationale });
+    const nameMap = { aromatasehemmer: 'Aromatasehemmer (AI)', ai_ofs: 'OFS + AI (foretrukket)', tamoxifen_ofs: 'OFS + Tamoxifen', tamoxifen: 'Tamoxifen' };
+    steps.push({ type: 'endocrine', name: nameMap[r.therapy] || r.therapy, detail: r.detail, duration: r.duration, rationale: r.rationale });
   }
 
   // CDK4/6
   dmnResults.cdk46 = evaluateDecisionTable(tables.cdk46, cql);
   if (dmnResults.cdk46.matched && dmnResults.cdk46.result) {
     const r = dmnResults.cdk46.result;
-    const abema = resolveCDK46(r.abemaciclib, cql.grade, cql.gesHighRisk);
-    const ribo = resolveCDK46(r.ribociclib, cql.grade, cql.gesHighRisk);
+    const abema = resolveCDK46(r.abemaciclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm);
+    const ribo = resolveCDK46(r.ribociclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm);
 
     if (abema === 'yes' || abema === 'first_choice') {
       steps.push({ type: 'cdk46', name: 'Abemaciclib (Verzenios)', detail: abema === 'first_choice' ? 'Abemaciclib 150mg ×2 daglig i 2 år — FØRSTEVALG (MonarchE)' : 'Abemaciclib 150mg ×2 daglig i 2 år (MonarchE)', priority: abema === 'first_choice' ? 1 : 2 });
@@ -192,11 +276,13 @@ function buildTN(cql, tables, dmnResults, steps, warnings) {
   }
 }
 
-function resolveCDK46(value, grade, gesHigh) {
+function resolveCDK46(value, grade, gesHigh, gesLow, tumorSizeMm) {
   if (value === 'yes' || value === 'first_choice') return value;
   if (value === 'no') return 'no';
   if (value === 'if_G3') return grade === 3 ? 'yes' : 'no';
   if (value === 'if_G3_or_gesHigh') return (grade === 3 || gesHigh === true) ? 'yes' : 'no';
+  if (value === 'if_G3_or_5cm') return (grade === 3 || (tumorSizeMm != null && tumorSizeMm >= 50)) ? 'first_choice' : 'no';
+  if (value === 'yes_unless_low') return (grade === 1 || gesLow === true) ? 'no' : 'yes';
   return 'no';
 }
 
