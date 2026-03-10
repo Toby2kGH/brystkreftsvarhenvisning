@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReferralLetterGenerator from './ReferralLetterGenerator.jsx';
 
 const STEP_TYPE_LABELS = {
   chemo: 'Kjemoterapi',
@@ -101,37 +102,8 @@ export default function DecisionResult({ result }) {
         )}
       </div>
 
-      {/* Journal Text */}
-      {journalText && (
-        <div className="journal-section">
-          <div className="journal-header">
-            <h3>Journaltekst</h3>
-            <button
-              className="copy-btn"
-              onClick={() => copyToClipboard(journalText, setCopiedJournal)}
-            >
-              {copiedJournal ? 'Kopiert!' : 'Kopier'}
-            </button>
-          </div>
-          <pre className="journal-text">{journalText}</pre>
-        </div>
-      )}
-
-      {/* Referral Text (neoadjuvant) */}
-      {referralText && (
-        <div className="journal-section referral-section">
-          <div className="journal-header">
-            <h3>Henvisningstekst</h3>
-            <button
-              className="copy-btn"
-              onClick={() => copyToClipboard(referralText, setCopiedReferral)}
-            >
-              {copiedReferral ? 'Kopiert!' : 'Kopier'}
-            </button>
-          </div>
-          <pre className="journal-text">{referralText}</pre>
-        </div>
-      )}
+      {/* Referral Letter Generator (3 modes) */}
+      <ReferralLetterGenerator result={result} />
 
       {/* CQL Details */}
       <details className="details-section">
