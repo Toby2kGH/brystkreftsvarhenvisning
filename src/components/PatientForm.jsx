@@ -16,6 +16,7 @@ const INITIAL_STATE = {
   tumorSizeMm: '',
   tStageOverride: '',
   nStage: 'N0',
+  histologicalType: '',
   // Gene expression
   geneTest: 'none',
   rorScore: '',
@@ -25,6 +26,10 @@ const INITIAL_STATE = {
   menopausalStatus: 'post',
   age: '',
   surgeryType: 'bcs',
+  // BRCA
+  brcaStatus: 'not_tested',
+  // Post-neoadjuvant
+  pcrStatus: '',
 };
 
 export default function PatientForm({ onSubmit, loading, onShowTables }) {
@@ -52,6 +57,9 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
       her2sish: form.her2sish || undefined,
       geneTest: form.geneTest || undefined,
       prosignaSubtype: form.prosignaSubtype || undefined,
+      brcaStatus: form.brcaStatus || undefined,
+      histologicalType: form.histologicalType || undefined,
+      pcrStatus: form.pcrStatus || undefined,
     };
     onSubmit(data);
   }
@@ -73,6 +81,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
             <select name="treatmentMode" value={form.treatmentMode} onChange={handleChange}>
               <option value="adjuvant">Adjuvant (postoperativ)</option>
               <option value="neoadjuvant">Neoadjuvant (preoperativ)</option>
+              <option value="post-neoadjuvant">Postneoadjuvant (etter neoadjuvant)</option>
             </select>
           </label>
           <label>
@@ -188,6 +197,15 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
               <option value="N3">N3 (≥10 positive)</option>
             </select>
           </label>
+          <label>
+            Histologisk type
+            <select name="histologicalType" value={form.histologicalType} onChange={handleChange}>
+              <option value="">Ikke angitt</option>
+              <option value="ductal">Duktalt karsinom (NST)</option>
+              <option value="lobular">Lobulært karsinom</option>
+              <option value="other">Annen type</option>
+            </select>
+          </label>
         </div>
       </fieldset>
 
@@ -252,6 +270,40 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
           </label>
         </div>
       </fieldset>
+
+      {/* BRCA / Genetic */}
+      <fieldset>
+        <legend>BRCA / Genetikk</legend>
+        <div className="form-row">
+          <label>
+            BRCA-status
+            <select name="brcaStatus" value={form.brcaStatus} onChange={handleChange}>
+              <option value="not_tested">Ikke testet</option>
+              <option value="BRCA1">BRCA1-mutasjon</option>
+              <option value="BRCA2">BRCA2-mutasjon</option>
+              <option value="negative">Negativ (ingen mutasjon)</option>
+              <option value="VUS">VUS (usikker variant)</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      {/* Post-neoadjuvant: pCR */}
+      {form.treatmentMode === 'post-neoadjuvant' && (
+        <fieldset>
+          <legend>Postneoadjuvant respons</legend>
+          <div className="form-row">
+            <label>
+              pCR-status (patologisk komplett respons)
+              <select name="pcrStatus" value={form.pcrStatus} onChange={handleChange}>
+                <option value="">Ikke angitt</option>
+                <option value="pCR">pCR (ingen residualtumor)</option>
+                <option value="non-pCR">Non-pCR (residualtumor)</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+      )}
 
       <button type="submit" className="submit-btn" disabled={loading}>
         {loading ? 'Evaluerer...' : 'Evaluer behandlingsvalg'}

@@ -484,6 +484,86 @@ describe('Near-Cutoff Warnings', () => {
 });
 
 // ============================================================
+// POST-NEOADJUVANT TABLE TESTS
+// ============================================================
+
+import { POST_NEOADJUVANT_TABLE } from '../src/dmn/decisionTables.js';
+
+describe('Post-Neoadjuvant Table', () => {
+  const T = POST_NEOADJUVANT_TABLE;
+
+  it('PNA0 — not post-neoadjuvant returns no treatment', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: false });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toBe('-');
+  });
+
+  it('PNA1 — HER2+ non-pCR → T-DM1 (KATHERINE)', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: true, bioGroup: 'HR+HER2+', pcrStatus: 'non-pCR' });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toContain('T-DM1');
+  });
+
+  it('PNA2 — HER2+ pCR → continue trastuzumab', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: true, bioGroup: 'HR-HER2+', pcrStatus: 'pCR' });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toContain('rastuzumab');
+  });
+
+  it('PNA3 — TN non-pCR + BRCA → olaparib', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'non-pCR', brcaMutated: true });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toContain('Olaparib');
+  });
+
+  it('PNA4 — TN non-pCR without BRCA → capecitabin', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'non-pCR', brcaMutated: false });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toContain('Capecitabin');
+  });
+
+  it('PNA7 — TN pCR → adjuvant pembrolizumab', () => {
+    const result = evaluateDecisionTable(T, { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'pCR' });
+    expect(result.matched).toBe(true);
+    expect(result.result.regimen).toContain('pembrolizumab');
+  });
+});
+
+// ============================================================
+// BRCA / OLAPARIB TABLE TESTS
+// ============================================================
+
+import { BRCA_OLAPARIB_TABLE } from '../src/dmn/decisionTables.js';
+
+describe('BRCA / Olaparib Table', () => {
+  const T = BRCA_OLAPARIB_TABLE;
+
+  it('BRCA1 — BRCA-mutated + HER2-neg + high risk → olaparib', () => {
+    const result = evaluateDecisionTable(T, { brcaMutated: true, her2Negative: true, isHighRisk: true });
+    expect(result.matched).toBe(true);
+    expect(result.result.recommendation).toContain('Olaparib');
+  });
+
+  it('BRCA3 — TN not tested <60 → recommend testing', () => {
+    const result = evaluateDecisionTable(T, { brcaStatus: 'not_tested', bioGroup: 'TN', age: 45, her2Negative: true });
+    expect(result.matched).toBe(true);
+    expect(result.result.recommendation).toContain('testing anbefalt');
+  });
+
+  it('BRCA6 — negative → no BRCA treatment', () => {
+    const result = evaluateDecisionTable(T, { brcaStatus: 'negative' });
+    expect(result.matched).toBe(true);
+    expect(result.result.recommendation).toContain('Ingen');
+  });
+
+  it('BRCA4 — HR+HER2- young high risk not tested → consider testing', () => {
+    const result = evaluateDecisionTable(T, { brcaStatus: 'not_tested', bioGroup: 'HR+HER2-', isHighRisk: true, age: 42 });
+    expect(result.matched).toBe(true);
+    expect(result.result.recommendation).toContain('Vurder');
+  });
+});
+
+// ============================================================
 // META: Verify all tables have at least one test
 // ============================================================
 
@@ -499,10 +579,12 @@ describe('Meta: All tables tested', () => {
     'hrneg-her2pos-adjuvant',
     'tn-adjuvant',
     'neoadjuvant-treatment',
+    'post-neoadjuvant-treatment',
+    'brca-olaparib-eligibility',
     'near-cutoff-warnings',
   ]);
 
-  it('All 11 standard tables are covered', () => {
+  it('All 13 standard tables are covered', () => {
     const allIds = Object.keys(ALL_DECISION_TABLES);
     for (const id of allIds) {
       expect(testedTableIds.has(id), `Table ${id} is not tested`).toBe(true);

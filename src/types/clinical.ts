@@ -23,8 +23,11 @@ export type Stadium = 'I' | 'IIA' | 'IIB' | 'IIIA' | 'IIIB' | 'IIIC';
 export type Grade = 1 | 2 | 3;
 export type MenopausalStatus = 'pre' | 'peri' | 'post' | 'unknown';
 export type SurgeryType = 'bcs' | 'mastectomy';
-export type TreatmentMode = 'adjuvant' | 'neoadjuvant';
+export type TreatmentMode = 'adjuvant' | 'neoadjuvant' | 'post-neoadjuvant';
 export type GeneTest = 'prosigna' | 'oncotypedx' | 'none';
+export type BRCAStatus = 'BRCA1' | 'BRCA2' | 'negative' | 'not_tested' | 'VUS';
+export type HistologicalType = 'ductal' | 'lobular' | 'other';
+export type PCRStatus = 'pCR' | 'non-pCR' | 'not_applicable';
 export type ProsignaSubtype = 'lumA' | 'lumB';
 export type BioGroup = 'HR+HER2-' | 'HR+HER2+' | 'HR-HER2+' | 'TN' | 'unknown';
 export type LuminalSubtype = 'A-like' | 'B-like' | 'unknown';
@@ -74,6 +77,15 @@ export interface PatientInput {
   diarrhoeaRisk?: RiskLevel;
   needMonotherapy?: boolean;
   priorTherapyLines?: number;
+
+  // BRCA / genetic testing
+  brcaStatus?: BRCAStatus | null;
+
+  // Histological type
+  histologicalType?: HistologicalType | null;
+
+  // Post-neoadjuvant
+  pcrStatus?: PCRStatus | null;
 
   // Metastatic (legacy)
   metastatic?: boolean;
@@ -130,6 +142,18 @@ export interface CQLOutput {
   treatmentMode: TreatmentMode;
   isNeoadjuvant: boolean;
   surgeryType: SurgeryType | null;
+
+  // BRCA / genetic
+  brcaStatus: BRCAStatus;
+  brcaMutated: boolean;
+  olaparibEligible: boolean;
+
+  // Histological type
+  histologicalType: HistologicalType | null;
+
+  // Post-neoadjuvant
+  pcrStatus: PCRStatus;
+  isPostNeoadjuvant: boolean;
 
   // Risk flags
   isHighRisk: boolean;

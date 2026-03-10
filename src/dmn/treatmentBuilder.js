@@ -17,6 +17,8 @@ import {
   HRNEG_HER2POS_TABLE,
   TN_TABLE,
   NEOADJUVANT_TABLE,
+  POST_NEOADJUVANT_TABLE,
+  BRCA_OLAPARIB_TABLE,
   NEAR_CUTOFF_TABLE,
 } from './decisionTables.js';
 
@@ -36,13 +38,15 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     hrnegHer2pos: customTables['hrneg-her2pos-adjuvant'] || HRNEG_HER2POS_TABLE,
     tn: customTables['tn-adjuvant'] || TN_TABLE,
     neoadjuvant: customTables['neoadjuvant-treatment'] || NEOADJUVANT_TABLE,
+    postNeoadjuvant: customTables['post-neoadjuvant-treatment'] || POST_NEOADJUVANT_TABLE,
+    brcaOlaparib: customTables['brca-olaparib-eligibility'] || BRCA_OLAPARIB_TABLE,
     nearCutoff: customTables['near-cutoff-warnings'] || NEAR_CUTOFF_TABLE,
   };
 
   const dmnResults = {};
   const steps = [];
   const warnings = [];
-  const { bioGroup, isNeoadjuvant } = cqlOutput;
+  const { bioGroup, isNeoadjuvant, isPostNeoadjuvant } = cqlOutput;
 
   // 1. HER2 determination (for transparency)
   dmnResults.her2 = evaluateDecisionTable(tables.her2, cqlOutput);
@@ -78,6 +82,54 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     return { bioGroup, steps, warnings, isNeoadjuvant: true, dmnResults };
   }
 
+  // 3b. Post-neoadjuvant path (pCR-based decisions)
+  if (isPostNeoadjuvant) {
+    dmnResults.postNeoadjuvant = evaluateDecisionTable(tables.postNeoadjuvant, cqlOutput);
+    if (dmnResults.postNeoadjuvant.matched && dmnResults.postNeoadjuvant.result) {
+      const r = dmnResults.postNeoadjuvant.result;
+      if (r.regimen && r.regimen !== '-') {
+        steps.push({ type: 'chemo', name: r.regimen, detail: r.detail, rationale: r.rationale });
+      }
+      if (r.warnings) warnings.push(...r.warnings);
+    }
+
+    // BRCA/olaparib evaluation
+    dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
+    if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
+      const r = dmnResults.brcaOlaparib.result;
+      if (r.recommendation && !r.recommendation.includes('Ingen')) {
+        // Avoid duplicating olaparib if already in post-neo plan
+        const hasOlaparib = steps.some((s) => s.name?.toLowerCase().includes('olaparib'));
+        if (!hasOlaparib && r.recommendation.includes('laparib')) {
+          // Already handled by post-neoadjuvant table
+        } else if (!hasOlaparib) {
+          steps.push({ type: 'targeted', name: r.recommendation, detail: r.detail, rationale: r.rationale });
+        }
+        if (r.warnings) warnings.push(...r.warnings);
+      }
+    }
+
+    // Endocrine for HR+
+    if (cqlOutput.hrPositive) {
+      dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cqlOutput);
+      if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
+        const r = dmnResults.endocrine.result;
+        const hasEndocrine = steps.some((s) => s.type === 'endocrine');
+        if (!hasEndocrine) {
+          steps.push({ type: 'endocrine', name: 'Endokrinterapi', detail: r.detail, duration: r.duration, rationale: r.rationale });
+        }
+      }
+    }
+
+    // Radiation
+    dmnResults.radiation = evaluateDecisionTable(tables.radiation, cqlOutput);
+    if (dmnResults.radiation.matched && dmnResults.radiation.result?.recommended === true) {
+      steps.push({ type: 'radiation', name: 'Strålebehandling', detail: dmnResults.radiation.result.detail, rationale: dmnResults.radiation.result.rationale });
+    }
+
+    return { bioGroup, steps, warnings, isPostNeoadjuvant: true, dmnResults };
+  }
+
   // 4. Adjuvant path — biogroup-specific
   switch (bioGroup) {
     case 'HR+HER2-':
@@ -94,6 +146,19 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       break;
     default:
       warnings.push('Biologisk undergruppe ikke bestemt');
+  }
+
+  // 4b. BRCA / Olaparib evaluation (all adjuvant biogroups)
+  dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
+  if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
+    const r = dmnResults.brcaOlaparib.result;
+    if (r.recommendation && r.recommendation.includes('laparib') && r.recommendation.includes('300mg')) {
+      steps.push({ type: 'targeted', name: 'Olaparib (Lynparza)', detail: r.detail, rationale: r.rationale });
+    }
+    if (r.recommendation && r.recommendation.includes('testing')) {
+      warnings.push(`BRCA: ${r.recommendation} — ${r.detail}`);
+    }
+    if (r.warnings && r.warnings.length > 0) warnings.push(...r.warnings);
   }
 
   // 5. Radiation (all adjuvant)

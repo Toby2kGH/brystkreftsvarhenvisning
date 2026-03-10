@@ -40,6 +40,12 @@ const CQL_PARAMETERS = [
   { id: 'cardiacRisk', label: 'Kardial risiko', type: 'enum', values: ['low', 'moderate', 'high'] },
   { id: 'renalFunction', label: 'Nyrefunksjon', type: 'enum', values: ['normal', 'reduced', 'severe'] },
   { id: 'hepaticFunction', label: 'Leverfunksjon', type: 'enum', values: ['normal', 'reduced', 'severe'] },
+  { id: 'brcaStatus', label: 'BRCA-status', type: 'enum', values: ['BRCA1', 'BRCA2', 'negative', 'not_tested', 'VUS'] },
+  { id: 'brcaMutated', label: 'BRCA-mutert', type: 'boolean' },
+  { id: 'olaparibEligible', label: 'Olaparib-kandidat', type: 'boolean' },
+  { id: 'histologicalType', label: 'Histologisk type', type: 'enum', values: ['ductal', 'lobular', 'other'] },
+  { id: 'pcrStatus', label: 'pCR-status', type: 'enum', values: ['pCR', 'non-pCR', 'not_applicable'] },
+  { id: 'isPostNeoadjuvant', label: 'Postneoadjuvant', type: 'boolean' },
 ];
 
 const PARAM_MAP = Object.fromEntries(CQL_PARAMETERS.map((p) => [p.id, p]));
@@ -552,7 +558,8 @@ const STANDARD_TABLE_IDS = new Set([
   'her2-determination', 'chemo-pathway-hrpos-her2neg', 'cdk46-adjuvant-selection',
   'endocrine-therapy-selection', 'zometa-eligibility', 'radiation-therapy',
   'hrpos-her2pos-adjuvant', 'hrneg-her2pos-adjuvant', 'tn-adjuvant',
-  'neoadjuvant-treatment', 'near-cutoff-warnings',
+  'neoadjuvant-treatment', 'post-neoadjuvant-treatment', 'brca-olaparib-eligibility',
+  'near-cutoff-warnings',
 ]);
 
 function isStandardTable(id) { return STANDARD_TABLE_IDS.has(id); }

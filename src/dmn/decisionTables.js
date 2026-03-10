@@ -743,7 +743,153 @@ export const NEOADJUVANT_TABLE = {
 };
 
 // ============================================================
-// 11. NEAR-CUTOFF WARNINGS
+// 11. POST-NEOADJUVANT TREATMENT (pCR-based)
+// ============================================================
+
+export const POST_NEOADJUVANT_TABLE = {
+  id: 'post-neoadjuvant-treatment',
+  name: 'Postneoadjuvant behandling (basert på pCR)',
+  hitPolicy: 'FIRST',
+  version: '1.0.0',
+  lastUpdated: '2026-03-10',
+  changeLog: [],
+
+  guidelineSource: {
+    ...HANDLINGSPROGRAM_2025,
+    chapter: 'Kap. 12.6 — Postneoadjuvant behandling',
+    trialReference: 'KATHERINE, CREATE-X, OlympiA',
+  },
+
+  inputs: [
+    { id: 'isPostNeoadjuvant', label: 'Postneoadjuvant', type: 'boolean' },
+    { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string' },
+    { id: 'pcrStatus', label: 'pCR-status', type: 'string', allowedValues: ['pCR', 'non-pCR', 'not_applicable'] },
+    { id: 'brcaMutated', label: 'BRCA-mutert', type: 'boolean' },
+    { id: 'olaparibEligible', label: 'Olaparib-kandidat', type: 'boolean' },
+  ],
+
+  outputs: [
+    { id: 'regimen', label: 'Regime', type: 'string' },
+    { id: 'detail', label: 'Detaljer', type: 'string' },
+    { id: 'rationale', label: 'Begrunnelse', type: 'string' },
+    { id: 'warnings', label: 'Advarsler', type: 'string[]' },
+  ],
+
+  rules: [
+    { id: 'PNA0', conditions: { isPostNeoadjuvant: false }, outputs: { regimen: '-', detail: 'Ikke postneoadjuvant', rationale: '-', warnings: [] } },
+
+    // HER2+ non-pCR: T-DM1 (KATHERINE)
+    { id: 'PNA1', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6', trialReference: 'KATHERINE' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: ['HR+HER2+', 'HR-HER2+'], pcrStatus: 'non-pCR' },
+      outputs: { regimen: 'T-DM1 (trastuzumab emtansin) 14 kurer', detail: 'T-DM1 3,6 mg/kg q3w × 14 kurer. Erstatter adjuvant trastuzumab ved non-pCR etter neoadjuvant HER2-rettet behandling', rationale: 'KATHERINE: T-DM1 ved HER2+ non-pCR gir signifikant bedre iDFS vs trastuzumab alene (50% risikoreduksjon)', warnings: ['LVEF-monitorering q3m', 'Hepatotoksisitet — lever- og blodprøver ved hver kur'] } },
+
+    // HER2+ pCR: Continue trastuzumab
+    { id: 'PNA2', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: ['HR+HER2+', 'HR-HER2+'], pcrStatus: 'pCR' },
+      outputs: { regimen: 'Trastuzumab totalt 1 år (± pertuzumab)', detail: 'Fortsett trastuzumab (± pertuzumab) til totalt 1 år behandling. pCR oppnådd — god prognose', rationale: 'HER2+ med pCR: Fortsett standard HER2-rettet behandling', warnings: [] } },
+
+    // TN non-pCR + BRCA-mutert: Olaparib (OlympiA) — prioritert over capecitabin
+    { id: 'PNA3', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6', trialReference: 'OlympiA' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'non-pCR', brcaMutated: true },
+      outputs: { regimen: 'Olaparib 300mg ×2 daglig i 1 år', detail: 'Olaparib 300mg ×2 daglig i 1 år (OlympiA). BRCA-mutert TN med non-pCR: Olaparib prioritert fremfor capecitabin. Capecitabin kan vurderes sekvensielt', rationale: 'OlympiA: Olaparib ved BRCA-mutert HER2-negativ høyrisiko gir signifikant bedre iDFS og OS. Prioritert ved non-pCR', warnings: ['BRCA-mutasjon bekreftet', 'Hematologisk monitorering (anemi, nøytropeni)', 'Kvalme — antiemetisk profylakse'] } },
+
+    // TN non-pCR uten BRCA: Capecitabin (CREATE-X)
+    { id: 'PNA4', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6', trialReference: 'CREATE-X' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'non-pCR' },
+      outputs: { regimen: 'Capecitabin 6-8 kurer', detail: 'Capecitabin 1250 mg/m² ×2 daglig dag 1-14, q3w × 6-8 kurer (CREATE-X)', rationale: 'CREATE-X: Capecitabin ved TN non-pCR gir bedre DFS og OS', warnings: ['Hånd-fot-syndrom — dosereduksjon ved grad ≥2', 'Vurder BRCA-testing — olaparib kan være aktuelt ved BRCA-mutasjon'] } },
+
+    // HR+HER2- non-pCR + BRCA-mutert: Olaparib (OlympiA)
+    { id: 'PNA5', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6', trialReference: 'OlympiA' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: 'HR+HER2-', pcrStatus: 'non-pCR', olaparibEligible: true },
+      outputs: { regimen: 'Olaparib 300mg ×2 daglig i 1 år + endokrinterapi', detail: 'Olaparib 300mg ×2 daglig i 1 år (OlympiA) + standard endokrinterapi. BRCA-mutert HR+HER2- med non-pCR', rationale: 'OlympiA: Olaparib ved BRCA-mutert HER2-negativ høyrisiko gir signifikant bedre iDFS og OS', warnings: ['BRCA-mutasjon bekreftet', 'Hematologisk monitorering', 'Fortsett endokrinterapi under og etter olaparib'] } },
+
+    // HR+HER2- non-pCR uten BRCA: Standard adjuvant
+    { id: 'PNA6', conditions: { isPostNeoadjuvant: true, bioGroup: 'HR+HER2-', pcrStatus: 'non-pCR' },
+      outputs: { regimen: 'Standard endokrinterapi ± CDK4/6-hemmer', detail: 'Endokrinterapi + vurder CDK4/6-hemmer basert på risikoprofil. Non-pCR indikerer høyere risiko', rationale: 'HR+HER2- non-pCR: Intensifiser adjuvant behandling. Vurder abemaciclib/ribociclib', warnings: ['Vurder BRCA-testing for olaparib-eligibilitet'] } },
+
+    // TN pCR: Adjuvant pembrolizumab if KEYNOTE-522
+    { id: 'PNA7', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 12.6', trialReference: 'KEYNOTE-522' },
+      conditions: { isPostNeoadjuvant: true, bioGroup: 'TN', pcrStatus: 'pCR' },
+      outputs: { regimen: 'Adjuvant pembrolizumab 9 kurer', detail: 'Pembrolizumab 200mg q3w × 9 kurer adjuvant (KEYNOTE-522). Kun dersom pembrolizumab var del av neoadjuvant regime', rationale: 'KEYNOTE-522: Adjuvant pembrolizumab etter pCR gir vedvarende EFS-gevinst', warnings: ['Autoimmune bivirkninger — screening', 'Kun ved forutgående pembrolizumab i neoadjuvant'] } },
+
+    // Fallback
+    { id: 'PNA8', conditions: { isPostNeoadjuvant: true }, outputs: { regimen: 'Individuell vurdering', detail: 'Postneoadjuvant behandling krever individuell MDT-vurdering basert på pCR-status og biomarkører', rationale: 'Ingen spesifikk regel — MDT-diskusjon anbefalt', warnings: ['Henvisning til MDT'] } },
+  ],
+};
+
+// ============================================================
+// 12. BRCA / OLAPARIB ELIGIBILITY
+// ============================================================
+
+export const BRCA_OLAPARIB_TABLE = {
+  id: 'brca-olaparib-eligibility',
+  name: 'BRCA-testing og olaparib (OlympiA)',
+  hitPolicy: 'FIRST',
+  version: '1.0.0',
+  lastUpdated: '2026-03-10',
+  changeLog: [],
+
+  guidelineSource: {
+    ...HANDLINGSPROGRAM_2025,
+    chapter: 'Kap. 8.3 — Genetisk utredning og BRCA',
+    trialReference: 'OlympiA',
+  },
+
+  inputs: [
+    { id: 'brcaStatus', label: 'BRCA-status', type: 'string', allowedValues: ['BRCA1', 'BRCA2', 'negative', 'not_tested', 'VUS'] },
+    { id: 'brcaMutated', label: 'BRCA-mutert', type: 'boolean' },
+    { id: 'her2Negative', label: 'HER2-negativ', type: 'boolean' },
+    { id: 'bioGroup', label: 'Biologisk gruppe', type: 'string' },
+    { id: 'isHighRisk', label: 'Høy risiko', type: 'boolean' },
+    { id: 'age', label: 'Alder', type: 'number' },
+    { id: 'stadium', label: 'Stadium', type: 'string' },
+  ],
+
+  outputs: [
+    { id: 'recommendation', label: 'Anbefaling', type: 'string' },
+    { id: 'detail', label: 'Detaljer', type: 'string' },
+    { id: 'rationale', label: 'Begrunnelse', type: 'string' },
+    { id: 'warnings', label: 'Advarsler', type: 'string[]' },
+  ],
+
+  rules: [
+    // BRCA-mutert + HER2-negativ + høy risiko: Olaparib anbefalt
+    { id: 'BRCA1', sourceRef: { ...HANDLINGSPROGRAM_2025, chapter: 'Kap. 8.3', trialReference: 'OlympiA' },
+      conditions: { brcaMutated: true, her2Negative: true, isHighRisk: true },
+      outputs: { recommendation: 'Olaparib 300mg ×2 daglig i 1 år', detail: 'Olaparib (Lynparza) 300mg ×2 daglig i 1 år. Start innen 12 uker etter avsluttet kjemoterapi. Kombineres med endokrinterapi ved HR+', rationale: 'OlympiA: Olaparib ved gBRCA-mutert HER2-negativ høyrisiko brystkreft gir 3,4% absolutt OS-gevinst ved 4 år (p=0,009)', warnings: ['Hematologisk monitorering — fullblodstelling dag 1 i hver syklus', 'MDS/AML-risiko — lav men reell', 'Kvalme — antiemetisk profylakse anbefales'] } },
+
+    // BRCA-mutert + HER2-negativ + ikke høy risiko
+    { id: 'BRCA2', conditions: { brcaMutated: true, her2Negative: true },
+      outputs: { recommendation: 'Vurder olaparib — individuell risikovurdering', detail: 'BRCA-mutert HER2-negativ uten klassisk høyrisiko. Vurder olaparib basert på samlet risikoprofil', rationale: 'OlympiA inkluderte høyrisikopasienter. Ved lavere risiko: diskuter nytte vs bivirkninger', warnings: ['MDT-diskusjon anbefalt'] } },
+
+    // Ikke testet + TN under 60: Anbefal testing
+    { id: 'BRCA3', conditions: { brcaStatus: 'not_tested', bioGroup: 'TN', age: { lt: 60 } },
+      outputs: { recommendation: 'BRCA-testing anbefalt', detail: 'Trippel negativ brystkreft under 60 år: BRCA-testing sterkt anbefalt. Kan påvirke behandlingsvalg (olaparib) og kirurgisk strategi (risikored. mastektomi)', rationale: 'NBCG/NFKGL anbefaler BRCA-testing ved TN < 60 år. 10-15% av TN har germline BRCA-mutasjon', warnings: ['Henvisning til genetisk veiledning', 'Bilateralt karsinom → testing uavhengig av alder'] } },
+
+    // Ikke testet + TN 60+: Vurder testing
+    { id: 'BRCA3b', conditions: { brcaStatus: 'not_tested', bioGroup: 'TN' },
+      outputs: { recommendation: 'Vurder BRCA-testing', detail: 'TN ≥60 år: Vurder BRCA-testing, spesielt ved familieanamnese', rationale: 'BRCA-testing kan avdekke behandlingsmuligheter (olaparib)', warnings: [] } },
+
+    // Ikke testet + HR+HER2- + høyrisiko + ung: Vurder testing
+    { id: 'BRCA4', conditions: { brcaStatus: 'not_tested', bioGroup: 'HR+HER2-', isHighRisk: true, age: { lt: 50 } },
+      outputs: { recommendation: 'Vurder BRCA-testing', detail: 'HR+HER2- høyrisiko under 50 år: Vurder BRCA-testing. Ved positiv BRCA kan olaparib legges til behandlingen', rationale: 'OlympiA inkluderte HR+HER2- BRCA-muterte med høy risiko. Testing kan åpne for målrettet behandling', warnings: ['Familiehistorie bør kartlegges'] } },
+
+    // Ikke testet + stadium III: Vurder testing
+    { id: 'BRCA5', conditions: { brcaStatus: 'not_tested', stadium: ['IIIA', 'IIIB', 'IIIC'] },
+      outputs: { recommendation: 'Vurder BRCA-testing', detail: 'Stadium III: Vurder BRCA-testing uavhengig av biologisk subgruppe. Kan påvirke behandlingsvalg', rationale: 'Høyrisikosykdom — BRCA-testing kan avdekke olaparib-kandidater', warnings: [] } },
+
+    // BRCA negative or VUS: No action
+    { id: 'BRCA6', conditions: { brcaStatus: ['negative', 'VUS'] },
+      outputs: { recommendation: 'Ingen BRCA-relatert behandling', detail: 'BRCA negativ eller VUS: Ingen indikasjon for olaparib. VUS bør følges opp med reanalyse', rationale: 'Olaparib kun indisert ved patogen germline BRCA1/2-mutasjon', warnings: [] } },
+
+    // Default: Not tested, no specific indication
+    { id: 'BRCA7', conditions: {},
+      outputs: { recommendation: 'BRCA-testing ikke spesifikt indisert', detail: 'Ingen klar indikasjon for BRCA-testing basert på nåværende kriterier. Vurder ved familieanamnese', rationale: 'Standard kriterier for BRCA-testing ikke oppfylt', warnings: [] } },
+  ],
+};
+
+// ============================================================
+// 13. NEAR-CUTOFF WARNINGS
 // ============================================================
 
 export const NEAR_CUTOFF_TABLE = {
@@ -817,6 +963,8 @@ export const ALL_DECISION_TABLES = {
   'hrneg-her2pos-adjuvant': HRNEG_HER2POS_TABLE,
   'tn-adjuvant': TN_TABLE,
   'neoadjuvant-treatment': NEOADJUVANT_TABLE,
+  'post-neoadjuvant-treatment': POST_NEOADJUVANT_TABLE,
+  'brca-olaparib-eligibility': BRCA_OLAPARIB_TABLE,
   'near-cutoff-warnings': NEAR_CUTOFF_TABLE,
 };
 
