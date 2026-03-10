@@ -179,12 +179,48 @@ export interface DMNOutput {
   allowedValues?: (string | number | boolean)[];
 }
 
+// ---- Guideline source reference (traceability) ----
+
+export interface GuidelineReference {
+  /** Guideline document name, e.g. "Nasjonalt handlingsprogram for brystkreft" */
+  document: string;
+  /** Specific chapter/section, e.g. "Kap. 12.3.2" */
+  chapter?: string;
+  /** Page number(s) in the guideline, e.g. "s. 45-47" */
+  page?: string;
+  /** Guideline revision/version, e.g. "Mars 2025" */
+  revision: string;
+  /** NBCG tabular overview reference, e.g. "NBCG tabellarisk oversikt 17.12.24" */
+  nbcgTable?: string;
+  /** Clinical trial reference, e.g. "MonarchE", "KEYNOTE-522" */
+  trialReference?: string;
+}
+
+export interface RuleChangeEntry {
+  /** ISO timestamp of the change */
+  timestamp: string;
+  /** Who made the change (user ID or "system") */
+  changedBy: string;
+  /** What was changed */
+  description: string;
+  /** Previous rule snapshot (for diff) */
+  previousRule?: Partial<DMNRule>;
+}
+
 export interface DMNRule {
   id: string;
   description?: string;
   priority?: number;
   conditions: Record<string, ConditionValue>;
   outputs: Record<string, unknown>;
+  /** Reference to the clinical guideline source for this rule */
+  sourceRef?: GuidelineReference;
+  /** Whether this rule has been modified from the default (system-managed) */
+  isModified?: boolean;
+  /** Timestamp of last modification via admin UI */
+  lastModifiedAt?: string;
+  /** User who last modified this rule */
+  lastModifiedBy?: string;
 }
 
 export interface DMNTable {
@@ -196,6 +232,12 @@ export interface DMNTable {
   inputs: DMNInput[];
   outputs: DMNOutput[];
   rules: DMNRule[];
+  /** Primary guideline source for the entire table */
+  guidelineSource?: GuidelineReference;
+  /** Change log for the table */
+  changeLog?: RuleChangeEntry[];
+  /** Whether any rules in this table have been modified from defaults */
+  hasModifiedRules?: boolean;
 }
 
 export interface DMNEvalResult {

@@ -53,6 +53,9 @@ export default function DecisionTableViewer() {
   const [saveMessage, setSaveMessage] = useState(null);
   const [showNewTable, setShowNewTable] = useState(false);
   const [newTableForm, setNewTableForm] = useState({ id: '', name: '', hitPolicy: 'FIRST' });
+  const [showChangeLog, setShowChangeLog] = useState(false);
+  const [globalChangeLog, setGlobalChangeLog] = useState([]);
+  const [tableDiff, setTableDiff] = useState(null);
 
   useEffect(() => { fetchTables(); }, []);
 
@@ -66,6 +69,41 @@ export default function DecisionTableViewer() {
       console.error('Kunne ikke hente beslutningstabeller:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchChangeLog(tableId) {
+    try {
+      const url = tableId ? `/api/change-log/${tableId}` : '/api/change-log';
+      const res = await fetch(url);
+      const data = await res.json();
+      setGlobalChangeLog(data);
+    } catch (err) {
+      console.error('Kunne ikke hente endringslogg:', err);
+    }
+  }
+
+  async function fetchDiff(tableId) {
+    try {
+      const res = await fetch(`/api/decision-tables/${tableId}/diff`);
+      const data = await res.json();
+      setTableDiff(data);
+    } catch (err) {
+      console.error('Kunne ikke hente diff:', err);
+    }
+  }
+
+  async function revertRule(tableId, ruleId) {
+    if (!confirm(`Tilbakestill regel ${ruleId} til standardversjon?`)) return;
+    try {
+      const res = await fetch(`/api/decision-tables/${tableId}/revert-rule/${ruleId}`, { method: 'POST' });
+      const data = await res.json();
+      setSelectedTable(data.table);
+      setTables((prev) => prev.map((t) => (t.id === data.table.id ? data.table : t)));
+      showMsg(`Regel ${ruleId} tilbakestilt til standard`);
+      fetchDiff(tableId);
+    } catch (err) {
+      showMsg('Feil ved tilbakestilling: ' + err.message);
     }
   }
 
@@ -256,18 +294,46 @@ export default function DecisionTableViewer() {
         {tables.map((t) => (
           <button
             key={t.id}
-            className={`tab-btn ${selectedTable?.id === t.id ? 'active' : ''}`}
-            onClick={() => { setSelectedTable(t); setEditingRule(null); }}
-            title={t.name}
+            className={`tab-btn ${selectedTable?.id === t.id ? 'active' : ''} ${t.hasModifiedRules ? 'tab-modified' : ''}`}
+            onClick={() => { setSelectedTable(t); setEditingRule(null); setTableDiff(null); }}
+            title={t.hasModifiedRules ? `${t.name} (endret fra standard)` : t.name}
           >
+            {t.hasModifiedRules && <span className="modified-dot" title="Inneholder endrede regler" />}
             {t.name.length > 25 ? t.name.slice(0, 25) + '…' : t.name}
           </button>
         ))}
         <button className="tab-btn add-table-btn" onClick={() => setShowNewTable(true)} title="Legg til ny tabell">+ Ny tabell</button>
         <button className="tab-btn reset-btn" onClick={resetTables}>Tilbakestill alle</button>
+        <button className="tab-btn changelog-btn" onClick={() => { setShowChangeLog(!showChangeLog); if (!showChangeLog) fetchChangeLog(); }}>Endringslogg</button>
       </div>
 
       {saveMessage && <div className="save-message">{saveMessage}</div>}
+
+      {/* Global change log */}
+      {showChangeLog && (
+        <div className="change-log-panel">
+          <div className="change-log-header">
+            <h3>Endringslogg</h3>
+            <button className="cancel-btn" onClick={() => setShowChangeLog(false)}>Lukk</button>
+          </div>
+          {globalChangeLog.length === 0 ? (
+            <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>Ingen endringer registrert</p>
+          ) : (
+            <div className="change-log-entries">
+              {globalChangeLog.slice(0, 50).map((entry) => (
+                <div key={entry.id || entry.timestamp} className="change-log-entry">
+                  <div className="change-log-meta">
+                    <span className="change-log-time">{new Date(entry.timestamp).toLocaleString('nb-NO')}</span>
+                    <span className="change-log-table">{entry.tableName}</span>
+                    <span className="change-log-user">{entry.changedBy}</span>
+                  </div>
+                  <div className="change-log-desc">{entry.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* New table form */}
       {showNewTable && (
@@ -308,7 +374,70 @@ export default function DecisionTableViewer() {
             {!isStandardTable(selectedTable.id) && (
               <button className="delete-table-btn" onClick={() => deleteTable(selectedTable.id)}>Slett tabell</button>
             )}
+            <button className="diff-btn" onClick={() => fetchDiff(selectedTable.id)}>Vis endringer fra standard</button>
           </div>
+
+          {/* Guideline source reference */}
+          {selectedTable.guidelineSource && (
+            <div className="guideline-source-banner">
+              <strong>Kilde:</strong> {selectedTable.guidelineSource.document}
+              {selectedTable.guidelineSource.chapter && <> — {selectedTable.guidelineSource.chapter}</>}
+              {selectedTable.guidelineSource.page && <> ({selectedTable.guidelineSource.page})</>}
+              {selectedTable.guidelineSource.revision && <span className="guideline-revision"> | Revisjon: {selectedTable.guidelineSource.revision}</span>}
+              {selectedTable.guidelineSource.trialReference && <span className="guideline-trial"> | Studier: {selectedTable.guidelineSource.trialReference}</span>}
+            </div>
+          )}
+
+          {/* Modified rules warning */}
+          {selectedTable.hasModifiedRules && (
+            <div className="modified-warning-banner">
+              <strong>Advarsel:</strong> Denne tabellen inneholder regler som er endret fra standardversjonen.
+              Endrede regler er merket med en oransje indikator. Klikk &quot;Vis endringer fra standard&quot; for detaljer.
+              {selectedTable.changeLog && selectedTable.changeLog.length > 0 && (
+                <div className="table-changelog-preview">
+                  Siste endring: {new Date(selectedTable.changeLog[0].timestamp).toLocaleString('nb-NO')} av {selectedTable.changeLog[0].changedBy}
+                  — {selectedTable.changeLog[0].description}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Diff view */}
+          {tableDiff && tableDiff.tableId === selectedTable.id && (
+            <div className="diff-panel">
+              <div className="diff-header">
+                <h3>Endringer fra standard ({tableDiff.totalDiffs} {tableDiff.totalDiffs === 1 ? 'endring' : 'endringer'})</h3>
+                <button className="cancel-btn" onClick={() => setTableDiff(null)}>Lukk</button>
+              </div>
+              {tableDiff.totalDiffs === 0 ? (
+                <p style={{ color: '#27ae60', fontStyle: 'italic' }}>Ingen endringer — tabellen er identisk med standardversjonen</p>
+              ) : (
+                <div className="diff-entries">
+                  {tableDiff.diffs.map((d) => (
+                    <div key={d.ruleId} className={`diff-entry diff-${d.type}`}>
+                      <div className="diff-rule-header">
+                        <span className="diff-rule-id">{d.ruleId}</span>
+                        <span className={`diff-type-badge diff-type-${d.type}`}>
+                          {d.type === 'modified' ? 'Endret' : d.type === 'added' ? 'Ny' : 'Slettet'}
+                        </span>
+                        {d.type === 'modified' && (
+                          <button className="revert-btn" onClick={() => revertRule(selectedTable.id, d.ruleId)}>Tilbakestill</button>
+                        )}
+                      </div>
+                      {d.changes.map((c, i) => (
+                        <div key={i} className="diff-change">
+                          <span className="diff-field">{c.field}</span>
+                          {c.old !== undefined && <span className="diff-old">Før: {JSON.stringify(c.old)}</span>}
+                          {c.new !== undefined && <span className="diff-new">Etter: {JSON.stringify(c.new)}</span>}
+                          {c.detail && <span className="diff-detail">{c.detail}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Inputs */}
           {selectedTable.inputs && selectedTable.inputs.length > 0 && (
@@ -376,7 +505,7 @@ export default function DecisionTableViewer() {
                       onCancel={cancelEdit}
                     />
                   ) : (
-                    <GenericRuleDisplay rule={rule} table={selectedTable} onEdit={() => startEdit(rule, selectedTable)} onDelete={() => deleteRule(rule.id)} />
+                    <GenericRuleDisplay rule={rule} table={selectedTable} onEdit={() => startEdit(rule, selectedTable)} onDelete={() => deleteRule(rule.id)} onRevert={isStandardTable(selectedTable.id) ? (ruleId) => revertRule(selectedTable.id, ruleId) : null} />
                   )}
                 </div>
               ))}
@@ -554,16 +683,28 @@ function parseOutputs(outputEntries) {
 // Display component
 // ================================================================
 
-function GenericRuleDisplay({ rule, table, onEdit, onDelete }) {
+function GenericRuleDisplay({ rule, table, onEdit, onDelete, onRevert }) {
   return (
     <>
       <div className="rule-header">
         <span className="rule-id">{rule.id}</span>
+        {rule.isModified && <span className="rule-modified-badge" title={`Endret ${rule.lastModifiedAt ? new Date(rule.lastModifiedAt).toLocaleString('nb-NO') : ''} av ${rule.lastModifiedBy || 'ukjent'}`}>Endret</span>}
         {rule.priority != null && table.hitPolicy === 'PRIORITY' && <span className="rule-priority">Prioritet: {rule.priority}</span>}
         <button className="edit-btn" onClick={onEdit}>Rediger</button>
+        {rule.isModified && onRevert && <button className="revert-btn" onClick={() => onRevert(rule.id)}>Tilbakestill</button>}
         <button className="delete-rule-btn" onClick={onDelete}>Slett</button>
       </div>
       {rule.description && <p className="rule-description">{rule.description}</p>}
+      {rule.sourceRef && (
+        <div className="rule-source-ref">
+          <span className="source-ref-label">Kilde:</span>
+          {rule.sourceRef.document && <span>{rule.sourceRef.document}</span>}
+          {rule.sourceRef.chapter && <span> — {rule.sourceRef.chapter}</span>}
+          {rule.sourceRef.page && <span> ({rule.sourceRef.page})</span>}
+          {rule.sourceRef.revision && <span className="source-ref-revision"> [{rule.sourceRef.revision}]</span>}
+          {rule.sourceRef.trialReference && <span className="source-ref-trial"> Studie: {rule.sourceRef.trialReference}</span>}
+        </div>
+      )}
 
       <div className="rule-body">
         <div className="rule-conditions">
