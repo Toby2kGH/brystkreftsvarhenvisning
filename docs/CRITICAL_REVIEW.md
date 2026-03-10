@@ -107,6 +107,17 @@ Mangler:
 #### I. Eldre pasienter / komorbiditet
 - Geriatrisk vurdering ikke inkludert
 - `age` brukes kun for endokrinterapi (<35 år)
+
+#### J. Patologiske parametre som mangler som input
+- **Histologisk type** (lobulært vs duktalt karsinom): Referert i NEO1b-regelen men ikke som strukturert input. Lobulære karsinomer har annen biologi og kan respondere dårligere på neoadjuvant kjemoterapi
+- **Kirurgisk marginsstatus**: Påvirker re-eksisjon og strålebehandlingsbeslutninger
+- **Lymfovaskulær invasjon (LVI)**: Relevant for risikostratifisering, ikke fanget opp
+- **TILs (tumorinfiltrerende lymfocytter)**: Referert i TN-regler (TN1b, TN1c) men ikke som input-parameter
+- **PD-L1-status**: Relevant for immunterapi-eligibilitet i metastatisk setting
+
+#### K. ECOG/funksjonsstatus — ubrukt
+- `ecogScore` fanges opp i CQL men brukes ikke i noen DMN-tabell
+- For eldre/komorbide pasienter er dette avgjørende for behandlingsintensitet
 - Reduserte regimer for eldre mangler
 
 ---
