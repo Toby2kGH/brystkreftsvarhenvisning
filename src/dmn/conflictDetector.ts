@@ -1,19 +1,19 @@
 /**
- * Rule Conflict Detector — Identifies overlapping and contradictory rules.
+ * Regelkonfliktdetektor — Identifiserer overlappende og motstridende regler.
  *
- * For clinical decision support, conflicting rules can lead to unpredictable
- * recommendations. This module detects:
+ * For klinisk beslutningsstøtte kan motstridende regler føre til uforutsigbare
+ * anbefalinger. Denne modulen detekterer:
  *
- * 1. Exact duplicates (identical conditions)
- * 2. Subset conflicts (rule A's conditions are a subset of rule B's)
- * 3. Contradictory outputs (overlapping conditions with different results)
- * 4. Shadowed rules (unreachable rules in FIRST hit-policy tables)
+ * 1. Eksakte duplikater (identiske betingelser)
+ * 2. Delmengdekonflikter (regel A sine betingelser er en delmengde av B sine)
+ * 3. Motstridende output (overlappende betingelser med ulike resultat)
+ * 4. Skyggelagte regler (uoppnåelige regler i FIRST hit-policy tabeller)
  */
 
 import type { DMNTable, DMNRule, ConditionValue, RuleConflict } from '../types/clinical.js';
 
 /**
- * Detect conflicts in a single table.
+ * Detekter konflikter i én tabell.
  */
 export function detectConflicts(table: DMNTable): RuleConflict[] {
   const conflicts: RuleConflict[] = [];
@@ -37,7 +37,7 @@ export function detectConflicts(table: DMNTable): RuleConflict[] {
           severity: 'error',
         });
       } else if (overlap === 'a_subset_of_b') {
-        // A is more specific than B — if A comes after B in a FIRST table, A is shadowed
+      // A er mer spesifikk enn B — hvis A kommer etter B i en FIRST-tabell, er A skyggelagt
         if (table.hitPolicy === 'FIRST') {
           conflicts.push({
             tableId: table.id,
@@ -60,7 +60,7 @@ export function detectConflicts(table: DMNTable): RuleConflict[] {
           });
         }
       } else if (overlap === 'partial') {
-        // Only flag if outputs differ
+        // Flagg kun hvis output er ulike
         if (outputsDiffer(ruleA, ruleB)) {
           conflicts.push({
             tableId: table.id,
@@ -79,7 +79,7 @@ export function detectConflicts(table: DMNTable): RuleConflict[] {
 }
 
 /**
- * Detect conflicts across all tables.
+ * Detekter konflikter på tvers av alle tabeller.
  */
 export function detectAllConflicts(tables: Record<string, DMNTable>): RuleConflict[] {
   const allConflicts: RuleConflict[] = [];
@@ -92,32 +92,32 @@ export function detectAllConflicts(tables: Record<string, DMNTable>): RuleConfli
 type OverlapType = 'exact' | 'a_subset_of_b' | 'b_subset_of_a' | 'partial' | null;
 
 /**
- * Analyze the overlap between two rules' conditions.
+ * Analyser overlapp mellom to reglers betingelser.
  */
 function analyzeOverlap(ruleA: DMNRule, ruleB: DMNRule): OverlapType {
   const keysA = Object.keys(ruleA.conditions);
   const keysB = Object.keys(ruleB.conditions);
   const allKeys = new Set([...keysA, ...keysB]);
 
-  let aSubsetOfB = true;  // All of A's conditions are within B's
-  let bSubsetOfA = true;  // All of B's conditions are within A's
+  let aSubsetOfB = true;  // Alle A sine betingelser er innenfor B
+  let bSubsetOfA = true;  // Alle B sine betingelser er innenfor A
   let anyOverlap = true;
 
   for (const key of allKeys) {
     const condA = ruleA.conditions[key];
     const condB = ruleB.conditions[key];
 
-    // If one rule doesn't have this condition, it's a wildcard (matches anything)
+    // Hvis én regel mangler betingelsen, er den et wildcard (matcher alt)
     if (condA === undefined && condB !== undefined) {
-      aSubsetOfB = false;  // A is broader on this dimension
+      aSubsetOfB = false;  // A er bredere på denne dimensjonen
       continue;
     }
     if (condB === undefined && condA !== undefined) {
-      bSubsetOfA = false;  // B is broader on this dimension
+      bSubsetOfA = false;  // B er bredere på denne dimensjonen
       continue;
     }
 
-    // Both have this condition
+    // Begge har denne betingelsen
     const rel = conditionRelation(condA, condB);
     if (rel === 'disjoint') {
       anyOverlap = false;
@@ -131,7 +131,7 @@ function analyzeOverlap(ruleA: DMNRule, ruleB: DMNRule): OverlapType {
       aSubsetOfB = false;
       bSubsetOfA = false;
     }
-    // 'equal' doesn't change anything
+    // 'equal' endrer ingenting
   }
 
   if (!anyOverlap) return null;
@@ -144,10 +144,10 @@ function analyzeOverlap(ruleA: DMNRule, ruleB: DMNRule): OverlapType {
 type CondRelation = 'equal' | 'a_in_b' | 'b_in_a' | 'overlap' | 'disjoint';
 
 /**
- * Determine the relationship between two condition values.
+ * Bestem relasjonen mellom to betingelsesverdier.
  */
 function conditionRelation(a: ConditionValue, b: ConditionValue): CondRelation {
-  // Normalize to sets of accepted values where possible
+  // Normaliser til mengder av aksepterte verdier der mulig
   const setA = conditionToValueSet(a);
   const setB = conditionToValueSet(b);
 
@@ -155,7 +155,7 @@ function conditionRelation(a: ConditionValue, b: ConditionValue): CondRelation {
     return setRelation(setA, setB);
   }
 
-  // Range comparison
+  // Range-sammenligning
   const rangeA = conditionToRange(a);
   const rangeB = conditionToRange(b);
 
@@ -163,10 +163,10 @@ function conditionRelation(a: ConditionValue, b: ConditionValue): CondRelation {
     return rangeRelation(rangeA, rangeB);
   }
 
-  // Simple equality
+  // Enkel likhet
   if (primitiveEqual(a, b)) return 'equal';
 
-  // Can't determine — assume overlap (conservative)
+  // Kan ikke bestemme — anta overlapp (konservativt)
   return 'overlap';
 }
 
@@ -181,7 +181,7 @@ function conditionToValueSet(cond: ConditionValue): Set<string> | null {
       if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
         set.add(String(item));
       } else {
-        return null; // Complex nested — can't reduce to set
+        return null; // Kompleks nøsting — kan ikke redusere til mengde
       }
     }
     return set;
@@ -224,17 +224,17 @@ function conditionToRange(cond: ConditionValue): Range | null {
 }
 
 function rangeRelation(a: Range, b: Range): CondRelation {
-  // Check disjoint
+  // Sjekk disjunkte
   if (a.max < b.min || b.max < a.min) return 'disjoint';
   if (a.max === b.min && !(a.maxInclusive && b.minInclusive)) return 'disjoint';
   if (b.max === a.min && !(b.maxInclusive && a.minInclusive)) return 'disjoint';
 
-  // Check equality
+  // Sjekk likhet
   if (a.min === b.min && a.max === b.max && a.minInclusive === b.minInclusive && a.maxInclusive === b.maxInclusive) {
     return 'equal';
   }
 
-  // Check containment
+  // Sjekk inneslutning
   const aInB = (b.min < a.min || (b.min === a.min && (b.minInclusive || !a.minInclusive))) &&
                (b.max > a.max || (b.max === a.max && (b.maxInclusive || !a.maxInclusive)));
   const bInA = (a.min < b.min || (a.min === b.min && (a.minInclusive || !b.minInclusive))) &&

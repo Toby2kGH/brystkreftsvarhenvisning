@@ -68,42 +68,57 @@ export default function DecisionResult({ result }) {
         </div>
       )}
 
-      {/* Treatment Steps */}
-      <div className="treatment-steps">
-        <h3>Behandlingstrinn</h3>
-        {steps.length === 0 ? (
-          <p className="no-steps">Ingen spesifikke behandlingstrinn anbefalt</p>
-        ) : (
-          <ol className="steps-list">
-            {steps.map((step, i) => (
-              <li key={i} className="step-card">
-                <div className="step-header">
-                  <span
-                    className="step-type-badge"
-                    style={{ backgroundColor: STEP_TYPE_COLORS[step.type] || '#7f8c8d' }}
-                  >
-                    {STEP_TYPE_LABELS[step.type] || step.type}
-                  </span>
-                  <strong className="step-name">{step.name}</strong>
-                  {step.priority === 1 && (
-                    <span className="priority-badge">Førstevalg</span>
-                  )}
-                </div>
-                <p className="step-detail">{step.detail}</p>
-                {step.duration && (
-                  <p className="step-duration">Varighet: {step.duration}</p>
-                )}
-                {step.rationale && (
-                  <p className="step-rationale">{step.rationale}</p>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
+      {/* Journaltekst — kopierbar, synlig øverst */}
+      {journalText && (
+        <div className="journal-text-box">
+          <div className="journal-text-header">
+            <h3>Journaltekst</h3>
+            <button className="copy-btn" onClick={() => copyToClipboard(journalText, setCopiedJournal)}>
+              {copiedJournal ? 'Kopiert!' : 'Kopier til utklippstavle'}
+            </button>
+          </div>
+          <pre className="journal-text-content">{journalText}</pre>
+        </div>
+      )}
 
       {/* Referral Letter Generator (3 modes) */}
       <ReferralLetterGenerator result={result} />
+
+      {/* Treatment Steps — detaljert visning */}
+      <details className="details-section" open>
+        <summary>Behandlingstrinn (detaljert)</summary>
+        <div className="treatment-steps">
+          {steps.length === 0 ? (
+            <p className="no-steps">Ingen spesifikke behandlingstrinn anbefalt</p>
+          ) : (
+            <ol className="steps-list">
+              {steps.map((step, i) => (
+                <li key={i} className="step-card">
+                  <div className="step-header">
+                    <span
+                      className="step-type-badge"
+                      style={{ backgroundColor: STEP_TYPE_COLORS[step.type] || '#7f8c8d' }}
+                    >
+                      {STEP_TYPE_LABELS[step.type] || step.type}
+                    </span>
+                    <strong className="step-name">{step.name}</strong>
+                    {step.priority === 1 && (
+                      <span className="priority-badge">Førstevalg</span>
+                    )}
+                  </div>
+                  <p className="step-detail">{step.detail}</p>
+                  {step.duration && (
+                    <p className="step-duration">Varighet: {step.duration}</p>
+                  )}
+                  {step.rationale && (
+                    <p className="step-rationale">{step.rationale}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </details>
 
       {/* CQL Details */}
       <details className="details-section">

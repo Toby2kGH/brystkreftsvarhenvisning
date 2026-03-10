@@ -1,8 +1,8 @@
 /**
- * Treatment Builder — Assembles treatment plans from DMN table results.
+ * Behandlingsplanbygger — Sammenstiller behandlingsplaner fra DMN-tabellresultat.
  *
- * All clinical decisions now come from DMN tables (transparent, editable).
- * This module only assembles the results into a structured treatment plan.
+ * Alle kliniske beslutninger kommer nå fra DMN-tabeller (transparente, redigerbare).
+ * Denne modulen sammenstiller kun resultatene til en strukturert behandlingsplan.
  */
 
 import { evaluateDecisionTable } from './dmnEngine.js';
@@ -23,8 +23,8 @@ import {
 } from './decisionTables.js';
 
 /**
- * Build complete treatment plan using DMN tables for ALL decisions.
- * Returns treatment plan + all DMN evaluation results for transparency.
+ * Bygg komplett behandlingsplan med DMN-tabeller for ALLE beslutninger.
+ * Returnerer behandlingsplan + alle DMN-evalueringsresultat for transparens.
  */
 export function buildTreatmentPlan(cqlOutput, customTables = {}) {
   const tables = {
@@ -48,10 +48,15 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
   const warnings = [];
   const { bioGroup, isNeoadjuvant, isPostNeoadjuvant } = cqlOutput;
 
-  // 1. HER2 determination (for transparency)
+  // 0. ER lav-positiv varsel
+  if (cqlOutput.erLowPositive) {
+    warnings.push(`ER lav-positiv (${cqlOutput.erPercent}%): ER 1-10% regnes klinisk som ER-negativ. Behandlingsvalg er tilpasset deretter.`);
+  }
+
+  // 1. HER2-bestemmelse (for transparens)
   dmnResults.her2 = evaluateDecisionTable(tables.her2, cqlOutput);
 
-  // 2. Near-cutoff warnings (COLLECT — multiple can fire)
+  // 2. Grenseverdivarsler (COLLECT — flere kan utløses)
   dmnResults.nearCutoff = evaluateDecisionTable(tables.nearCutoff, cqlOutput);
   if (dmnResults.nearCutoff.matched) {
     const cutoffResults = Array.isArray(dmnResults.nearCutoff.result)
@@ -62,7 +67,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     }
   }
 
-  // 3. Neoadjuvant path
+  // 3. Neoadjuvant behandlingsvei
   if (isNeoadjuvant) {
     dmnResults.neoadjuvant = evaluateDecisionTable(tables.neoadjuvant, cqlOutput);
     if (dmnResults.neoadjuvant.matched && dmnResults.neoadjuvant.result) {
@@ -71,7 +76,12 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       if (r.warnings) warnings.push(...r.warnings);
     }
 
-    // Endocrine for HR+ neoadjuvant
+    // Markørbestilling ved planlagt brystbevarende kirurgi (BCS)
+    if (cqlOutput.surgeryType === 'bcs') {
+      warnings.push('Planlagt BCS: Bestill markør/klips i tumorseng før oppstart neoadjuvant behandling for å sikre identifikasjon av tumorområdet ved operasjon.');
+    }
+
+    // Endokrin for HR+ neoadjuvant
     if (cqlOutput.hrPositive) {
       dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cqlOutput);
       if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
@@ -82,7 +92,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     return { bioGroup, steps, warnings, isNeoadjuvant: true, dmnResults };
   }
 
-  // 3b. Post-neoadjuvant path (pCR-based decisions)
+  // 3b. Post-neoadjuvant behandlingsvei (pCR-baserte beslutninger)
   if (isPostNeoadjuvant) {
     dmnResults.postNeoadjuvant = evaluateDecisionTable(tables.postNeoadjuvant, cqlOutput);
     if (dmnResults.postNeoadjuvant.matched && dmnResults.postNeoadjuvant.result) {
@@ -93,15 +103,15 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       if (r.warnings) warnings.push(...r.warnings);
     }
 
-    // BRCA/olaparib evaluation
+    // BRCA/olaparib-evaluering
     dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
     if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
       const r = dmnResults.brcaOlaparib.result;
       if (r.recommendation && !r.recommendation.includes('Ingen')) {
-        // Avoid duplicating olaparib if already in post-neo plan
+        // Unngå duplisering av olaparib hvis allerede i post-neo-planen
         const hasOlaparib = steps.some((s) => s.name?.toLowerCase().includes('olaparib'));
         if (!hasOlaparib && r.recommendation.includes('laparib')) {
-          // Already handled by post-neoadjuvant table
+          // Allerede håndtert av post-neoadjuvant-tabellen
         } else if (!hasOlaparib) {
           steps.push({ type: 'targeted', name: r.recommendation, detail: r.detail, rationale: r.rationale });
         }
@@ -109,7 +119,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       }
     }
 
-    // Endocrine for HR+
+    // Endokrin for HR+
     if (cqlOutput.hrPositive) {
       dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cqlOutput);
       if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
@@ -121,7 +131,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       }
     }
 
-    // Radiation
+    // Strålebehandling
     dmnResults.radiation = evaluateDecisionTable(tables.radiation, cqlOutput);
     if (dmnResults.radiation.matched && dmnResults.radiation.result?.recommended === true) {
       steps.push({ type: 'radiation', name: 'Strålebehandling', detail: dmnResults.radiation.result.detail, rationale: dmnResults.radiation.result.rationale });
@@ -130,7 +140,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     return { bioGroup, steps, warnings, isPostNeoadjuvant: true, dmnResults };
   }
 
-  // 4. Adjuvant path — biogroup-specific
+  // 4. Adjuvant behandlingsvei — biogruppebasert
   switch (bioGroup) {
     case 'HR+HER2-':
       buildHRposHER2neg(cqlOutput, tables, dmnResults, steps, warnings);
@@ -148,7 +158,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
       warnings.push('Biologisk undergruppe ikke bestemt');
   }
 
-  // 4b. BRCA / Olaparib evaluation (all adjuvant biogroups)
+  // 4b. BRCA / Olaparib-evaluering (alle adjuvante biogrupper)
   dmnResults.brcaOlaparib = evaluateDecisionTable(tables.brcaOlaparib, cqlOutput);
   if (dmnResults.brcaOlaparib.matched && dmnResults.brcaOlaparib.result) {
     const r = dmnResults.brcaOlaparib.result;
@@ -161,7 +171,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     if (r.warnings && r.warnings.length > 0) warnings.push(...r.warnings);
   }
 
-  // 5. Radiation (all adjuvant)
+  // 5. Strålebehandling (alle adjuvante)
   dmnResults.radiation = evaluateDecisionTable(tables.radiation, cqlOutput);
   if (dmnResults.radiation.matched && dmnResults.radiation.result?.recommended === true) {
     steps.push({ type: 'radiation', name: 'Strålebehandling', detail: dmnResults.radiation.result.detail, rationale: dmnResults.radiation.result.rationale });
@@ -173,7 +183,7 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
     steps.push({ type: 'bisphosphonate', name: 'Zoledronsyre (Zometa)', detail: dmnResults.zometa.result.regimen, rationale: dmnResults.zometa.result.rationale });
   }
 
-  // 7. Evaluate any custom tables not in the standard set
+  // 7. Evaluer egendefinerte tabeller som ikke er i standardsettet
   const standardIds = new Set(Object.values(tables).map((t) => t.id));
   for (const [id, table] of Object.entries(customTables)) {
     if (!standardIds.has(id)) {
@@ -202,11 +212,11 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
 }
 
 // ============================================================
-// Biogroup-specific assembly (using DMN results)
+// Biogruppebasert sammenstilling (bruker DMN-resultat)
 // ============================================================
 
 function buildHRposHER2neg(cql, tables, dmnResults, steps, warnings) {
-  // Chemo pathway from DMN
+  // Kjemoterapivalg fra DMN
   dmnResults.chemo = evaluateDecisionTable(tables.chemo, cql);
   if (dmnResults.chemo.matched && dmnResults.chemo.result) {
     const r = dmnResults.chemo.result;
@@ -219,7 +229,7 @@ function buildHRposHER2neg(cql, tables, dmnResults, steps, warnings) {
     }
   }
 
-  // Endocrine
+  // Endokrinterapi
   dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cql);
   if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
     const r = dmnResults.endocrine.result;
@@ -251,7 +261,7 @@ function buildHRposHER2pos(cql, tables, dmnResults, steps, warnings) {
     steps.push({ type: 'chemo', name: r.regimen, detail: r.detail, rationale: r.rationale });
   }
 
-  // Endocrine (HR+)
+  // Endokrinterapi (HR+)
   dmnResults.endocrine = evaluateDecisionTable(tables.endocrine, cql);
   if (dmnResults.endocrine.matched && dmnResults.endocrine.result?.therapy !== 'ingen') {
     const r = dmnResults.endocrine.result;
@@ -287,7 +297,7 @@ function resolveCDK46(value, grade, gesHigh, gesLow, tumorSizeMm) {
 }
 
 // ============================================================
-// Text generation
+// Tekstgenerering
 // ============================================================
 
 export function buildJournalText(cqlOutput, treatmentPlan) {

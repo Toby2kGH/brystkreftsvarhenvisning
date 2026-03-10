@@ -1067,6 +1067,70 @@ legend {
   margin-top: 4px;
 }
 
+/* Journal text box - kopierbar tekst øverst i resultatvisning */
+.journal-text-box {
+  background: var(--surface);
+  border: 2px solid var(--primary-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.journal-text-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.journal-text-header h3 {
+  color: var(--primary);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.journal-text-content {
+  background: #f8f9fa;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.copy-btn {
+  background: var(--primary-light);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.copy-btn:hover { background: var(--primary); }
+
+/* Felt-advarsel i skjema */
+.field-warning {
+  background: #fef9e7;
+  border: 1px solid #f9e79f;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #856404;
+}
+
+/* Derivert status-indikator */
+.derived-status {
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: var(--text-light);
+}
+
 /* Treatment steps */
 .treatment-steps {
   margin-bottom: 20px;
@@ -1223,6 +1287,113 @@ legend {
   margin-top: 4px;
   font-style: italic;
 }
+
+/* Modifikasjonsbanner — forsidevarsel */
+.mod-warning-banner {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  margin: 0 auto 16px;
+  max-width: 960px;
+}
+.mod-warning-list {
+  margin: 8px 0 8px 20px;
+  font-size: 0.9rem;
+}
+.mod-change-time { color: var(--text-light); font-size: 0.8rem; }
+.mod-view-btn {
+  background: #856404;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.mod-view-btn:hover { background: #6c510f; }
+
+/* Algoritmesett toolbar og panel */
+.alg-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.alg-toggle-btn, .alg-export-btn, .alg-import-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.alg-toggle-btn:hover, .alg-export-btn:hover, .alg-import-btn:hover {
+  background: #f0f3f6;
+}
+
+.alg-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.alg-panel h3 { color: var(--primary); margin-bottom: 4px; }
+.alg-desc { font-size: 0.85rem; color: var(--text-light); margin-bottom: 12px; }
+
+.alg-save-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.alg-name-input { flex: 1; min-width: 200px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; }
+.alg-desc-input { flex: 1; min-width: 150px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; }
+.alg-save-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+.alg-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.alg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.alg-table th, .alg-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.alg-table th { background: #f5f7fa; color: var(--primary); }
+.alg-actions { display: flex; gap: 4px; }
+.alg-actions button {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.alg-actions button:hover { background: #f0f3f6; }
+.alg-delete-btn { color: var(--danger) !important; border-color: var(--danger) !important; }
+.alg-empty { color: var(--text-light); font-style: italic; }
+
+.alg-compare-result {
+  background: #f8f9fa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: 12px;
+}
+.alg-compare-result h4 { color: var(--primary); margin-bottom: 8px; }
+.alg-no-diff { color: var(--accent); }
+.alg-diff-list { margin-left: 16px; font-size: 0.9rem; }
 
 /* ============================================================
    Interactive Decision Tree

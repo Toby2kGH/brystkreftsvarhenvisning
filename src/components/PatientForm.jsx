@@ -100,20 +100,13 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
         <legend>Reseptorstatus</legend>
         <div className="form-row">
           <label>
-            ER-status
-            <select name="erStatus" value={form.erStatus} onChange={handleChange}>
-              <option value="positive">Positiv</option>
-              <option value="negative">Negativ</option>
-            </select>
-          </label>
-          <label>
             ER %
             <input type="number" name="erPercent" value={form.erPercent} onChange={handleChange}
               min="0" max="100" placeholder="%" />
           </label>
           <label>
-            PR-status
-            <select name="prStatus" value={form.prStatus} onChange={handleChange}>
+            ER-status {form.erPercent !== '' ? <span className="derived-status">({Number(form.erPercent) > 10 ? 'Positiv' : Number(form.erPercent) >= 1 ? 'Lav-positiv → regnes negativ' : 'Negativ'})</span> : null}
+            <select name="erStatus" value={form.erPercent !== '' ? (Number(form.erPercent) > 10 ? 'positive' : 'negative') : form.erStatus} onChange={handleChange} disabled={form.erPercent !== ''}>
               <option value="positive">Positiv</option>
               <option value="negative">Negativ</option>
             </select>
@@ -123,7 +116,19 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
             <input type="number" name="prPercent" value={form.prPercent} onChange={handleChange}
               min="0" max="100" placeholder="%" />
           </label>
+          <label>
+            PR-status
+            <select name="prStatus" value={form.prStatus} onChange={handleChange}>
+              <option value="positive">Positiv</option>
+              <option value="negative">Negativ</option>
+            </select>
+          </label>
         </div>
+        {form.erPercent !== '' && Number(form.erPercent) >= 1 && Number(form.erPercent) <= 10 && (
+          <div className="field-warning">
+            ER {form.erPercent}% er lav-positiv (1-10%). Regnes klinisk som ER-negativ iht. NBCG/St. Gallen.
+          </div>
+        )}
       </fieldset>
 
       {/* HER2 */}

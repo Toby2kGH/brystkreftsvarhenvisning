@@ -1,8 +1,8 @@
 /**
- * DMN JSON Schema — Validates decision tables at load time.
+ * DMN JSON-skjema — Validerer beslutningstabeller ved lasting.
  *
- * Ensures all tables conform to the expected structure before
- * they are used for clinical decisions. This is a runtime safety net.
+ * Sikrer at alle tabeller har korrekt struktur før de brukes
+ * til kliniske beslutninger. Dette er et kjøretids-sikkerhetsnett.
  */
 
 /** @type {import('../types/clinical').DMNTable} */
@@ -15,8 +15,8 @@ export interface ValidationError {
 }
 
 /**
- * Validate a single DMN table structure.
- * Returns an array of validation errors (empty = valid).
+ * Valider strukturen til én DMN-tabell.
+ * Returnerer en array med valideringsfeil (tom = gyldig).
  */
 export function validateDMNTable(table: unknown): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -27,7 +27,7 @@ export function validateDMNTable(table: unknown): ValidationError[] {
   const t = table as Record<string, unknown>;
   const id = typeof t.id === 'string' ? t.id : 'unknown';
 
-  // Required fields
+  // Påkrevde felt
   if (!t.id || typeof t.id !== 'string') {
     errors.push({ tableId: id, field: 'id', message: 'Mangler id (string)', severity: 'error' });
   }
@@ -38,7 +38,7 @@ export function validateDMNTable(table: unknown): ValidationError[] {
     errors.push({ tableId: id, field: 'hitPolicy', message: `Ugyldig hitPolicy: ${t.hitPolicy}. Må være FIRST, PRIORITY, COLLECT eller RULE ORDER`, severity: 'error' });
   }
 
-  // Rules
+  // Regler
   if (!Array.isArray(t.rules)) {
     errors.push({ tableId: id, field: 'rules', message: 'rules må være en array', severity: 'error' });
   } else {
@@ -64,7 +64,7 @@ export function validateDMNTable(table: unknown): ValidationError[] {
         errors.push({ tableId: id, field: `rules[${i}].outputs`, message: 'Regel mangler outputs (objekt)', severity: 'error' });
       }
 
-      // Validate condition values
+      // Valider betingelsesverdier
       if (rule.conditions && typeof rule.conditions === 'object') {
         for (const [key, val] of Object.entries(rule.conditions as Record<string, unknown>)) {
           const condErrors = validateConditionValue(val, id, `rules[${i}].conditions.${key}`);
@@ -72,14 +72,14 @@ export function validateDMNTable(table: unknown): ValidationError[] {
         }
       }
 
-      // PRIORITY tables should have priority
+      // PRIORITY-tabeller bør ha prioritet
       if (t.hitPolicy === 'PRIORITY' && (rule.priority == null || typeof rule.priority !== 'number')) {
         errors.push({ tableId: id, field: `rules[${i}].priority`, message: `Regel ${rule.id} mangler priority (tall) i PRIORITY-tabell`, severity: 'warning' });
       }
     }
   }
 
-  // Inputs & outputs (optional but recommended)
+  // Inputs & outputs (valgfritt men anbefalt)
   if (!Array.isArray(t.inputs)) {
     errors.push({ tableId: id, field: 'inputs', message: 'Mangler inputs array', severity: 'warning' });
   }
@@ -122,7 +122,7 @@ function validateConditionValue(val: unknown, tableId: string, path: string): Va
 }
 
 /**
- * Validate all tables in a collection.
+ * Valider alle tabeller i en samling.
  */
 export function validateAllTables(tables: Record<string, unknown>): { valid: boolean; errors: ValidationError[] } {
   const allErrors: ValidationError[] = [];

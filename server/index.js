@@ -483,6 +483,179 @@ function extractFromPrefetch(prefetch, context = {}) {
   return data;
 }
 
+// ============================================================
+// Algoritmeversjonering — lagre/laste/sammenligne navngitte versjoner
+// ============================================================
+
+const ALGORITHM_SETS_PATH = path.join(__dirname, 'algorithm-sets.json');
+
+let algorithmSets = {};
+function loadAlgorithmSets() {
+  if (fs.existsSync(ALGORITHM_SETS_PATH)) {
+    try {
+      algorithmSets = JSON.parse(fs.readFileSync(ALGORITHM_SETS_PATH, 'utf-8'));
+    } catch (err) {
+      console.warn('Kunne ikke laste algorithm-sets.json:', err.message);
+      algorithmSets = {};
+    }
+  }
+}
+loadAlgorithmSets();
+
+function saveAlgorithmSets() {
+  try {
+    fs.writeFileSync(ALGORITHM_SETS_PATH, JSON.stringify(algorithmSets, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Kunne ikke lagre algorithm-sets.json:', err.message);
+  }
+}
+
+// Lagre nåværende tabellsett som en navngitt versjon
+app.post('/api/algorithm-sets', (req, res) => {
+  const { name, description } = req.body;
+  if (!name) return res.status(400).json({ error: 'Navn er påkrevd' });
+  const id = name.toLowerCase().replace(/[^a-zæøå0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (algorithmSets[id]) return res.status(409).json({ error: 'Et algoritmesett med dette navnet finnes allerede' });
+
+  algorithmSets[id] = {
+    id,
+    name,
+    description: description || '',
+    createdAt: new Date().toISOString(),
+    tables: structuredClone(decisionTables),
+  };
+  saveAlgorithmSets();
+  res.json({ message: `Algoritmesett "${name}" lagret`, id });
+});
+
+// List alle lagrede algoritmesett
+app.get('/api/algorithm-sets', (_req, res) => {
+  const summary = Object.values(algorithmSets).map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    createdAt: s.createdAt,
+    tableCount: Object.keys(s.tables).length,
+  }));
+  res.json(summary);
+});
+
+// Hent et spesifikt algoritmesett
+app.get('/api/algorithm-sets/:id', (req, res) => {
+  const set = algorithmSets[req.params.id];
+  if (!set) return res.status(404).json({ error: 'Algoritmesett ikke funnet' });
+  res.json(set);
+});
+
+// Last inn (aktiver) et lagret algoritmesett
+app.post('/api/algorithm-sets/:id/activate', (req, res) => {
+  const set = algorithmSets[req.params.id];
+  if (!set) return res.status(404).json({ error: 'Algoritmesett ikke funnet' });
+  const changedBy = req.headers['x-changed-by'] || 'admin-ui';
+  addChangeLogEntry('*', 'Alle tabeller', `Algoritmesett "${set.name}" aktivert`, changedBy);
+  decisionTables = structuredClone(set.tables);
+  for (const id of Object.keys(decisionTables)) {
+    detectModifiedRules(decisionTables[id]);
+  }
+  saveTables();
+  res.json({ message: `Algoritmesett "${set.name}" aktivert`, tableCount: Object.keys(decisionTables).length });
+});
+
+// Slett et lagret algoritmesett
+app.delete('/api/algorithm-sets/:id', (req, res) => {
+  const id = req.params.id;
+  if (!algorithmSets[id]) return res.status(404).json({ error: 'Algoritmesett ikke funnet' });
+  delete algorithmSets[id];
+  saveAlgorithmSets();
+  res.json({ message: 'Algoritmesett slettet' });
+});
+
+// Sammenlign to algoritmesett
+app.get('/api/algorithm-sets/compare/:idA/:idB', (req, res) => {
+  const { idA, idB } = req.params;
+  const setA = idA === 'current' ? { tables: decisionTables, name: 'Nåværende' } : algorithmSets[idA];
+  const setB = idB === 'current' ? { tables: decisionTables, name: 'Nåværende' } : algorithmSets[idB];
+  if (!setA) return res.status(404).json({ error: `Sett "${idA}" ikke funnet` });
+  if (!setB) return res.status(404).json({ error: `Sett "${idB}" ikke funnet` });
+
+  const differences = [];
+  const allTableIds = new Set([...Object.keys(setA.tables), ...Object.keys(setB.tables)]);
+  for (const tableId of allTableIds) {
+    const tA = setA.tables[tableId];
+    const tB = setB.tables[tableId];
+    if (!tA) { differences.push({ tableId, type: 'only_in_b', tableName: tB?.name }); continue; }
+    if (!tB) { differences.push({ tableId, type: 'only_in_a', tableName: tA?.name }); continue; }
+    if (tA.rules.length !== tB.rules.length) {
+      differences.push({ tableId, type: 'rule_count', tableName: tA.name, countA: tA.rules.length, countB: tB.rules.length });
+    }
+    const ruleChanges = [];
+    const ruleMapB = new Map(tB.rules.map((r) => [r.id, r]));
+    for (const ruleA of tA.rules) {
+      const ruleB = ruleMapB.get(ruleA.id);
+      if (!ruleB) { ruleChanges.push({ ruleId: ruleA.id, type: 'only_in_a' }); continue; }
+      if (JSON.stringify(ruleA.conditions) !== JSON.stringify(ruleB.conditions) ||
+          JSON.stringify(ruleA.outputs) !== JSON.stringify(ruleB.outputs)) {
+        ruleChanges.push({ ruleId: ruleA.id, type: 'changed' });
+      }
+    }
+    for (const ruleB of tB.rules) {
+      if (!tA.rules.find((r) => r.id === ruleB.id)) {
+        ruleChanges.push({ ruleId: ruleB.id, type: 'only_in_b' });
+      }
+    }
+    if (ruleChanges.length > 0) {
+      differences.push({ tableId, type: 'rules_differ', tableName: tA.name, ruleChanges });
+    }
+  }
+
+  res.json({ nameA: setA.name, nameB: setB.name, totalDifferences: differences.length, differences });
+});
+
+// ============================================================
+// Eksport/import av tabeller og tekstmaler
+// ============================================================
+
+// Eksporter nåværende tabeller som JSON
+app.get('/api/export/tables', (_req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="decision-tables.json"');
+  res.json({ exportedAt: new Date().toISOString(), version: '1.0', tables: decisionTables });
+});
+
+// Importer tabeller fra JSON
+app.post('/api/import/tables', (req, res) => {
+  const { tables } = req.body;
+  if (!tables || typeof tables !== 'object') return res.status(400).json({ error: 'Ugyldig import-format. Forventet { tables: {...} }' });
+  const changedBy = req.headers['x-changed-by'] || 'admin-ui';
+  let importCount = 0;
+  for (const [id, table] of Object.entries(tables)) {
+    if (table && table.id && table.rules) {
+      decisionTables[id] = table;
+      detectModifiedRules(decisionTables[id]);
+      importCount++;
+    }
+  }
+  addChangeLogEntry('*', 'Import', `${importCount} tabeller importert`, changedBy);
+  saveTables();
+  res.json({ message: `${importCount} tabeller importert`, importCount });
+});
+
+// Hent modifikasjonsstatus for forsidevisning
+app.get('/api/modification-status', (_req, res) => {
+  const modifiedTables = [];
+  for (const [id, table] of Object.entries(decisionTables)) {
+    if (table.hasModifiedRules) {
+      const modifiedRuleCount = table.rules.filter((r) => r.isModified).length;
+      modifiedTables.push({
+        tableId: id,
+        tableName: table.name,
+        modifiedRuleCount,
+        lastChange: table.changeLog?.[0] || null,
+      });
+    }
+  }
+  res.json({ hasModifications: modifiedTables.length > 0, modifiedTables, totalModifiedTables: modifiedTables.length });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Brystkreft CDS-server kjører på port ${PORT}`));
 

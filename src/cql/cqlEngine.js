@@ -1,21 +1,21 @@
 /**
- * CQL Execution Engine — Pure fact derivation (WHAT).
+ * CQL-motor — Ren faktaderivering (HVA).
  *
- * CQL only derives clinical FACTS from raw patient data.
- * All DECISIONS are made by DMN tables (transparent, editable).
+ * CQL deriverer kun kliniske FAKTA fra rå pasientdata.
+ * Alle BESLUTNINGER tas av DMN-tabeller (transparente, redigerbare).
  *
- * Derived facts:
- * - Receptor status (ER, PR, HER2 from IHC/SISH)
- * - Biological subgroup
- * - Staging (T-stage, N-stage, stadium)
- * - Ki-67, grade validation
- * - Gene expression test scores
+ * Deriverte fakta:
+ * - Reseptorstatus (ER, PR, HER2 fra IHC/SISH)
+ * - Biologisk undergruppe
+ * - Stadieinndeling (T-stadium, N-stadium, TNM-stadium)
+ * - Ki-67, grad-validering
+ * - Genekspresjonsscore
  * - Luminal subtype
- * - Risk flags
+ * - Risikoflagg
  */
 
 /**
- * Derive simplified T-stage from tumor size.
+ * Deriv forenklet T-stadium fra tumorstørrelse.
  */
 export function deriveTStage(tumorSizeMm, tStageOverride) {
   if (tStageOverride === 'T4') return 'T4';
@@ -34,7 +34,7 @@ export function simplifyTStage(tStage) {
 }
 
 /**
- * Derive clinical stadium from T and N staging.
+ * Deriv klinisk stadium fra T- og N-stadie.
  */
 export function deriveStadium(tSimple, nStage) {
   if (!tSimple || !nStage) return null;
@@ -52,7 +52,7 @@ export function deriveStadium(tSimple, nStage) {
 }
 
 /**
- * Derive luminal subtype for HR+HER2- tumors.
+ * Deriv luminal subtype for HR+HER2-tumorer.
  */
 export function deriveLuminalSubtype(grade, ki67Value, prPercent) {
   if (grade === 3) return 'B-like';
@@ -63,7 +63,7 @@ export function deriveLuminalSubtype(grade, ki67Value, prPercent) {
 }
 
 /**
- * Derive biological subgroup.
+ * Deriv biologisk undergruppe.
  */
 export function deriveBioGroup(erPositive, prPositive, her2Status) {
   const hrPositive = erPositive || prPositive;
@@ -77,8 +77,8 @@ export function deriveBioGroup(erPositive, prPositive, her2Status) {
 }
 
 /**
- * Main CQL evaluation: derive all clinical facts from raw patient data.
- * NO decisions are made here — only facts for DMN input.
+ * Hoved CQL-evaluering: deriv alle kliniske fakta fra rå pasientdata.
+ * INGEN beslutninger tas her — kun fakta som input til DMN.
  */
 export function evaluateCQL(clinicalData) {
   const {
@@ -94,12 +94,19 @@ export function evaluateCQL(clinicalData) {
     brcaStatus, histologicalType, pcrStatus,
   } = clinicalData;
 
-  // --- Receptor status ---
-  const erPositive = erStatus === true || erStatus === 'positive' || (erPercent != null && erPercent >= 1);
-  const prPositive = prStatus === true || prStatus === 'positive' || (prPercent != null && prPercent >= 1);
+  // --- Reseptorstatus ---
+  // ER 0-10% regnes klinisk som ER-negativ (NBCG/St. Gallen)
+  // ER > 10% er ER-positiv. Prosent overstyrer positiv/negativ-valget.
+  const erFromPercent = erPercent != null ? erPercent > 10 : null;
+  const erPositive = erFromPercent !== null ? erFromPercent : (erStatus === true || erStatus === 'positive');
+  const erLowPositive = erPercent != null && erPercent >= 1 && erPercent <= 10;
+
+  // PR bruker samme prinsipp, men uten egen lav-positiv grense
+  const prFromPercent = prPercent != null ? prPercent >= 1 : null;
+  const prPositive = prFromPercent !== null ? prFromPercent : (prStatus === true || prStatus === 'positive');
   const hrPositive = erPositive || prPositive;
 
-  // --- HER2 (basic derivation — DMN HER2 table gives detailed rationale) ---
+  // --- HER2 (grunnleggende derivering — DMN HER2-tabell gir detaljert begrunnelse) ---
   let her2 = her2Direct || null;
   if (!her2 || her2 === 'unknown') {
     if (her2ihc === '3+') her2 = 'positive';
@@ -113,15 +120,15 @@ export function evaluateCQL(clinicalData) {
   const her2Positive = her2 === 'positive';
   const her2Negative = her2 === 'negative';
 
-  // --- Biogroup ---
+  // --- Biogruppe ---
   const bioGroup = deriveBioGroup(erPositive, prPositive, her2);
 
-  // --- Staging ---
+  // --- Stadieinndeling ---
   const tStage = deriveTStage(tumorSizeMm, tStageOverride);
   const tSimple = simplifyTStage(tStage);
   const stadium = deriveStadium(tSimple, nStage);
 
-  // --- Value parsing ---
+  // --- Verdiparsing ---
   const ki67Value = typeof ki67 === 'number' ? ki67 : parseFloat(ki67);
   const validKi67 = !isNaN(ki67Value) && ki67Value >= 0 && ki67Value <= 100;
   const gradeNum = typeof grade === 'number' ? grade : parseInt(grade, 10);
@@ -138,7 +145,7 @@ export function evaluateCQL(clinicalData) {
     ? deriveLuminalSubtype(validGrade ? gradeNum : null, validKi67 ? ki67Value : null, prPercent)
     : null;
 
-  // --- Treatment mode ---
+  // --- Behandlingsmodus ---
   const mode = treatmentMode || 'adjuvant';
   const isNeoadjuvant = mode === 'neoadjuvant';
   const isPostNeoadjuvant = mode === 'post-neoadjuvant';
@@ -147,27 +154,27 @@ export function evaluateCQL(clinicalData) {
   const brcaVal = brcaStatus || 'not_tested';
   const brcaMutated = brcaVal === 'BRCA1' || brcaVal === 'BRCA2';
 
-  // --- Olaparib eligibility (OlympiA: BRCA-mutated, HER2-negative, high-risk) ---
+  // --- Olaparib-eligibilitet (OlympiA: BRCA-mutert, HER2-negativ, høyrisiko) ---
   const olaparibEligible = brcaMutated && her2Negative && (
     isHighRisk || nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
     (validGrade && gradeNum === 3) || bioGroup === 'TN'
   );
 
-  // --- Histological type ---
+  // --- Histologisk type ---
   const histType = histologicalType || null;
 
   // --- pCR status ---
   const pcrVal = pcrStatus || 'not_applicable';
 
-  // --- High risk (fact, not decision) ---
+  // --- Høyrisiko (faktum, ikke beslutning) ---
   const isHighRisk =
     nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
     (validGrade && gradeNum === 3);
 
-  // --- CDK4/6 eligibility flag ---
+  // --- CDK4/6-eligibilitetsflagg ---
   const cdk46eligible = bioGroup === 'HR+HER2-' && !isNeoadjuvant;
 
-  // --- Gene expression facts ---
+  // --- Genekspresjonsfakta ---
   const geneTestDone = geneTest && geneTest !== 'none';
   const gesHighRisk = geneTestDone && (
     (geneTest === 'prosigna' && validRor && rorVal > 60) ||
@@ -178,8 +185,8 @@ export function evaluateCQL(clinicalData) {
     (geneTest === 'oncotypedx' && validRs && rsVal <= 25)
   );
 
-  // --- Systemic therapy flags (for zometa DMN input) ---
-  // These are basic flags; actual therapy decisions come from DMN tables
+  // --- Systemisk terapiflagg (for Zometa DMN-input) ---
+  // Grunnleggende flagg; faktiske terapibeslutninger tas av DMN-tabeller
   const hasSystemicTherapy = hrPositive || bioGroup === 'TN' || bioGroup === 'HR-HER2+' || bioGroup === 'HR+HER2+';
   const hasOFS = hrPositive && (menopausalStatus === 'pre' || menopausalStatus === 'peri') && isHighRisk;
 
@@ -188,27 +195,27 @@ export function evaluateCQL(clinicalData) {
   const legacyEligible = hrPositive && her2Negative && validEcog && ecog <= 2 && isMetastatic;
 
   return {
-    // Receptor facts
-    erPositive, prPositive, hrPositive,
+    // Reseptorfakta
+    erPositive, prPositive, hrPositive, erLowPositive,
     erPercent: erPercent ?? null,
     prPercent: prPercent ?? null,
     her2Status: her2, her2Positive, her2Negative,
     her2ihc: her2ihc || null, her2sish: her2sish || null,
 
-    // Biological classification
+    // Biologisk klassifisering
     bioGroup, luminalSubtype,
 
-    // Staging
+    // Stadieinndeling
     tStage, tSimple,
     nStage: nStage || null,
     stadium,
     tumorSizeMm: tumorSizeMm ?? null,
 
-    // Tumor characteristics
+    // Tumorkarakteristika
     grade: validGrade ? gradeNum : null,
     ki67Value: validKi67 ? ki67Value : null,
 
-    // Gene expression
+    // Genekspresjon
     geneTest: geneTest || 'none',
     geneTestDone: !!geneTestDone,
     rorScore: validRor ? rorVal : null,
@@ -219,26 +226,26 @@ export function evaluateCQL(clinicalData) {
     // ECOG
     ecogScore: validEcog ? ecog : null,
 
-    // Patient factors
+    // Pasientfaktorer
     menopausalStatus: menopausalStatus || 'unknown',
     age: age ?? null,
     treatmentMode: mode,
     isNeoadjuvant,
     surgeryType: surgeryType || null,
 
-    // BRCA / genetic
+    // BRCA / genetikk
     brcaStatus: brcaVal,
     brcaMutated,
     olaparibEligible,
 
-    // Histological type
+    // Histologisk type
     histologicalType: histType,
 
     // Post-neoadjuvant
     pcrStatus: pcrVal,
     isPostNeoadjuvant,
 
-    // Risk flags (facts)
+    // Risikoflagg (fakta)
     isHighRisk,
     cdk46eligible,
     hasSystemicTherapy,
@@ -259,7 +266,7 @@ export function evaluateCQL(clinicalData) {
 }
 
 /**
- * Validate clinical data.
+ * Valider kliniske data.
  */
 export function validateClinicalData(clinicalData) {
   const errors = [];
