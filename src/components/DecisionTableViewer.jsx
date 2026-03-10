@@ -62,6 +62,8 @@ export default function DecisionTableViewer() {
   const [showChangeLog, setShowChangeLog] = useState(false);
   const [globalChangeLog, setGlobalChangeLog] = useState([]);
   const [tableDiff, setTableDiff] = useState(null);
+  const [testResult, setTestResult] = useState(null);
+  const [testRunning, setTestRunning] = useState(false);
 
   useEffect(() => { fetchTables(); }, []);
 
@@ -96,6 +98,20 @@ export default function DecisionTableViewer() {
       setTableDiff(data);
     } catch (err) {
       console.error('Kunne ikke hente diff:', err);
+    }
+  }
+
+  async function runTests() {
+    setTestRunning(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/run-tests', { method: 'POST' });
+      const data = await res.json();
+      setTestResult(data);
+    } catch (err) {
+      setTestResult({ success: false, error: err.message, totalPassed: 0, totalFailed: 0, totalTests: 0 });
+    } finally {
+      setTestRunning(false);
     }
   }
 
@@ -311,9 +327,57 @@ export default function DecisionTableViewer() {
         <button className="tab-btn add-table-btn" onClick={() => setShowNewTable(true)} title="Legg til ny tabell">+ Ny tabell</button>
         <button className="tab-btn reset-btn" onClick={resetTables}>Tilbakestill alle</button>
         <button className="tab-btn changelog-btn" onClick={() => { setShowChangeLog(!showChangeLog); if (!showChangeLog) fetchChangeLog(); }}>Endringslogg</button>
+        <button className={`tab-btn test-btn ${testRunning ? 'running' : ''}`} onClick={runTests} disabled={testRunning}>
+          {testRunning ? 'Kjorer tester...' : 'Kjor tester'}
+        </button>
       </div>
 
       {saveMessage && <div className="save-message">{saveMessage}</div>}
+
+      {/* Testresultat-panel */}
+      {testResult && (
+        <div className={`test-result-panel ${testResult.success ? 'test-pass' : 'test-fail'}`}>
+          <div className="test-result-header">
+            <h3>
+              {testResult.success ? 'Alle tester bestatt' : 'Tester feilet'}
+            </h3>
+            <span className="test-result-summary">
+              {testResult.totalPassed} bestatt / {testResult.totalFailed} feilet / {testResult.totalTests} totalt
+            </span>
+            <button className="cancel-btn" onClick={() => setTestResult(null)}>Lukk</button>
+          </div>
+
+          {testResult.testSuites && testResult.testSuites.map((suite) => (
+            <div key={suite.file} className="test-suite">
+              <div className="test-suite-header">
+                <span className={`test-suite-status ${suite.failed > 0 ? 'fail' : 'pass'}`}>
+                  {suite.failed > 0 ? 'FEIL' : 'OK'}
+                </span>
+                <span className="test-suite-file">{suite.file}</span>
+                <span className="test-suite-count">{suite.passed}/{suite.passed + suite.failed}</span>
+              </div>
+              {suite.failed > 0 && (
+                <div className="test-failures">
+                  {suite.tests.filter((t) => t.status === 'failed').map((t, i) => (
+                    <div key={i} className="test-failure-item">
+                      <span className="test-failure-name">{t.name}</span>
+                      {t.failureMessage && (
+                        <pre className="test-failure-msg">{t.failureMessage.slice(0, 500)}</pre>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {testResult.rawOutput && !testResult.testSuites && (
+            <pre className="test-raw-output">{testResult.rawOutput.slice(0, 2000)}</pre>
+          )}
+
+          <p className="test-timestamp">Kjort: {new Date(testResult.timestamp).toLocaleString('nb-NO')}</p>
+        </div>
+      )}
 
       {/* Global change log */}
       {showChangeLog && (

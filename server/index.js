@@ -9,6 +9,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { evaluateCQL, validateClinicalData } from '../src/cql/cqlEngine.js';
 import { evaluateDecisionTable } from '../src/dmn/dmnEngine.js';
 import { ALL_DECISION_TABLES } from '../src/dmn/decisionTables.js';
@@ -654,6 +655,108 @@ app.get('/api/modification-status', (_req, res) => {
     }
   }
   res.json({ hasModifications: modifiedTables.length > 0, modifiedTables, totalModifiedTables: modifiedTables.length });
+});
+
+// ============================================================
+// Testkjøring fra UI — kjør vitest og returner resultat
+// ============================================================
+
+app.post('/api/run-tests', (_req, res) => {
+  try {
+    const output = execSync('npx vitest run --reporter=json 2>&1', {
+      cwd: path.join(__dirname, '..'),
+      timeout: 30000,
+      encoding: 'utf-8',
+      env: { ...process.env, FORCE_COLOR: '0' },
+    });
+
+    let jsonResult;
+    try {
+      // vitest --reporter=json outputs JSON to stdout
+      jsonResult = JSON.parse(output);
+    } catch {
+      // Fallback: parse text output
+      jsonResult = null;
+    }
+
+    if (jsonResult) {
+      const testSuites = (jsonResult.testResults || []).map((suite) => ({
+        file: suite.name?.replace(/^.*\/tests\//, 'tests/'),
+        tests: (suite.assertionResults || []).map((t) => ({
+          name: t.fullName || t.title,
+          status: t.status, // 'passed' | 'failed'
+          failureMessage: t.failureMessages?.[0] || null,
+        })),
+        passed: (suite.assertionResults || []).filter((t) => t.status === 'passed').length,
+        failed: (suite.assertionResults || []).filter((t) => t.status === 'failed').length,
+      }));
+
+      const totalPassed = testSuites.reduce((s, f) => s + f.passed, 0);
+      const totalFailed = testSuites.reduce((s, f) => s + f.failed, 0);
+
+      res.json({
+        success: totalFailed === 0,
+        totalPassed,
+        totalFailed,
+        totalTests: totalPassed + totalFailed,
+        testSuites,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // Text fallback
+      const passed = (output.match(/(\d+) passed/) || [])[1] || '0';
+      const failed = (output.match(/(\d+) failed/) || [])[1] || '0';
+      res.json({
+        success: !output.includes('FAIL'),
+        totalPassed: parseInt(passed),
+        totalFailed: parseInt(failed),
+        totalTests: parseInt(passed) + parseInt(failed),
+        rawOutput: output,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    // Test failures cause non-zero exit → execSync throws
+    const output = err.stdout || err.stderr || err.message;
+    let jsonResult;
+    try {
+      jsonResult = JSON.parse(output);
+    } catch { jsonResult = null; }
+
+    if (jsonResult) {
+      const testSuites = (jsonResult.testResults || []).map((suite) => ({
+        file: suite.name?.replace(/^.*\/tests\//, 'tests/'),
+        tests: (suite.assertionResults || []).map((t) => ({
+          name: t.fullName || t.title,
+          status: t.status,
+          failureMessage: t.failureMessages?.[0] || null,
+        })),
+        passed: (suite.assertionResults || []).filter((t) => t.status === 'passed').length,
+        failed: (suite.assertionResults || []).filter((t) => t.status === 'failed').length,
+      }));
+
+      const totalPassed = testSuites.reduce((s, f) => s + f.passed, 0);
+      const totalFailed = testSuites.reduce((s, f) => s + f.failed, 0);
+
+      res.json({
+        success: false,
+        totalPassed,
+        totalFailed,
+        totalTests: totalPassed + totalFailed,
+        testSuites,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      res.json({
+        success: false,
+        totalPassed: 0,
+        totalFailed: 0,
+        totalTests: 0,
+        rawOutput: output,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
 });
 
 const PORT = process.env.PORT || 3001;

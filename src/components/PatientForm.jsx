@@ -64,6 +64,8 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
     onSubmit(data);
   }
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const showSISH = form.her2ihc === '2+';
   const showProsigna = form.geneTest === 'prosigna';
   const showOncotype = form.geneTest === 'oncotypedx';
@@ -202,15 +204,6 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
               <option value="N3">N3 (≥10 positive)</option>
             </select>
           </label>
-          <label>
-            Histologisk type
-            <select name="histologicalType" value={form.histologicalType} onChange={handleChange}>
-              <option value="">Ikke angitt</option>
-              <option value="ductal">Duktalt karsinom (NST)</option>
-              <option value="lobular">Lobulært karsinom</option>
-              <option value="other">Annen type</option>
-            </select>
-          </label>
         </div>
       </fieldset>
 
@@ -276,24 +269,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
         </div>
       </fieldset>
 
-      {/* BRCA / Genetic */}
-      <fieldset>
-        <legend>BRCA / Genetikk</legend>
-        <div className="form-row">
-          <label>
-            BRCA-status
-            <select name="brcaStatus" value={form.brcaStatus} onChange={handleChange}>
-              <option value="not_tested">Ikke testet</option>
-              <option value="BRCA1">BRCA1-mutasjon</option>
-              <option value="BRCA2">BRCA2-mutasjon</option>
-              <option value="negative">Negativ (ingen mutasjon)</option>
-              <option value="VUS">VUS (usikker variant)</option>
-            </select>
-          </label>
-        </div>
-      </fieldset>
-
-      {/* Post-neoadjuvant: pCR */}
+      {/* Post-neoadjuvant: pCR — vises alltid når relevant */}
       {form.treatmentMode === 'post-neoadjuvant' && (
         <fieldset>
           <legend>Postneoadjuvant respons</legend>
@@ -308,6 +284,50 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
             </label>
           </div>
         </fieldset>
+      )}
+
+      {/* Avanserte/valgfrie felter — sammenleggbar */}
+      <button
+        type="button"
+        className="advanced-toggle"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+      >
+        {showAdvanced ? 'Skjul avanserte felter' : 'Vis avanserte felter (BRCA, histologi, ECOG ...)'}
+      </button>
+
+      {showAdvanced && (
+        <>
+          <fieldset>
+            <legend>BRCA / Genetikk</legend>
+            <div className="form-row">
+              <label>
+                BRCA-status
+                <select name="brcaStatus" value={form.brcaStatus} onChange={handleChange}>
+                  <option value="not_tested">Ikke testet</option>
+                  <option value="BRCA1">BRCA1-mutasjon</option>
+                  <option value="BRCA2">BRCA2-mutasjon</option>
+                  <option value="negative">Negativ (ingen mutasjon)</option>
+                  <option value="VUS">VUS (usikker variant)</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Histologisk type</legend>
+            <div className="form-row">
+              <label>
+                Type
+                <select name="histologicalType" value={form.histologicalType} onChange={handleChange}>
+                  <option value="">Ikke angitt</option>
+                  <option value="ductal">Duktalt karsinom (NST)</option>
+                  <option value="lobular">Lobulart karsinom</option>
+                  <option value="other">Annen type</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+        </>
       )}
 
       <button type="submit" className="submit-btn" disabled={loading}>

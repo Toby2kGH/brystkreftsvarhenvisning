@@ -2551,3 +2551,166 @@ legend {
   color: var(--text-light);
   font-style: italic;
 }
+
+/* ============================================================
+   Testkjoring fra UI
+   ============================================================ */
+
+.test-btn {
+  background: #2c3e50 !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 600;
+}
+.test-btn:hover { background: #34495e !important; }
+.test-btn.running { opacity: 0.7; cursor: wait; }
+
+.test-result-panel {
+  margin: 12px 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 2px solid;
+}
+.test-result-panel.test-pass {
+  border-color: var(--accent);
+  background: #eafaf1;
+}
+.test-result-panel.test-fail {
+  border-color: var(--danger);
+  background: #fdf2f2;
+}
+
+.test-result-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.test-result-header h3 { margin: 0; flex: 1; }
+.test-result-summary {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.test-suite {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 4px;
+}
+.test-suite-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.test-suite-status {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+.test-suite-status.pass { background: var(--accent); color: white; }
+.test-suite-status.fail { background: var(--danger); color: white; }
+.test-suite-file { font-weight: 500; }
+.test-suite-count { color: var(--text-light); margin-left: auto; }
+
+.test-failures { margin-top: 8px; }
+.test-failure-item {
+  padding: 8px;
+  margin: 4px 0;
+  background: #fce4e4;
+  border-left: 3px solid var(--danger);
+  border-radius: 3px;
+}
+.test-failure-name { font-weight: 600; color: var(--danger); }
+.test-failure-msg {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  color: #555;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.test-raw-output {
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  background: #f8f8f8;
+  padding: 12px;
+  border-radius: 4px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.test-timestamp {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Sammenleggbar avansert seksjon
+   ============================================================ */
+
+.advanced-toggle {
+  width: 100%;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  text-align: left;
+  transition: background 0.2s;
+}
+.advanced-toggle:hover { background: #e8ecf1; }
+
+/* ============================================================
+   Logikk-forklaring (beslutningsgrunnlag)
+   ============================================================ */
+
+.logic-explanation {
+  margin: 16px 0;
+  padding: 16px;
+  background: #f0f4ff;
+  border: 1px solid #c7d4f0;
+  border-radius: var(--radius);
+}
+.logic-explanation h4 {
+  margin: 0 0 12px 0;
+  color: var(--primary);
+  font-size: 1rem;
+}
+.logic-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid var(--primary-light);
+}
+.logic-step-num {
+  background: var(--primary);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.logic-step-text { font-size: 0.9rem; line-height: 1.5; }
+.logic-step-text strong { color: var(--primary); }
+.logic-step-source {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 2px;
+}
