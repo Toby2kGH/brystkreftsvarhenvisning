@@ -6,6 +6,7 @@
  */
 
 import { evaluateDecisionTable } from './dmnEngine.js';
+import { getThresholdValue } from '../cql/clinicalThresholds.js';
 import {
   HER2_DETERMINATION_TABLE,
   CHEMO_PATHWAY_TABLE,
@@ -51,6 +52,12 @@ export function buildTreatmentPlan(cqlOutput, customTables = {}) {
   // 0. ER lav-positiv varsel
   if (cqlOutput.erLowPositive) {
     warnings.push(`ER lav-positiv (${cqlOutput.erPercent}%): ER 1-10% regnes klinisk som ER-negativ. Behandlingsvalg er tilpasset deretter.`);
+  }
+
+  // 0b. Fertilitetsrådgivning for pasienter i fertil alder
+  const fertilityAge = getThresholdValue('fertilityWarningAge');
+  if (cqlOutput.age != null && cqlOutput.age <= fertilityAge && (cqlOutput.menopausalStatus === 'pre' || cqlOutput.menopausalStatus === 'peri')) {
+    warnings.push(`Fertilitet: Pasienten er ${cqlOutput.age} år (≤${fertilityAge}). Fertilitetsrådgivning og evt. fertilitetsbevarende tiltak bør tilbys FØR oppstart av gonadotoksisk behandling (NBCG kap. 10.1).`);
   }
 
   // 1. HER2-bestemmelse (for transparens)

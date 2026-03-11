@@ -286,7 +286,7 @@ export default function App() {
           BPM+ Health-arkitektur: CQL (datahenting) + DMN (beslutningslogikk) | mCODE/FHIR-kompatibel
         </p>
         <p className="disclaimer">
-          Kun for klinisk beslutningsstøtte. Erstatter ikke klinisk skjønn.
+          Kun for å visualisere råd ifra handlingsprogrammet til NBCG og generere journaltekst. Kan tilpasses lokalt, men er kun for å forkorte arbeidstid, det er ingen beslutningstøtte og det er viktig å kritisk vurdere tekst samt sjekke siste versjon av handlingsprogram.
         </p>
       </footer>
     </div>

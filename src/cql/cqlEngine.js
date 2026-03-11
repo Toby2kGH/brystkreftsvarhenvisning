@@ -14,6 +14,8 @@
  * - Risikoflagg
  */
 
+import { getThresholdValue } from './clinicalThresholds.js';
+
 /**
  * Deriv forenklet T-stadium fra tumorstørrelse.
  */
@@ -55,9 +57,11 @@ export function deriveStadium(tSimple, nStage) {
  * Deriv luminal subtype for HR+HER2-tumorer.
  */
 export function deriveLuminalSubtype(grade, ki67Value, prPercent) {
+  const ki67High = getThresholdValue('ki67HighThreshold');
+  const prLowB = getThresholdValue('prLowForLuminalB');
   if (grade === 3) return 'B-like';
-  if (ki67Value != null && ki67Value >= 20) return 'B-like';
-  if (prPercent != null && prPercent < 20) return 'B-like';
+  if (ki67Value != null && ki67Value >= ki67High) return 'B-like';
+  if (prPercent != null && prPercent < prLowB) return 'B-like';
   if (grade != null && grade <= 2) return 'A-like';
   return 'unknown';
 }
@@ -94,15 +98,16 @@ export function evaluateCQL(clinicalData) {
     brcaStatus, histologicalType, pcrStatus,
   } = clinicalData;
 
-  // --- Reseptorstatus ---
-  // ER 0-10% regnes klinisk som ER-negativ (NBCG/St. Gallen)
-  // ER > 10% er ER-positiv. Prosent overstyrer positiv/negativ-valget.
-  const erFromPercent = erPercent != null ? erPercent > 10 : null;
-  const erPositive = erFromPercent !== null ? erFromPercent : (erStatus === true || erStatus === 'positive');
-  const erLowPositive = erPercent != null && erPercent >= 1 && erPercent <= 10;
+  // --- Reseptorstatus (konfigurerbare terskler) ---
+  const erThreshold = getThresholdValue('erPositiveThreshold');
+  const erLowMin = getThresholdValue('erLowPositiveMin');
+  const prThreshold = getThresholdValue('prPositiveThreshold');
 
-  // PR bruker samme prinsipp, men uten egen lav-positiv grense
-  const prFromPercent = prPercent != null ? prPercent >= 1 : null;
+  const erFromPercent = erPercent != null ? erPercent > erThreshold : null;
+  const erPositive = erFromPercent !== null ? erFromPercent : (erStatus === true || erStatus === 'positive');
+  const erLowPositive = erPercent != null && erPercent >= erLowMin && erPercent <= erThreshold;
+
+  const prFromPercent = prPercent != null ? prPercent >= prThreshold : null;
   const prPositive = prFromPercent !== null ? prFromPercent : (prStatus === true || prStatus === 'positive');
   const hrPositive = erPositive || prPositive;
 
@@ -174,15 +179,19 @@ export function evaluateCQL(clinicalData) {
   // --- CDK4/6-eligibilitetsflagg ---
   const cdk46eligible = bioGroup === 'HR+HER2-' && !isNeoadjuvant;
 
-  // --- Genekspresjonsfakta ---
+  // --- Genekspresjonsfakta (konfigurerbare terskler) ---
+  const rorHigh = getThresholdValue('rorHighCutoff');
+  const rorLow = getThresholdValue('rorLowCutoff');
+  const rsHigh = getThresholdValue('rsHighCutoff');
+
   const geneTestDone = geneTest && geneTest !== 'none';
   const gesHighRisk = geneTestDone && (
-    (geneTest === 'prosigna' && validRor && rorVal > 60) ||
-    (geneTest === 'oncotypedx' && validRs && rsVal > 25)
+    (geneTest === 'prosigna' && validRor && rorVal > rorHigh) ||
+    (geneTest === 'oncotypedx' && validRs && rsVal > rsHigh)
   );
   const gesLowRisk = geneTestDone && (
-    (geneTest === 'prosigna' && validRor && rorVal <= 40) ||
-    (geneTest === 'oncotypedx' && validRs && rsVal <= 25)
+    (geneTest === 'prosigna' && validRor && rorVal <= rorLow) ||
+    (geneTest === 'oncotypedx' && validRs && rsVal <= rsHigh)
   );
 
   // --- Systemisk terapiflagg (for Zometa DMN-input) ---
