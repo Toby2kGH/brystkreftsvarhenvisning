@@ -137,14 +137,14 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_A1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR ≤40' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'none', regimen: 'Ingen systembehandling', rationale: 'pN0, Prosigna Lum A, ROR ≤40, pT1a-b: Ingen behandling' } },
-    { id: 'CP_A2', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T1c', grade: 1 },
+    { id: 'CP_A2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR ≤40' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T1c', grade: 1 },
       outputs: { pathway: 'none', regimen: 'Ingen behandling', rationale: 'pN0, Prosigna ROR ≤40, pT1c, Grad 1: Ingen behandling' } },
-    { id: 'CP_A3', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T1c' },
+    { id: 'CP_A3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR ≤40' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T1c' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Prosigna ROR ≤40, pT1c, Grad 2-3: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_A4', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T2' },
+    { id: 'CP_A4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR ≤40' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 }, tStage: 'T2' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Prosigna ROR ≤40, pT2: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
     // ROR ≤40 fallback (tStage unknown)
-    { id: 'CP_A5', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 } },
+    { id: 'CP_A5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR ≤40' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { lte: 40 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'pN0, Prosigna ROR ≤40 (lav risiko): Endokrinterapi alene' } },
 
     // ==========================================
@@ -152,11 +152,11 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_B1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum A ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'none', regimen: 'Ingen systembehandling', rationale: 'pN0, Luminal A, ROR 41-60, pT1a-b: Ingen behandling' } },
-    { id: 'CP_B2', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c' },
+    { id: 'CP_B2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum A ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Luminal A, ROR 41-60, pT1c: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_B3', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T2', menopausalStatus: ['pre', 'peri'] },
+    { id: 'CP_B3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum A ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T2', menopausalStatus: ['pre', 'peri'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Luminal A, ROR 41-60, pT2, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Endokrin behandling inkl. goserelin kan vurderes som alternativ til kjemoterapi' } },
-    { id: 'CP_B4', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T2' },
+    { id: 'CP_B4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum A ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumA', rorScore: { gt: 40, lte: 60 }, tStage: 'T2' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Luminal A, ROR 41-60, pT2, postmenopausal: Endokrin behandling og zoledronsyre' } },
 
     // ==========================================
@@ -164,17 +164,17 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_C1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: ['T1a', 'T1b'], erPercent: { gte: 50 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Luminal B, ROR 41-60, pT1a-b, ER ≥50%: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_C2', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: ['T1a', 'T1b'] },
+    { id: 'CP_C2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Luminal B, ROR 41-60, pT1a-b, ER <50%: Vurder EC90 ×4 eller TC ×4 + endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_C3', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c', erPercent: { gte: 50 }, menopausalStatus: ['pre', 'peri'] },
+    { id: 'CP_C3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c', erPercent: { gte: 50 }, menopausalStatus: ['pre', 'peri'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Luminal B, ROR 41-60, pT1c, ER ≥50%, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ' } },
-    { id: 'CP_C4', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c', erPercent: { gte: 50 } },
+    { id: 'CP_C4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c', erPercent: { gte: 50 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Luminal B, ROR 41-60, pT1c, ER ≥50%, postmenopausal: Endokrin behandling og zoledronsyre' } },
-    { id: 'CP_C5', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c' },
+    { id: 'CP_C5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T1c' },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Luminal B, ROR 41-60, pT1c, ER <50%: EC90 ×4 eller TC ×4 + endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_C6', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T2', erPercent: { gte: 50 } },
+    { id: 'CP_C6', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T2', erPercent: { gte: 50 } },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Luminal B, ROR 41-60, pT2, ER ≥50%: EC90 ×4 eller TC ×4 + endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_C7', conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T2' },
+    { id: 'CP_C7', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna Lum B ROR 41-60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', prosignaSubtype: 'lumB', rorScore: { gt: 40, lte: 60 }, tStage: 'T2' },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN0, Luminal B, ROR 41-60, pT2, ER <50%: EC90 ×4 + taxan + endokrin. TC ×6 er akseptabelt alternativ. Zoledronsyre ved postmenopausal status' } },
 
     // ==========================================
@@ -188,13 +188,13 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_D1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR >60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: ['T1a', 'T1b'], erPercent: { gte: 50 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Prosigna ROR >60, pT1a-b, ER ≥50%: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_D2', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: ['T1a', 'T1b'] },
+    { id: 'CP_D2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR >60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Prosigna ROR >60, pT1a-b, ER <50%: EC90 ×4 eller TC ×4 + endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_D3', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: 'T1c' },
+    { id: 'CP_D3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR >60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: 'T1c' },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN0, Prosigna ROR >60, pT1c: EC90 ×4 + taxan + endokrin. TC ×6 er akseptabelt alternativ. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_D4', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: 'T2' },
+    { id: 'CP_D4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR >60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 }, tStage: 'T2' },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN0, Prosigna ROR >60, pT2: EC90 ×4 + taxan + endokrin. TC ×6 er akseptabelt alternativ. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_D5', conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 } },
+    { id: 'CP_D5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 Prosigna ROR >60' }, conditions: { nStage: 'N0', geneTest: 'prosigna', rorScore: { gt: 60 } },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN0, Prosigna ROR >60: EC90 ×4 + taxan + endokrin behandling' } },
 
     // ==========================================
@@ -202,7 +202,7 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP19', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 OncotypeDX', trialReference: 'TAILORx' }, conditions: { nStage: 'N0', geneTest: 'oncotypedx', rsScore: { lte: 25 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'pN0, OncotypeDX RS ≤25: Endokrinterapi alene (TAILORx)' } },
-    { id: 'CP20', conditions: { nStage: 'N0', geneTest: 'oncotypedx', rsScore: { gt: 25 } },
+    { id: 'CP20', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 OncotypeDX', trialReference: 'TAILORx' }, conditions: { nStage: 'N0', geneTest: 'oncotypedx', rsScore: { gt: 25 } },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, OncotypeDX RS >25: EC90 ×4 eller TC ×4 + endokrin behandling' } },
 
     // ==========================================
@@ -210,15 +210,15 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_F1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'none', regimen: 'Ingen systembehandling', rationale: 'pN0, Lum A-liknende (Ki67<10%, G1-2, HR>50%), pT1a-b: Ingen behandling' } },
-    { id: 'CP_F2', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T1c' },
+    { id: 'CP_F2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T1c' },
       outputs: { pathway: 'none', regimen: 'Ingen behandling', rationale: 'pN0, Lum A-liknende, pT1c, Grad 1: Ingen behandling' } },
-    { id: 'CP_F3', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T1c' },
+    { id: 'CP_F3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T1c' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT1c, Grad 2: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_F4', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T2' },
+    { id: 'CP_F4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 1, erPercent: { gt: 50 }, tStage: 'T2' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT2, Grad 1: Endokrin behandling. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_F5', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2', menopausalStatus: ['pre', 'peri'] },
+    { id: 'CP_F5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2', menopausalStatus: ['pre', 'peri'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum A-liknende, pT2, Grad 2, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ til kjemoterapi' } },
-    { id: 'CP_F6', conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2' },
+    { id: 'CP_F6', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N0', ki67Value: { lt: 10 }, grade: 2, erPercent: { gt: 50 }, tStage: 'T2' },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN0, Lum A-liknende, pT2, Grad 2, postmenopausal: Endokrin behandling og zoledronsyre' } },
 
     // ==========================================
@@ -226,15 +226,15 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_G1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', erPercent: { lt: 50 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (ER <50%), pT1a-b: Endokrin behandling. Lav HR-positivitet kan gi grunnlag for kjemoterapi (EC90 ×4 eller TC ×4)' } },
-    { id: 'CP_G1b', conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1a', 'T1b'] },
+    { id: 'CP_G1b', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (Ki67>35%), pT1a-b: Endokrin behandling. Høy proliferasjon kan gi grunnlag for kjemoterapi' } },
-    { id: 'CP_G2', conditions: { nStage: 'N0', erPercent: { lt: 50 }, tStage: ['T1c', 'T2'] },
+    { id: 'CP_G2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', erPercent: { lt: 50 }, tStage: ['T1c', 'T2'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (ER <50%), pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Zoledronsyre ved postmenopausal status' } },
-    { id: 'CP_G2b', conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1c', 'T2'] },
+    { id: 'CP_G2b', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', ki67Value: { gt: 35 }, tStage: ['T1c', 'T2'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Lum B-liknende (Ki67>35%), pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Svært høy proliferasjon kan gi grunnlag for EC90 ×4 + taxan (alternativt TC ×6)' } },
-    { id: 'CP_G3', conditions: { nStage: 'N0', grade: 3, tStage: ['T1a', 'T1b'] },
+    { id: 'CP_G3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', grade: 3, tStage: ['T1a', 'T1b'] },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4 eller TC ×4', rationale: 'pN0, Grad 3, pT1a-b: Endokrin behandling. Høy grad kan gi grunnlag for kjemoterapi' } },
-    { id: 'CP_G4', conditions: { nStage: 'N0', grade: 3, tStage: ['T1c', 'T2'] },
+    { id: 'CP_G4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN0 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N0', grade: 3, tStage: ['T1c', 'T2'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN0, Grad 3, pT1c-T2: EC90 ×4 eller TC ×4 + endokrin. Svært høy proliferasjon kan gi grunnlag for EC90 ×4 + taxan' } },
 
     // ==========================================
@@ -254,43 +254,43 @@ export const CHEMO_PATHWAY_TABLE = {
     // ==========================================
     { id: 'CP_E1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 postmenopausal OncotypeDX', trialReference: 'RxPONDER' }, conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { lte: 25 }, menopausalStatus: 'post', erPercent: { gte: 50 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi — endokrinterapi', rationale: 'pN1 postmenopausal, OncotypeDX RS ≤25, ER ≥50%: Endokrin behandling og zoledronsyre' } },
-    { id: 'CP_E2', conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { lte: 25 }, menopausalStatus: 'post' },
+    { id: 'CP_E2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 postmenopausal OncotypeDX', trialReference: 'RxPONDER' }, conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { lte: 25 }, menopausalStatus: 'post' },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder kjemoterapi', rationale: 'pN1 postmenopausal, OncotypeDX RS ≤25, ER <50%: Vurder om grunnlag for kjemoterapi + endokrin. Zoledronsyre' } },
-    { id: 'CP_E3', conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { gt: 25 }, menopausalStatus: 'post' },
+    { id: 'CP_E3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 postmenopausal OncotypeDX', trialReference: 'RxPONDER' }, conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { gt: 25 }, menopausalStatus: 'post' },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1 postmenopausal, OncotypeDX RS >25: EC90 ×4 + taxan + endokrin + zoledronsyre. TC ×6 er akseptabelt alternativ' } },
 
     // N1, OncotypeDX — pre/peri (RxPONDER — ikke eksplisitt i NBCG-tabellen for gentest)
-    { id: 'CP4', conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { lte: 25 } },
+    { id: 'CP4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 OncotypeDX', trialReference: 'RxPONDER' }, conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { lte: 25 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'N1 premenopausal, OncotypeDX RS ≤25: Endokrinterapi alene (RxPONDER)' } },
-    { id: 'CP5', conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { gt: 25 } },
+    { id: 'CP5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 OncotypeDX', trialReference: 'RxPONDER' }, conditions: { nStage: 'N1', geneTest: 'oncotypedx', rsScore: { gt: 25 } },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'N1, OncotypeDX RS >25: Kjemoterapi anbefalt' } },
 
     // N1, Prosigna
-    { id: 'CP2', conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { lte: 40 } },
+    { id: 'CP2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 Prosigna' }, conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { lte: 40 } },
       outputs: { pathway: 'none', regimen: 'Ingen kjemoterapi', rationale: 'N1, Prosigna ROR ≤40: Endokrinterapi alene' } },
-    { id: 'CP3', conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { gt: 60 } },
+    { id: 'CP3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 Prosigna' }, conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { gt: 60 } },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'N1, Prosigna ROR >60 (høy risiko): EC90 ×4 + taxan anbefalt' } },
-    { id: 'CP3b', conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { gt: 40, lte: 60 } },
+    { id: 'CP3b', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 Prosigna' }, conditions: { nStage: 'N1', geneTest: 'prosigna', rorScore: { gt: 40, lte: 60 } },
       outputs: { pathway: 'consider_chemo', regimen: 'Vurder EC90 ×4', rationale: 'N1, Prosigna ROR 41-60 (intermediær): Individuell vurdering — diskuter med pasient' } },
 
     // N1 without gene test — LumA-like (per NBCG 17.12.24)
-    { id: 'CP_H1', conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 }, menopausalStatus: ['pre', 'peri'] },
+    { id: 'CP_H1', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 }, menopausalStatus: ['pre', 'peri'] },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'pN1, Lum A-liknende, premenopausal: EC90 ×4 eller TC ×4 → endokrin. Goserelin + endokrin kan vurderes som alternativ til kjemoterapi' } },
-    { id: 'CP_H2', conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 } },
+    { id: 'CP_H2', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest, Lum A-liknende' }, conditions: { nStage: 'N1', ki67Value: { lt: 10 }, grade: [1, 2], erPercent: { gt: 50 } },
       outputs: { pathway: 'consider_chemo', regimen: 'Individuell vurdering', rationale: 'pN1, Lum A-liknende, postmenopausal: Tumorstørrelse og omfang av lymfeknutemetastaser kan gi grunnlag for kjemoterapi (EC90 ×4 alternativt TC ×4). Alternativt endokrin behandling. Zoledronsyre' } },
 
     // N1 without gene test — LumB-like
-    { id: 'CP_H3', conditions: { nStage: 'N1', erPercent: { lt: 50 } },
+    { id: 'CP_H3', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N1', erPercent: { lt: 50 } },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1, Lum B-liknende (ER <50%): EC90 ×4 + taxan. Alternativt EC90 ×4 eller TC ×4 avhengig av risikovurdering. TC ×6 akseptabelt alternativ' } },
-    { id: 'CP_H4', conditions: { nStage: 'N1', ki67Value: { gt: 35 } },
+    { id: 'CP_H4', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest, Lum B-liknende' }, conditions: { nStage: 'N1', ki67Value: { gt: 35 } },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'pN1, Lum B-liknende (Ki67>35%): EC90 ×4 + taxan. Alternativt EC90 ×4 eller TC ×4. TC ×6 akseptabelt alternativ' } },
-    { id: 'CP6', conditions: { nStage: 'N1', grade: 3 },
+    { id: 'CP6', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest' }, conditions: { nStage: 'N1', grade: 3 },
       outputs: { pathway: 'EC_taxan', regimen: 'EC90 ×4 + taxan', rationale: 'N1, Grad 3 uten gentest: Kjemoterapi anbefalt. TC ×6 akseptabelt alternativ' } },
 
     // N1 without gene test — Ikke-konklusiv
-    { id: 'CP_H5', conditions: { nStage: 'N1', menopausalStatus: 'post' },
+    { id: 'CP_H5', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest' }, conditions: { nStage: 'N1', menopausalStatus: 'post' },
       outputs: { pathway: 'consider_chemo', regimen: 'EC90 ×4 eller TC ×4, alternativt endokrin', rationale: 'pN1 postmenopausal, ikke-konklusiv luminal: EC90 ×4 eller TC ×4 → endokrin. Ved pN1 kan alternativt endokrin behandling alene vurderes. Zoledronsyre. Mange lymfeknutemetastaser → EC90 ×4 + taxan' } },
-    { id: 'CP8b', conditions: { nStage: 'N1' },
+    { id: 'CP8b', sourceRef: { ...NBCG_17_12_24, chapter: 'pN1 uten gentest' }, conditions: { nStage: 'N1' },
       outputs: { pathway: 'EC', regimen: 'EC90 ×4 eller TC ×4', rationale: 'N1: EC90 ×4 eller TC ×4 → endokrin behandling. Genekspresjonstest anbefales for å avklare behandlingsintensitet. Mange lymfeknutemetastaser → EC90 ×4 + taxan' } },
 
     // ==========================================
@@ -371,7 +371,7 @@ export const CDK46_DECISION_TABLE = {
   ],
 
   outputs: [
-    { id: 'abemaciclib', label: 'Abemaciclib', type: 'string', allowedValues: ['yes', 'no', 'first_choice', 'if_G3', 'if_G3_or_5cm'] },
+    { id: 'abemaciclib', label: 'Abemaciclib', type: 'string', allowedValues: ['yes', 'no', 'first_choice', 'if_G3', 'if_G3_or_5cm', 'if_monarchE'] },
     { id: 'ribociclib', label: 'Ribociclib', type: 'string', allowedValues: ['yes', 'no', 'if_G3_or_gesHigh', 'yes_unless_low'] },
     { id: 'rationale', label: 'Begrunnelse', type: 'string' },
     { id: 'warnings', label: 'Advarsler', type: 'string[]' },
@@ -405,11 +405,11 @@ export const CDK46_DECISION_TABLE = {
     // T3 N0 (Stage IIB): Abema no, ribo yes (avstå om G1/lavrisiko GES)
     { id: 'R5', priority: 8, description: 'T3 N0: Ribo ja (ikke ved G1/lavrisiko)', conditions: { cdk46eligible: true, tSimple: 'T3', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'yes_unless_low', rationale: 'T3 N0 (Stadium IIB): Ribociclib anbefalt. Avstå ved grad 1 eller lavrisiko GES. Abemaciclib ikke indisert', warnings: [] } },
 
-    // T2 N1 (Stage IIB): Abema if G3 (first choice), ribo yes (avstå om G1/lavrisiko GES)
-    { id: 'R4', priority: 7, description: 'T2 N1: Abema ved G3, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'yes_unless_low', rationale: 'T2 N1 (Stadium IIB): Abemaciclib ved grad 3 (førstevalg, MonarchE). Ribociclib anbefalt, men avstå ved grad 1 eller lavrisiko GES', warnings: [] } },
+    // T2 N1 (Stage IIB): Abema if monarchE criteria (G3/Ki67≥20%/≥5cm), ribo yes (avstå om G1/lavrisiko GES)
+    { id: 'R4', priority: 7, description: 'T2 N1: Abema ved monarchE-kriterier, Ribo ja', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' }, outputs: { abemaciclib: 'if_monarchE', ribociclib: 'yes_unless_low', rationale: 'T2 N1 (Stadium IIB): Abemaciclib ved grad 3, Ki-67 ≥20% eller tumor ≥5cm (førstevalg, MonarchE). Ribociclib anbefalt, men avstå ved grad 1 eller lavrisiko GES', warnings: [] } },
 
-    // T1 N1 (Stage IIA): Abema if G3 (first choice), ribo if G3/gesHigh
-    { id: 'R3', priority: 6, description: 'T1 N1: Abema ved G3, Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N1' }, outputs: { abemaciclib: 'if_G3', ribociclib: 'if_G3_or_gesHigh', rationale: 'T1 N1 (Stadium IIA): Abemaciclib ved grad 3 (førstevalg, MonarchE). Ribociclib ved grad 3 eller høyrisiko GES', warnings: [] } },
+    // T1 N1 (Stage IIA): Abema if monarchE criteria (G3/Ki67≥20%), ribo if G3/gesHigh
+    { id: 'R3', priority: 6, description: 'T1 N1: Abema ved monarchE-kriterier, Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T1', nStage: 'N1' }, outputs: { abemaciclib: 'if_monarchE', ribociclib: 'if_G3_or_gesHigh', rationale: 'T1 N1 (Stadium IIA): Abemaciclib ved grad 3 eller Ki-67 ≥20% (førstevalg, MonarchE). Ribociclib ved grad 3 eller høyrisiko GES', warnings: [] } },
 
     // T2 N0 (Stage IIA): Abema no, ribo if G3/gesHigh
     { id: 'R2', priority: 5, description: 'T2 N0: Ribo ved G3/GES høy', conditions: { cdk46eligible: true, tSimple: 'T2', nStage: 'N0' }, outputs: { abemaciclib: 'no', ribociclib: 'if_G3_or_gesHigh', rationale: 'T2 N0 (Stadium IIA): Ribociclib kan vurderes ved grad 3 eller høyrisiko GES. Abemaciclib ikke indisert', warnings: [] } },

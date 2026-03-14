@@ -248,8 +248,8 @@ function buildHRposHER2neg(cql, tables, dmnResults, steps, warnings) {
   dmnResults.cdk46 = evaluateDecisionTable(tables.cdk46, cql);
   if (dmnResults.cdk46.matched && dmnResults.cdk46.result) {
     const r = dmnResults.cdk46.result;
-    const abema = resolveCDK46(r.abemaciclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm);
-    const ribo = resolveCDK46(r.ribociclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm);
+    const abema = resolveCDK46(r.abemaciclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm, cql.ki67Value);
+    const ribo = resolveCDK46(r.ribociclib, cql.grade, cql.gesHighRisk, cql.gesLowRisk, cql.tumorSizeMm, cql.ki67Value);
 
     if (abema === 'yes' || abema === 'first_choice') {
       steps.push({ type: 'cdk46', name: 'Abemaciclib (Verzenios)', detail: abema === 'first_choice' ? 'Abemaciclib 150mg ×2 daglig i 2 år — FØRSTEVALG (MonarchE)' : 'Abemaciclib 150mg ×2 daglig i 2 år (MonarchE)', priority: abema === 'first_choice' ? 1 : 2 });
@@ -293,12 +293,14 @@ function buildTN(cql, tables, dmnResults, steps, warnings) {
   }
 }
 
-function resolveCDK46(value, grade, gesHigh, gesLow, tumorSizeMm) {
+function resolveCDK46(value, grade, gesHigh, gesLow, tumorSizeMm, ki67Value) {
   if (value === 'yes' || value === 'first_choice') return value;
   if (value === 'no') return 'no';
   if (value === 'if_G3') return grade === 3 ? 'yes' : 'no';
   if (value === 'if_G3_or_gesHigh') return (grade === 3 || gesHigh === true) ? 'yes' : 'no';
   if (value === 'if_G3_or_5cm') return (grade === 3 || (tumorSizeMm != null && tumorSizeMm >= 50)) ? 'first_choice' : 'no';
+  // MonarchE criteria: N1 + at least one of G3, Ki-67 ≥20%, tumor ≥5cm (NBCG 04.09.25)
+  if (value === 'if_monarchE') return (grade === 3 || (ki67Value != null && ki67Value >= 20) || (tumorSizeMm != null && tumorSizeMm >= 50)) ? 'first_choice' : 'no';
   if (value === 'yes_unless_low') return (grade === 1 || gesLow === true) ? 'no' : 'yes';
   return 'no';
 }

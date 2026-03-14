@@ -215,9 +215,9 @@ describe('DMN: CDK4/6 Adjuvant', () => {
     const r = evaluateDecisionTable(CDK46_DECISION_TABLE, { cdk46eligible: true, tSimple: 'T1', nStage: 'N3' });
     expect(r.result.abemaciclib).toBe('first_choice');
   });
-  it('T2 N1 → abema if G3, ribo yes', () => {
+  it('T2 N1 → abema if monarchE criteria, ribo yes', () => {
     const r = evaluateDecisionTable(CDK46_DECISION_TABLE, { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' });
-    expect(r.result.abemaciclib).toBe('if_G3');
+    expect(r.result.abemaciclib).toBe('if_monarchE');
     expect(r.result.ribociclib).toBe('yes_unless_low');
   });
 });

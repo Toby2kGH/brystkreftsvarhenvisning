@@ -181,15 +181,15 @@ describe('CDK4/6 Adjuvant Selection', () => {
     expect(r.result.ribociclib).toBe('if_G3_or_gesHigh');
   });
 
-  it('R3 — T1 N1 → abema if_G3, ribo if_G3_or_gesHigh', () => {
+  it('R3 — T1 N1 → abema if_monarchE, ribo if_G3_or_gesHigh', () => {
     const r = expectRule(T, { cdk46eligible: true, tSimple: 'T1', nStage: 'N1' }, 'R3');
-    expect(r.result.abemaciclib).toBe('if_G3');
+    expect(r.result.abemaciclib).toBe('if_monarchE');
     expect(r.result.ribociclib).toBe('if_G3_or_gesHigh');
   });
 
-  it('R4 — T2 N1 → abema if_G3, ribo yes_unless_low', () => {
+  it('R4 — T2 N1 → abema if_monarchE, ribo yes_unless_low', () => {
     const r = expectRule(T, { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' }, 'R4');
-    expect(r.result.abemaciclib).toBe('if_G3');
+    expect(r.result.abemaciclib).toBe('if_monarchE');
     expect(r.result.ribociclib).toBe('yes_unless_low');
   });
 

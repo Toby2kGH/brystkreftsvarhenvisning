@@ -155,14 +155,18 @@ export function evaluateCQL(clinicalData) {
   const isNeoadjuvant = mode === 'neoadjuvant';
   const isPostNeoadjuvant = mode === 'post-neoadjuvant';
 
+  // --- Høyrisiko (faktum, ikke beslutning) ---
+  const isHighRisk =
+    nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
+    (validGrade && gradeNum === 3);
+
   // --- BRCA status ---
   const brcaVal = brcaStatus || 'not_tested';
   const brcaMutated = brcaVal === 'BRCA1' || brcaVal === 'BRCA2';
 
   // --- Olaparib-eligibilitet (OlympiA: BRCA-mutert, HER2-negativ, høyrisiko) ---
   const olaparibEligible = brcaMutated && her2Negative && (
-    isHighRisk || nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
-    (validGrade && gradeNum === 3) || bioGroup === 'TN'
+    isHighRisk || bioGroup === 'TN'
   );
 
   // --- Histologisk type ---
@@ -170,11 +174,6 @@ export function evaluateCQL(clinicalData) {
 
   // --- pCR status ---
   const pcrVal = pcrStatus || 'not_applicable';
-
-  // --- Høyrisiko (faktum, ikke beslutning) ---
-  const isHighRisk =
-    nStage === 'N1' || nStage === 'N2' || nStage === 'N3' ||
-    (validGrade && gradeNum === 3);
 
   // --- CDK4/6-eligibilitetsflagg ---
   const cdk46eligible = bioGroup === 'HR+HER2-' && !isNeoadjuvant;
