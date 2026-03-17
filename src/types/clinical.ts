@@ -1,14 +1,14 @@
 /**
- * Core type definitions for the clinical decision support system.
+ * Kjernetyper for klinisk beslutningsstøttesystem.
  *
- * These types enforce correctness across the entire pipeline:
- *   PatientInput → CQLOutput → DMN Tables → TreatmentPlan
+ * Disse typene sikrer korrekthet gjennom hele pipelinen:
+ *   PatientInput → CQLOutput → DMN-tabeller → TreatmentPlan
  *
- * IMPORTANT: Changes to these types require updating all downstream consumers.
+ * VIKTIG: Endringer i disse typene krever oppdatering av alle nedstrøms konsumenter.
  */
 
 // ============================================================
-// 1. Patient Input (from form / FHIR)
+// 1. Pasientinput (fra skjema / FHIR)
 // ============================================================
 
 export type ERStatus = 'positive' | 'negative';
@@ -35,7 +35,7 @@ export type RiskLevel = 'low' | 'moderate' | 'high';
 export type OrganFunction = 'normal' | 'reduced' | 'severe';
 
 export interface PatientInput {
-  // Receptor
+  // Reseptor
   erStatus?: ERStatus | null;
   erPercent?: number | null;
   prStatus?: PRStatus | null;
@@ -46,30 +46,30 @@ export interface PatientInput {
   her2ihc?: HER2IHC | null;
   her2sish?: HER2SISH | null;
 
-  // Tumor
+  // Tumor/svulst
   tumorSizeMm?: number | null;
   grade?: Grade | string | null;
   ki67?: number | null;
 
-  // Staging
+  // Stadieinndeling
   nStage?: NStage | null;
   tStageOverride?: 'T4' | null;
 
-  // Gene expression
+  // Genekspresjon
   geneTest?: GeneTest | null;
   geneTestDone?: boolean;
   rorScore?: number | null;
   rsScore?: number | null;
   prosignaSubtype?: ProsignaSubtype | null;
 
-  // Patient factors
+  // Pasientfaktorer
   age?: number | null;
   menopausalStatus?: MenopausalStatus | null;
   surgeryType?: SurgeryType | null;
   ecogScore?: number | null;
   treatmentMode?: TreatmentMode;
 
-  // Risk / organ function
+  // Risiko / organfunksjon
   cardiacRisk?: RiskLevel;
   renalFunction?: OrganFunction;
   hepaticFunction?: OrganFunction;
@@ -78,26 +78,26 @@ export interface PatientInput {
   needMonotherapy?: boolean;
   priorTherapyLines?: number;
 
-  // BRCA / genetic testing
+  // BRCA / genetisk testing
   brcaStatus?: BRCAStatus | null;
 
-  // Histological type
+  // Histologisk type
   histologicalType?: HistologicalType | null;
 
   // Post-neoadjuvant
   pcrStatus?: PCRStatus | null;
 
-  // Metastatic (legacy)
+  // Metastatisk (legacy)
   metastatic?: boolean;
   patientId?: string;
 }
 
 // ============================================================
-// 2. CQL Output (derived clinical facts)
+// 2. CQL-output (deriverte kliniske fakta)
 // ============================================================
 
 export interface CQLOutput {
-  // Receptor status
+  // Reseptorstatus
   erPositive: boolean;
   prPositive: boolean;
   hrPositive: boolean;
@@ -111,22 +111,22 @@ export interface CQLOutput {
   her2ihc: HER2IHC | null;
   her2sish: HER2SISH | null;
 
-  // Biological classification
+  // Biologisk klassifisering
   bioGroup: BioGroup;
   luminalSubtype: LuminalSubtype | null;
 
-  // Staging
+  // Stadieinndeling
   tStage: TStageDetailed | null;
   tSimple: TStageSimple | null;
   nStage: NStage | null;
   stadium: Stadium | null;
   tumorSizeMm: number | null;
 
-  // Tumor characteristics
+  // Tumor/svulstkarakteristika
   grade: Grade | null;
   ki67Value: number | null;
 
-  // Gene expression
+  // Genekspresjon
   geneTest: GeneTest;
   geneTestDone: boolean;
   rorScore: number | null;
@@ -135,7 +135,7 @@ export interface CQLOutput {
   gesHighRisk: boolean;
   gesLowRisk: boolean;
 
-  // Patient factors
+  // Pasientfaktorer
   ecogScore: number | null;
   menopausalStatus: MenopausalStatus;
   age: number | null;
@@ -143,19 +143,19 @@ export interface CQLOutput {
   isNeoadjuvant: boolean;
   surgeryType: SurgeryType | null;
 
-  // BRCA / genetic
+  // BRCA / genetikk
   brcaStatus: BRCAStatus;
   brcaMutated: boolean;
   olaparibEligible: boolean;
 
-  // Histological type
+  // Histologisk type
   histologicalType: HistologicalType | null;
 
   // Post-neoadjuvant
   pcrStatus: PCRStatus;
   isPostNeoadjuvant: boolean;
 
-  // Risk flags
+  // Risikoflagg
   isHighRisk: boolean;
   cdk46eligible: boolean;
   hasSystemicTherapy: boolean;
@@ -175,7 +175,7 @@ export interface CQLOutput {
 }
 
 // ============================================================
-// 3. DMN Table Types
+// 3. DMN-tabelltyper
 // ============================================================
 
 export type HitPolicy = 'FIRST' | 'PRIORITY' | 'COLLECT' | 'RULE ORDER';
@@ -185,9 +185,9 @@ export type ConditionValue =
   | number
   | boolean
   | null
-  | ConditionValue[]                          // OR (disjunction)
-  | { not: ConditionValue }                   // NOT
-  | { gte?: number; gt?: number; lte?: number; lt?: number }; // Range
+  | ConditionValue[]                          // OR (disjunksjon)
+  | { not: ConditionValue }                   // NOT (negasjon)
+  | { gte?: number; gt?: number; lte?: number; lt?: number }; // Intervall
 
 export interface DMNInput {
   id: string;
@@ -203,31 +203,31 @@ export interface DMNOutput {
   allowedValues?: (string | number | boolean)[];
 }
 
-// ---- Guideline source reference (traceability) ----
+// ---- Retningslinjekildereferanse (sporbarhet) ----
 
 export interface GuidelineReference {
-  /** Guideline document name, e.g. "Nasjonalt handlingsprogram for brystkreft" */
+  /** Navn på retningslinje, f.eks. "Nasjonalt handlingsprogram for brystkreft" */
   document: string;
-  /** Specific chapter/section, e.g. "Kap. 12.3.2" */
+  /** Spesifikt kapittel/seksjon, f.eks. "Kap. 12.3.2" */
   chapter?: string;
-  /** Page number(s) in the guideline, e.g. "s. 45-47" */
+  /** Sidetall i retningslinjen, f.eks. "s. 45-47" */
   page?: string;
-  /** Guideline revision/version, e.g. "Mars 2025" */
+  /** Revisjon/versjon av retningslinjen, f.eks. "Mars 2025" */
   revision: string;
-  /** NBCG tabular overview reference, e.g. "NBCG tabellarisk oversikt 17.12.24" */
+  /** NBCG tabellarisk oversikt-referanse, f.eks. "NBCG tabellarisk oversikt 17.12.24" */
   nbcgTable?: string;
-  /** Clinical trial reference, e.g. "MonarchE", "KEYNOTE-522" */
+  /** Klinisk studiereferanse, f.eks. "MonarchE", "KEYNOTE-522" */
   trialReference?: string;
 }
 
 export interface RuleChangeEntry {
-  /** ISO timestamp of the change */
+  /** ISO-tidsstempel for endringen */
   timestamp: string;
-  /** Who made the change (user ID or "system") */
+  /** Hvem som gjorde endringen (bruker-ID eller "system") */
   changedBy: string;
-  /** What was changed */
+  /** Hva som ble endret */
   description: string;
-  /** Previous rule snapshot (for diff) */
+  /** Forrige regelversjon (for diff) */
   previousRule?: Partial<DMNRule>;
 }
 
@@ -237,13 +237,13 @@ export interface DMNRule {
   priority?: number;
   conditions: Record<string, ConditionValue>;
   outputs: Record<string, unknown>;
-  /** Reference to the clinical guideline source for this rule */
+  /** Referanse til klinisk retningslinjekilde for denne regelen */
   sourceRef?: GuidelineReference;
-  /** Whether this rule has been modified from the default (system-managed) */
+  /** Om regelen er endret fra standard (systemstyrt) */
   isModified?: boolean;
-  /** Timestamp of last modification via admin UI */
+  /** Tidsstempel for siste endring via admin-UI */
   lastModifiedAt?: string;
-  /** User who last modified this rule */
+  /** Bruker som sist endret denne regelen */
   lastModifiedBy?: string;
 }
 
@@ -256,11 +256,11 @@ export interface DMNTable {
   inputs: DMNInput[];
   outputs: DMNOutput[];
   rules: DMNRule[];
-  /** Primary guideline source for the entire table */
+  /** Primær retningslinjekilde for hele tabellen */
   guidelineSource?: GuidelineReference;
-  /** Change log for the table */
+  /** Endringslogg for tabellen */
   changeLog?: RuleChangeEntry[];
-  /** Whether any rules in this table have been modified from defaults */
+  /** Om noen regler i tabellen er endret fra standardverdier */
   hasModifiedRules?: boolean;
 }
 
@@ -280,7 +280,7 @@ export interface DMNEvalResult {
 }
 
 // ============================================================
-// 4. Treatment Plan
+// 4. Behandlingsplan
 // ============================================================
 
 export type StepType = 'chemo' | 'endocrine' | 'cdk46' | 'radiation' | 'bisphosphonate' | 'targeted' | 'custom';
@@ -305,7 +305,7 @@ export interface TreatmentPlan {
 }
 
 // ============================================================
-// 5. Rule Conflict Detection
+// 5. Regelkonfliktdeteksjon
 // ============================================================
 
 export interface RuleConflict {
@@ -318,7 +318,7 @@ export interface RuleConflict {
 }
 
 // ============================================================
-// 6. DMN JSON Schema metadata
+// 6. DMN JSON-skjema metadata
 // ============================================================
 
 export const DMN_SCHEMA_VERSION = '1.0.0';

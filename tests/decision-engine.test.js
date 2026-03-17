@@ -215,9 +215,9 @@ describe('DMN: CDK4/6 Adjuvant', () => {
     const r = evaluateDecisionTable(CDK46_DECISION_TABLE, { cdk46eligible: true, tSimple: 'T1', nStage: 'N3' });
     expect(r.result.abemaciclib).toBe('first_choice');
   });
-  it('T2 N1 → abema if G3, ribo yes', () => {
+  it('T2 N1 → abema if monarchE criteria, ribo yes', () => {
     const r = evaluateDecisionTable(CDK46_DECISION_TABLE, { cdk46eligible: true, tSimple: 'T2', nStage: 'N1' });
-    expect(r.result.abemaciclib).toBe('if_G3');
+    expect(r.result.abemaciclib).toBe('if_monarchE');
     expect(r.result.ribociclib).toBe('yes_unless_low');
   });
 });
@@ -456,5 +456,81 @@ describe('Text Generation', () => {
     const text = buildReferralText(cql);
     expect(text).toContain('HENVISNING');
     expect(text).toContain('neoadjuvant');
+  });
+});
+
+// ============================================================
+// ER lav-positiv logikk (NBCG/St. Gallen: ER 1-10% = ER-negativ)
+// ============================================================
+describe('ER low-positive logic', () => {
+  it('ER 5% → erPositive = false, erLowPositive = true', () => {
+    const r = evaluateCQL({ erPercent: 5, her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(false);
+    expect(r.erLowPositive).toBe(true);
+  });
+
+  it('ER 10% → erPositive = false, erLowPositive = true (grense)', () => {
+    const r = evaluateCQL({ erPercent: 10, her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(false);
+    expect(r.erLowPositive).toBe(true);
+  });
+
+  it('ER 11% → erPositive = true, erLowPositive = false', () => {
+    const r = evaluateCQL({ erPercent: 11, her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(true);
+    expect(r.erLowPositive).toBe(false);
+  });
+
+  it('ER 0% → erPositive = false, erLowPositive = false', () => {
+    const r = evaluateCQL({ erPercent: 0, her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(false);
+    expect(r.erLowPositive).toBe(false);
+  });
+
+  it('ER prosent overstyrer erStatus dropdown', () => {
+    // Bruker setter positiv i dropdown, men prosent er 5% → skal bli negativ
+    const r = evaluateCQL({ erStatus: 'positive', erPercent: 5, her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(false);
+    expect(r.erLowPositive).toBe(true);
+  });
+
+  it('Uten erPercent brukes erStatus direkte', () => {
+    const r = evaluateCQL({ erStatus: 'positive', her2ihc: '0', nStage: 'N0' });
+    expect(r.erPositive).toBe(true);
+    expect(r.erLowPositive).toBe(false);
+  });
+
+  it('ER lav-positiv gir biogruppe TN (ikke HR+) med HER2-negativ', () => {
+    const r = evaluateCQL({ erPercent: 5, prStatus: 'negative', her2ihc: '0', nStage: 'N0' });
+    expect(r.bioGroup).toBe('TN');
+  });
+
+  it('ER lav-positiv gir varsel i behandlingsplan', () => {
+    const cql = evaluateCQL({ erPercent: 5, prStatus: 'negative', her2ihc: '0', tumorSizeMm: 20, nStage: 'N0' });
+    const plan = buildTreatmentPlan(cql);
+    expect(plan.warnings.some((w) => w.includes('lav-positiv'))).toBe(true);
+  });
+});
+
+// ============================================================
+// Neoadjuvant + BCS markørvarsel
+// ============================================================
+describe('Neoadjuvant BCS marker warning', () => {
+  it('neoadjuvant + BCS → markør-varsel', () => {
+    const cql = evaluateCQL({ erStatus: 'positive', her2ihc: '0', tumorSizeMm: 30, nStage: 'N1', treatmentMode: 'neoadjuvant', surgeryType: 'bcs' });
+    const plan = buildTreatmentPlan(cql);
+    expect(plan.warnings.some((w) => w.includes('markør') || w.includes('klips'))).toBe(true);
+  });
+
+  it('neoadjuvant + mastektomi → ingen markør-varsel', () => {
+    const cql = evaluateCQL({ erStatus: 'positive', her2ihc: '0', tumorSizeMm: 30, nStage: 'N1', treatmentMode: 'neoadjuvant', surgeryType: 'mastectomy' });
+    const plan = buildTreatmentPlan(cql);
+    expect(plan.warnings.some((w) => w.includes('markør') || w.includes('klips'))).toBe(false);
+  });
+
+  it('adjuvant + BCS → ingen markør-varsel', () => {
+    const cql = evaluateCQL({ erStatus: 'positive', her2ihc: '0', tumorSizeMm: 20, nStage: 'N0', surgeryType: 'bcs' });
+    const plan = buildTreatmentPlan(cql);
+    expect(plan.warnings.some((w) => w.includes('markør') || w.includes('klips'))).toBe(false);
   });
 });
