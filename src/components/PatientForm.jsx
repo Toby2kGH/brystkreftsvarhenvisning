@@ -72,7 +72,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
 
   return (
     <form className="patient-form" onSubmit={handleSubmit}>
-      <h2>Pasientdata — Brystkreft Beslutningsstøtte</h2>
+      <h2>Pasientdata — Brystkreft Retningslinjegraver</h2>
 
       {/* Treatment Mode */}
       <fieldset>

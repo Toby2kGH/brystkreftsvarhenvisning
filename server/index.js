@@ -1,5 +1,5 @@
 /**
- * Express-server for Brystkreft Beslutningsstøtte
+ * Express-server for Brystkreft Retningslinjegraver
  *
  * Pipeline: Patient Form → CQL (facts) → DMN tables (ALL decisions) → Treatment Builder → Display
  *
@@ -428,7 +428,7 @@ app.get('/cds-services', (_req, res) => {
     services: [{
       hook: 'patient-view',
       id: 'breast-cancer-adjuvant-cds',
-      title: 'Brystkreft Adjuvant Beslutningsstøtte (NBCG)',
+      title: 'Brystkreft Adjuvant Retningslinjegraver (NBCG)',
       description: 'Behandlingsanbefalinger for adjuvant brystkreft basert på NBCG Handlingsprogram',
       prefetch: {
         patient: 'Patient/{{context.patientId}}',

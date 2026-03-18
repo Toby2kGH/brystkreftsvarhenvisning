@@ -416,12 +416,12 @@ describe('Neoadjuvant Treatment', () => {
   });
 
   it('NEO1a — HR+HER2- Lum A → endocrine neoadjuvant', () => {
-    const r = expectRule(T, { isNeoadjuvant: true, bioGroup: 'HR+HER2-', luminalSubtype: 'Luminal A' }, 'NEO1a');
+    const r = expectRule(T, { isNeoadjuvant: true, bioGroup: 'HR+HER2-', luminalSubtype: 'A-like' }, 'NEO1a');
     expect(r.result.regimen).toContain('endokrin');
   });
 
   it('NEO1b — HR+HER2- non-LumA → EC90+taxan', () => {
-    const r = expectRule(T, { isNeoadjuvant: true, bioGroup: 'HR+HER2-', luminalSubtype: 'Luminal B' }, 'NEO1b');
+    const r = expectRule(T, { isNeoadjuvant: true, bioGroup: 'HR+HER2-', luminalSubtype: 'B-like' }, 'NEO1b');
     expect(r.result.regimen).toContain('EC90');
   });
 

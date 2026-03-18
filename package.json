@@ -1,7 +1,7 @@
 {
   "name": "brystkreftsvarhenvisning",
   "version": "1.0.0",
-  "description": "Klinisk beslutningsstøtte for brystkreftbehandling - CDK4/6-inhibitorvalg basert på BPM+ Health-arkitektur",
+  "description": "Klinisk retningslinjegraver for brystkreftbehandling - CDK4/6-inhibitorvalg basert på BPM+ Health-arkitektur",
   "private": true,
   "type": "module",
   "scripts": {

@@ -143,7 +143,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Brystkreft Beslutningsstøtte</h1>
+        <h1>Brystkreft Retningslinjegraver</h1>
         <p className="subtitle">Adjuvant behandlingsprotokoll per NBCG Handlingsprogram</p>
         <nav className="nav">
           <button
@@ -286,7 +286,7 @@ export default function App() {
           BPM+ Health-arkitektur: CQL (datahenting) + DMN (beslutningslogikk) | mCODE/FHIR-kompatibel
         </p>
         <p className="disclaimer">
-          Kun for å visualisere råd ifra handlingsprogrammet til NBCG og generere journaltekst. Kan tilpasses lokalt, men er kun for å forkorte arbeidstid, det er ingen beslutningstøtte og det er viktig å kritisk vurdere tekst samt sjekke siste versjon av handlingsprogram.
+          Kun for å visualisere råd ifra handlingsprogrammet til NBCG og generere journaltekst. Kan tilpasses lokalt, men er kun for å forkorte arbeidstid. Dette er ingen beslutningstøtte — det er viktig å kritisk vurdere tekst samt sjekke siste versjon av handlingsprogram.
         </p>
       </footer>
     </div>

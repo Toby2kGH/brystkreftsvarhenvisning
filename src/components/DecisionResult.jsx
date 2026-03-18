@@ -202,7 +202,7 @@ export default function DecisionResult({ result }) {
               <strong>Biologisk gruppe: {cqlOutput?.bioGroup}</strong>
               {' '}—
               {cqlOutput?.bioGroup === 'HR+HER2-' && ' HR-positiv + HER2-negativ = Luminal (hormonreseptorpositiv).'}
-              {cqlOutput?.bioGroup === 'HR+HER2+' && ' HR-positiv + HER2-positiv = Dobbelpositive. Krever bade HER2-rettet og endokrin terapi.'}
+              {cqlOutput?.bioGroup === 'HR+HER2+' && ' HR-positiv + HER2-positiv = Dobbelpositive. Krever både HER2-rettet og endokrin terapi.'}
               {cqlOutput?.bioGroup === 'HR-HER2+' && ' HR-negativ + HER2-positiv = Kun HER2-rettet terapi (ingen endokrin).'}
               {cqlOutput?.bioGroup === 'TN' && ' HR-negativ + HER2-negativ = Trippel negativ. Krever kjemoterapi.'}
               {cqlOutput?.bioGroup === 'unknown' && ' Kan ikke bestemmes — mangler reseptordata.'}
