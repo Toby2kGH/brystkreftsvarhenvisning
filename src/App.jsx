@@ -144,7 +144,12 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>Brystkreft Retningslinjegraver</h1>
-        <p className="subtitle">Adjuvant behandlingsprotokoll per NBCG Handlingsprogram</p>
+        <p className="subtitle">
+          Adjuvant behandlingsprotokoll per{' '}
+          <a href="https://nbcg.no/retningslinjer-2/retningslinjer/" target="_blank" rel="noopener noreferrer" className="nbcg-link">
+            NBCG Handlingsprogram
+          </a>
+        </p>
         <nav className="nav">
           <button
             className={`nav-btn ${page === 'form' ? 'active' : ''}`}

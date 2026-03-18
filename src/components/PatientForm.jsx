@@ -36,7 +36,31 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
   const [form, setForm] = useState(INITIAL_STATE);
 
   function handleChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((prev) => {
+      const next = { ...prev, [e.target.name]: e.target.value };
+      // Reset gene test when switching to neoadjuvant (gene tests not relevant)
+      if (e.target.name === 'treatmentMode' && e.target.value === 'neoadjuvant') {
+        next.geneTest = 'none';
+        next.rorScore = '';
+        next.rsScore = '';
+        next.prosignaSubtype = '';
+      }
+      // Reset gene test if current selection becomes unavailable
+      if (['nStage', 'tumorSizeMm', 'tStageOverride', 'menopausalStatus'].includes(e.target.name)) {
+        const isT3 = next.tStageOverride === 'T4' || (next.tumorSizeMm !== '' && Number(next.tumorSizeMm) > 50);
+        const isN1Plus = ['N1', 'N2', 'N3'].includes(next.nStage);
+        if (next.geneTest === 'prosigna' && (isT3 || isN1Plus)) {
+          next.geneTest = 'none';
+          next.rorScore = '';
+          next.prosignaSubtype = '';
+        }
+        if (next.geneTest === 'oncotypedx' && !(isN1Plus && next.menopausalStatus === 'post')) {
+          next.geneTest = 'none';
+          next.rsScore = '';
+        }
+      }
+      return next;
+    });
   }
 
   function handleSubmit(e) {
@@ -66,9 +90,15 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const isNeoadjuvant = form.treatmentMode === 'neoadjuvant';
   const showSISH = form.her2ihc === '2+';
-  const showProsigna = form.geneTest === 'prosigna';
-  const showOncotype = form.geneTest === 'oncotypedx';
+  const isT3orHigher = form.tStageOverride === 'T4' || (form.tumorSizeMm !== '' && Number(form.tumorSizeMm) > 50);
+  const isN1orHigher = ['N1', 'N2', 'N3'].includes(form.nStage);
+  const showGeneTestSection = !isNeoadjuvant;
+  const showProsignaOption = !isT3orHigher && !isN1orHigher;
+  const showOncotypeOption = isN1orHigher && form.menopausalStatus === 'post';
+  const showProsigna = form.geneTest === 'prosigna' && showProsignaOption;
+  const showOncotype = form.geneTest === 'oncotypedx' && showOncotypeOption;
 
   return (
     <form className="patient-form" onSubmit={handleSubmit}>
@@ -86,14 +116,16 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
               <option value="post-neoadjuvant">Postneoadjuvant (etter neoadjuvant)</option>
             </select>
           </label>
-          <label>
-            Kirurgitype
-            <select name="surgeryType" value={form.surgeryType} onChange={handleChange}>
-              <option value="bcs">Brystbevarende (BCS)</option>
-              <option value="mastectomy">Mastektomi</option>
-              <option value="">Ikke angitt</option>
-            </select>
-          </label>
+          {!isNeoadjuvant && (
+            <label>
+              Kirurgitype
+              <select name="surgeryType" value={form.surgeryType} onChange={handleChange}>
+                <option value="bcs">Brystbevarende (BCS)</option>
+                <option value="mastectomy">Mastektomi</option>
+                <option value="">Ikke angitt</option>
+              </select>
+            </label>
+          )}
         </div>
       </fieldset>
 
@@ -207,46 +239,48 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
         </div>
       </fieldset>
 
-      {/* Gene Expression */}
-      <fieldset>
-        <legend>Genekspresjonstest</legend>
-        <div className="form-row">
-          <label>
-            Test
-            <select name="geneTest" value={form.geneTest} onChange={handleChange}>
-              <option value="none">Ingen / Ikke utført</option>
-              <option value="prosigna">Prosigna (PAM50)</option>
-              <option value="oncotypedx">OncotypeDX</option>
-            </select>
-          </label>
-          {showProsigna && (
-            <>
+      {/* Gene Expression — hidden for neoadjuvant */}
+      {showGeneTestSection && (
+        <fieldset>
+          <legend>Genekspresjonstest</legend>
+          <div className="form-row">
+            <label>
+              Test
+              <select name="geneTest" value={form.geneTest} onChange={handleChange}>
+                <option value="none">Ingen / Ikke utført</option>
+                {showProsignaOption && <option value="prosigna">Prosigna (PAM50)</option>}
+                {showOncotypeOption && <option value="oncotypedx">OncotypeDX</option>}
+              </select>
+            </label>
+            {showProsigna && (
+              <>
+                <label>
+                  ROR-score
+                  <input type="number" name="rorScore" value={form.rorScore} onChange={handleChange}
+                    min="0" max="100" placeholder="0-100" />
+                </label>
+                <label>
+                  PAM50 subtype
+                  <select name="prosignaSubtype" value={form.prosignaSubtype} onChange={handleChange}>
+                    <option value="">Ikke angitt</option>
+                    <option value="lumA">Luminal A</option>
+                    <option value="lumB">Luminal B</option>
+                    <option value="her2enriched">HER2-enriched</option>
+                    <option value="basallike">Basal-like</option>
+                  </select>
+                </label>
+              </>
+            )}
+            {showOncotype && (
               <label>
-                ROR-score
-                <input type="number" name="rorScore" value={form.rorScore} onChange={handleChange}
+                Recurrence Score (RS)
+                <input type="number" name="rsScore" value={form.rsScore} onChange={handleChange}
                   min="0" max="100" placeholder="0-100" />
               </label>
-              <label>
-                PAM50 subtype
-                <select name="prosignaSubtype" value={form.prosignaSubtype} onChange={handleChange}>
-                  <option value="">Ikke angitt</option>
-                  <option value="lumA">Luminal A</option>
-                  <option value="lumB">Luminal B</option>
-                  <option value="her2enriched">HER2-enriched</option>
-                  <option value="basallike">Basal-like</option>
-                </select>
-              </label>
-            </>
-          )}
-          {showOncotype && (
-            <label>
-              Recurrence Score (RS)
-              <input type="number" name="rsScore" value={form.rsScore} onChange={handleChange}
-                min="0" max="100" placeholder="0-100" />
-            </label>
-          )}
-        </div>
-      </fieldset>
+            )}
+          </div>
+        </fieldset>
+      )}
 
       {/* Patient Factors */}
       <fieldset>

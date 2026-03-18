@@ -252,9 +252,9 @@ export default function DecisionResult({ result }) {
             <DataRow label="ER" value={cqlOutput?.erPositive ? `Positiv${cqlOutput.erPercent ? ` (${cqlOutput.erPercent}%)` : ''}` : `Negativ${cqlOutput?.erLowPositive ? ' (lav-positiv 1-10%)' : ''}`} />
             <DataRow label="PR" value={cqlOutput?.prPositive ? `Positiv${cqlOutput.prPercent ? ` (${cqlOutput.prPercent}%)` : ''}` : 'Negativ'} />
             <DataRow label="HR" value={cqlOutput?.hrPositive ? 'Positiv (ER+ eller PR+)' : 'Negativ'} />
-            <DataRow label="HER2" value={cqlOutput?.her2Status} />
+            <DataRow label="HER2" value={cqlOutput?.her2Status === 'positive' ? 'Positiv' : cqlOutput?.her2Status === 'negative' ? 'Negativ' : cqlOutput?.her2Status === 'equivocal' ? 'Ekvivokal' : 'Ukjent'} />
             {cqlOutput?.her2ihc && <DataRow label="HER2 IHC" value={cqlOutput.her2ihc} />}
-            {cqlOutput?.her2sish && <DataRow label="HER2 SISH" value={cqlOutput.her2sish} />}
+            {cqlOutput?.her2sish && <DataRow label="HER2 SISH" value={cqlOutput.her2sish === 'positive' ? 'Amplifisert' : cqlOutput.her2sish === 'negative' ? 'Ikke amplifisert' : cqlOutput.her2sish} />}
             <DataRow label="Ki-67" value={cqlOutput?.ki67Value != null ? `${cqlOutput.ki67Value}%` : '—'} />
             <DataRow label="Grad" value={cqlOutput?.grade ?? '—'} />
             <DataRow label="T-stadium" value={cqlOutput?.tStage ?? '—'} />

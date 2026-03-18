@@ -58,6 +58,15 @@ body {
   font-size: 0.95rem;
 }
 
+.nbcg-link {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
+.nbcg-link:hover {
+  color: var(--primary);
+}
+
 .nav {
   margin-top: 16px;
   display: flex;
