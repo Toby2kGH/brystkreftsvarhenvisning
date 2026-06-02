@@ -3,10 +3,11 @@ import PatientForm from './components/PatientForm.jsx';
 import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
+import TableLookup from './components/TableLookup.jsx';
 import './styles.css';
 
 export default function App() {
-  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree'
+  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup'
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -164,6 +165,12 @@ export default function App() {
           >
             Beslutningslogikk
           </button>
+          <button
+            className={`nav-btn ${page === 'lookup' ? 'active' : ''}`}
+            onClick={() => setPage('lookup')}
+          >
+            Tabelloppslag
+          </button>
         </nav>
       </header>
 
@@ -279,6 +286,8 @@ export default function App() {
         {page === 'tree' && <InteractiveDecisionTree />}
 
         {page === 'tables' && <DecisionTableViewer />}
+
+        {page === 'lookup' && <TableLookup />}
       </main>
 
       <footer className="app-footer">
