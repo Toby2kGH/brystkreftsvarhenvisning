@@ -16,10 +16,12 @@
 // Sjekker ett sett kriterier (uten anyOf) mot input.
 function matchesCriteriaBlock(crit, input) {
   if (crit.bioGroup && input.bioGroup && crit.bioGroup !== input.bioGroup) return false;
+  if (crit.bioGroups && input.bioGroup && !crit.bioGroups.includes(input.bioGroup)) return false;
   if (crit.menopausal && input.menopausal && crit.menopausal !== input.menopausal) return false;
   if (crit.geneTest && input.geneTest && crit.geneTest !== input.geneTest) return false;
   if (crit.prosignaSubtype && input.prosignaSubtype && crit.prosignaSubtype !== input.prosignaSubtype) return false;
   if (crit.luminalLike && input.luminalLike && crit.luminalLike !== input.luminalLike) return false;
+  if (crit.luminalLikeIn && input.luminalLike && !crit.luminalLikeIn.includes(input.luminalLike)) return false;
 
   if (crit.tStage && input.tStage && !crit.tStage.includes(input.tStage)) return false;
   if (crit.tSimple && input.tSimple && !crit.tSimple.includes(input.tSimple)) return false;

@@ -5,7 +5,15 @@
 //  følger karakteristikaene fra PDF-en.
 // ============================================================
 import { describe, it, expect } from 'vitest';
-import { tableGeneTest, tableNoGeneTest, tableCDK46, addonTables } from '../src/tablelookup/guidelineTables.js';
+import {
+  tableGeneTest,
+  tableNoGeneTest,
+  tableCDK46,
+  tablePt1mic,
+  tableNeoadjuvant,
+  addonTables,
+  referenceDocs,
+} from '../src/tablelookup/guidelineTables.js';
 import { findMatchingRows, rowMatches, classifyLuminalLike, simplifyT } from '../src/tablelookup/matcher.js';
 
 // Hjelper: tekst-stien (gruppe › ... › ytterligere) for en treff-rad
@@ -167,6 +175,94 @@ describe('Tabelloppslag — CDK4/6-hemmer (tilleggstabell)', () => {
         expect(m.length).toBeLessThanOrEqual(1);
       }
     }
+  });
+});
+
+describe('Tabelloppslag — pT1 pN1(mi) med Prosigna (tilleggstabell)', () => {
+  it('er addon for HR+HER2- og krever pN1mi', () => {
+    expect(addonTables).toContain(tablePt1mic);
+    expect(tablePt1mic.appliesToBioGroups).toContain('HR+HER2-');
+    expect(tablePt1mic.requiresNStage).toContain('pN1mi');
+  });
+
+  it('ROR 0-40 → Luminal A endokrin-rad', () => {
+    const m = findMatchingRows(tablePt1mic, { bioGroup: 'HR+HER2-', nStage: 'pN1mi', tStage: 'pT1c', rorScore: '30' });
+    expect(m).toHaveLength(1);
+    expect(tablePt1mic.rows[m[0]].cells[2]).toContain('Luminal A');
+    expect(tablePt1mic.rows[m[0]].cells[3]).toContain('Endokrin behandling');
+  });
+
+  it('ROR 41-60 skilles på subtype', () => {
+    const base = { bioGroup: 'HR+HER2-', nStage: 'pN1mi', tStage: 'pT1c', rorScore: '50' };
+    const a = findMatchingRows(tablePt1mic, { ...base, prosignaSubtype: 'lumA' });
+    const b = findMatchingRows(tablePt1mic, { ...base, prosignaSubtype: 'lumB' });
+    expect(tablePt1mic.rows[a[0]].cells[2]).toContain('Luminal A');
+    expect(tablePt1mic.rows[b[0]].cells[2]).toContain('Luminal B');
+  });
+
+  it('ROR >60 → EC90 → taxan-rad', () => {
+    const m = findMatchingRows(tablePt1mic, { bioGroup: 'HR+HER2-', nStage: 'pN1mi', tStage: 'pT1c', rorScore: '75' });
+    expect(m).toHaveLength(1);
+    expect(tablePt1mic.rows[m[0]].cells[3]).toContain('taxan');
+  });
+});
+
+describe('Tabelloppslag — neoadjuvant behandling', () => {
+  it('ER+HER2- Luminal A → endokrin-rad', () => {
+    const m = findMatchingRows(tableNeoadjuvant, { bioGroup: 'HR+HER2-', luminalLike: 'A' });
+    expect(m).toHaveLength(1);
+    expect(tableNeoadjuvant.rows[m[0]].cells[1]).toContain('Luminal A');
+    expect(tableNeoadjuvant.rows[m[0]].cells[2]).toContain('Endokrin behandling');
+  });
+
+  it('ER+HER2- ikke-LumA → «Alle andre» (kjemoterapi)', () => {
+    const m = findMatchingRows(tableNeoadjuvant, { bioGroup: 'HR+HER2-', luminalLike: 'B' });
+    expect(m).toHaveLength(1);
+    expect(tableNeoadjuvant.rows[m[0]].cells[1]).toBe('Alle andre');
+  });
+
+  it('HER2+ (begge HR-varianter) → TCHP-rad', () => {
+    for (const bg of ['HR+HER2+', 'HR-HER2+']) {
+      const m = findMatchingRows(tableNeoadjuvant, { bioGroup: bg });
+      expect(m).toHaveLength(1);
+      expect(tableNeoadjuvant.rows[m[0]].cells[2]).toContain('TCHP');
+    }
+  });
+
+  it('Trippel negativ → pembrolizumab-rad', () => {
+    const m = findMatchingRows(tableNeoadjuvant, { bioGroup: 'HR-HER2-' });
+    expect(m).toHaveLength(1);
+    expect(tableNeoadjuvant.rows[m[0]].cells[2]).toContain('Pembrolizumab');
+  });
+
+  it('ukjent luminal → begge ER+HER2--rader er kandidater', () => {
+    const m = findMatchingRows(tableNeoadjuvant, { bioGroup: 'HR+HER2-', luminalLike: '' });
+    expect(m).toHaveLength(2);
+  });
+});
+
+describe('Tabelloppslag — referansedokumenter (endokrin)', () => {
+  it('finnes ett pre- og ett postmenopausalt dokument for HR+', () => {
+    const pre = referenceDocs.find((d) => d.menopausal === 'pre');
+    const post = referenceDocs.find((d) => d.menopausal === 'post');
+    expect(pre).toBeTruthy();
+    expect(post).toBeTruthy();
+    expect(pre.appliesToBioGroups).toContain('HR+HER2-');
+    expect(post.sections.length).toBeGreaterThan(0);
+  });
+});
+
+describe('rowMatches — bioGroups (flere grupper) og luminalLikeIn', () => {
+  it('bioGroups matcher hvilken som helst av gruppene', () => {
+    const crit = { bioGroups: ['HR+HER2+', 'HR-HER2+'] };
+    expect(rowMatches(crit, { bioGroup: 'HR+HER2+' })).toBe(true);
+    expect(rowMatches(crit, { bioGroup: 'HR-HER2+' })).toBe(true);
+    expect(rowMatches(crit, { bioGroup: 'HR-HER2-' })).toBe(false);
+  });
+  it('luminalLikeIn ekskluderer Lum A', () => {
+    const crit = { bioGroup: 'HR+HER2-', luminalLikeIn: ['B', 'inconclusive'] };
+    expect(rowMatches(crit, { bioGroup: 'HR+HER2-', luminalLike: 'A' })).toBe(false);
+    expect(rowMatches(crit, { bioGroup: 'HR+HER2-', luminalLike: 'B' })).toBe(true);
   });
 });
 

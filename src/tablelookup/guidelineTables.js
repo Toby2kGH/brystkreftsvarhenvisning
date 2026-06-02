@@ -541,6 +541,225 @@ export const tableCDK46 = {
 };
 
 // ================================================================
+//  TABELL 4 — pT1 pN1(mi) med Prosigna (TILLEGG ved mikrometastase)
+//  Kilde: "Veiledende behandlingsbeslutning ved bruk av Prosigna ved
+//  pT1 med mikrometastase(r) til axille etter svar på Prosignatest"
+//  (16.11.22)
+//
+//  Relevant for HR+HER2- med pN1(mi) når Prosigna-svar foreligger.
+//  Vises som tilleggstabell siden primærtabellene ikke dekker pN1mi.
+// ================================================================
+
+export const tablePt1mic = {
+  id: 'pt1mic',
+  title:
+    'Veiledende behandlingsbeslutning ved bruk av Prosigna ved pT1 med mikrometastase(r) til axille etter svar på Prosignatest',
+  shortTitle: 'pT1 pN1(mi) — Prosigna',
+  source: 'NBCG — veiledning pT1pN1(mi) med Prosigna (16.11.22)',
+  kind: 'addon',
+  appliesToBioGroups: ['HR+HER2-'],
+  requiresNStage: ['pN1mi'],
+  mergeCount: 2,
+  recCols: [{ idx: 3 }],
+  columns: [
+    'Hoved-gruppe',
+    'pTpN status',
+    'Prosignatest*',
+    'Generell terapi-anbefaling**',
+    'Grunnlag for eventuell vurdering av annet terapi-valg (eskalering eller de-eskalering)**',
+  ],
+  rows: [
+    {
+      cells: [
+        'HR+\nHER2-',
+        'pT1pN1(mi)',
+        'Luminal A\nROR score 0-40',
+        'Endokrin behandling\nZoledronsyre ved postmenopausal status',
+        'Dersom ER ekspresjonen er lav, vurder grunnlag for bruk av EC90 x 4 eller TC x 4 → endokrin behandling',
+      ],
+      crit: { bioGroup: 'HR+HER2-', nStage: ['pN1mi'], tStage: T1abc, rorMin: 0, rorMax: 40 },
+    },
+    {
+      cells: [
+        'HR+\nHER2-',
+        'pT1pN1(mi)',
+        'Luminal A**\nROR score 41-60',
+        'Premenopausal: EC90 x 4 eller TC x 4 etterfulgt av endokrin behandling. Endokrin behandling som inkluderer goserelin kan vurderes som alternativ til kjemoterapi.***\nPostmenopausal: Endokrin behandling\nZoledronsyre ved postmenopausal status',
+        '',
+      ],
+      crit: { bioGroup: 'HR+HER2-', nStage: ['pN1mi'], tStage: T1abc, prosignaSubtype: 'lumA', rorMin: 41, rorMax: 60 },
+    },
+    {
+      cells: [
+        'HR+\nHER2-',
+        'pT1pN1(mi)',
+        'Luminal B**\nROR score 41-60',
+        'ER≥50%: EC90 x 4 eller TC x 4 → endokrin behandling\nER<50%: EC90 x 4 → taxan → endokrin behandling\nZoledronsyre ved postmenopausal status',
+        'Ved ER≥50%: Endokrin behandling kan vurderes ved kombinasjonen av histologisk grad 1-2 og lav absolutt ROR score',
+      ],
+      crit: { bioGroup: 'HR+HER2-', nStage: ['pN1mi'], tStage: T1abc, prosignaSubtype: 'lumB', rorMin: 41, rorMax: 60 },
+    },
+    {
+      cells: [
+        'HR+\nHER2-',
+        'pT1pN1(mi)',
+        'Luminal B**\nROR score >60',
+        'EC90 x 4 → taxan → endokrin behandling\nZoledronsyre ved postmenopausal status',
+        'TC x 6 er et akseptabelt alternativ til EC90 x 4 → taxan spesielt ved cardiale risikofaktorer som gjør at man vil unngå antracycliner.',
+      ],
+      crit: { bioGroup: 'HR+HER2-', nStage: ['pN1mi'], tStage: T1abc, rorMin: 61 },
+    },
+  ],
+  footnotes: [
+    '*I noen få tilfeller vil molekylær subtype for HR+HER2- svulster være «Basal»- eller «HER2-enriched», adjuvant behandling vil da følge ROR score og Luminal B subtype.',
+    '**Alder og absolutt ER ekspresjonsnivå kan gi grunnlag for individuell vurdering av behandlingsvalg. Dersom absolutt ROR score er meget nær cut-off verdier for å skifte subgruppe kan det gi grunnlag for individuell vurdering av behandlingsvalg.',
+    '*** Beslutningsgrunnlaget vedrørende endokrin behandling som alternativ til kjemoterapi er indirekte, og sikker kunnskap om dette alternative for premenopausale pasienter er enda ikke tilgjengelig.',
+  ],
+};
+
+// ================================================================
+//  TABELL 5 — Neoadjuvant behandling (utenfor klinisk studie)
+//  Kilde: "Oversikt over veiledende neoadjuvant behandlingsopplegg
+//  for pasienter utenfor klinisk studie" (19.11.25)
+//
+//  Primærtabell i neoadjuvant situasjon (erstatter de adjuvante
+//  primærtabellene når «Neoadjuvant behandling» er valgt).
+// ================================================================
+
+export const tableNeoadjuvant = {
+  id: 'neoadjuvant',
+  title: 'Oversikt over veiledende neoadjuvant behandlingsopplegg for pasienter utenfor klinisk studie (19.11.25)',
+  shortTitle: 'Neoadjuvant behandling',
+  source: 'NBCG Handlingsprogram — tabell «neoadjuvant behandling» (rev. 19.11.25)',
+  kind: 'primary-neo',
+  mergeCount: 1,
+  recCols: [{ idx: 2 }],
+  columns: [
+    'Hoved-gruppe',
+    'Subgruppe',
+    'Behandlingsopplegg ved tilfredsstillende respons',
+    'Evaluering – oppfølging',
+    'Ved utilfredsstillende respons',
+  ],
+  rows: [
+    {
+      cells: [
+        'ER+ HER2-',
+        'Sterkt ER+ og lav proliferasjon/Luminal A subtype',
+        'Endokrin behandling i form av AI (+ goserelin til premenopausale) til maksimal respons er oppnådd (6.-12. mnd)',
+        'Klinisk responsevaluering hver 3.-6. uke, billed-diagnostisk evaluering underveis ved behov. Dersom pasienten er kandidat for BCT gjennomføres MR mot slutten av behandlingstiden',
+        'Progresjon eller sikkert manglende respons på et hvilket som helst tidspunkt underveis i behandlingen bør medføre seponering og skifte til kjemoterapi eller vurdering for operasjon',
+      ],
+      crit: { bioGroup: 'HR+HER2-', luminalLike: 'A' },
+    },
+    {
+      cells: [
+        'ER+ HER2-',
+        'Alle andre',
+        'EC90 x 4 etterfulgt av 12 ukers taxan\nMindre intens kjemoterapi kan vurderes på individuelt grunnlag ved for eksempel klassiske lobulære carcinomer eller andre med mer usikker nytte av kjemoterapi',
+        'Klinisk responsevaluering hver 3. uke, billeddiagnostisk evaluering underveis ved behov. Dersom pasienten er kandidat for BCT gjennomføres MR mot slutten av behandlingstiden',
+        'Progresjon eller sikkert manglende respons på et hvilket som helst tidspunkt underveis i behandlingen bør medføre seponering og skifte til annen behandling eller vurdering for operasjon',
+      ],
+      crit: { bioGroup: 'HR+HER2-', luminalLikeIn: ['B', 'inconclusive'] },
+    },
+    {
+      cells: [
+        'HER2+',
+        'Alle',
+        'Primærvalg: Taxan/karboplatin (18 uker) i kombinasjon med trastuzumab og pertuzumab hver 3. uke (TCHP).\nSekundærvalg: EC90 x 4 etterfulgt av 12 ukers taxan.\nVed redusert toleranse for karboplatin kan THP benyttes.',
+        'Klinisk responsevaluering hver 3. uke, billeddiagnostisk evaluering underveis ved behov. Dersom pasienten er kandidat for BCT gjennomføres MR mot slutten av behandlingstiden',
+        'Progresjon eller sikkert manglende respons på et hvilket som helst tidspunkt underveis i behandlingen bør medføre seponering og skifte til annen behandling eller vurdering for operasjon',
+      ],
+      crit: { bioGroups: ['HR+HER2+', 'HR-HER2+'] },
+    },
+    {
+      cells: [
+        'Trippel negativ',
+        'BRCA ukjent, normal eller mutert',
+        'Pembrolizumab + 12 ukers paklitaxel/carboplatin etterfulgt av pembrolizumab + 4 EC90\n\nPaklitaxel/carboplatin etterfulgt av EC90 x 4 dersom ikke pembrolizumab kan gis\n\nAlternative behandlingsopsjoner (etter individuell vurdering):\n• EC90 x 4 etterfulgt av taxan\n• Dose dense behandling i form av EC90 x 4 (q2w) etterfulgt av docetaxel x 4 (q2w) eller paklitaxel x 12 (1qw)',
+        'Klinisk responsevaluering hver 3. uke, billeddiagnostisk evaluering underveis ved behov. Dersom pasienten er kandidat for BCT gjennomføres MR mot slutten av behandlingstiden',
+        'Progresjon eller sikkert manglende respons på et hvilket som helst tidspunkt underveis i behandlingen bør medføre seponering og skifte til annen behandling eller vurdering for operasjon',
+      ],
+      crit: { bioGroup: 'HR-HER2-' },
+    },
+  ],
+  footnotes: [
+    'Gjelder veiledende neoadjuvant behandlingsopplegg for pasienter utenfor klinisk studie. ER+ HER2-: valg av rad avhenger av tolkning av subtype (Luminal A-liknende vs «alle andre»).',
+  ],
+};
+
+// ================================================================
+//  TEKSTDOKUMENTER — adjuvant endokrin behandling (narrativ, ikke
+//  tabell). Vises som relevante referansedokumenter basert på
+//  hovedgruppe (HR+) og menopausal status. Ordrett fra PDF-ene.
+// ================================================================
+
+export const referenceDocs = [
+  {
+    id: 'endokrin-pre',
+    title: 'NBCGs anbefalinger for adjuvant endokrin behandling (hvis indikasjon) for premenopausale kvinner (19.11.25)',
+    shortTitle: 'Endokrin behandling — premenopausal',
+    source: 'NBCG Handlingsprogram — adjuvant endokrin behandling, premenopausale (rev. 19.11.25)',
+    appliesToBioGroups: ['HR+HER2-', 'HR+HER2+'],
+    menopausal: 'pre',
+    intro: 'Behandlingen starter opp etter at adjuvant kjemoterapi er avsluttet (ved indikasjon) og inkluderer en av følgende:',
+    sections: [
+      {
+        heading: '1. Tamoxifen',
+        text: 'Behandling med tamoxifen 20 mg x 1 daglig i 5 år anbefales for pasienter med lav risiko og stadium.',
+      },
+      {
+        heading: '2. Ovariefunksjonssuppresjon (OFS)',
+        text: 'Ovariefunksjonsuppresjon (OFS) i 5 år med goserelin i tillegg til AI (som følge av best sykdomsfri overlevelse), subsidiært OFS + tamoxifen (dersom tolerabilitet nødvendiggjør dette), anbefales til følgende høyere risiko pasienter/situasjoner (på bakgrunn av primært resultatene fra SOFT/TEXT studiene):\n– Pasienter under 35 år hvor det i utgangspunktet er indikasjon for kjemoterapi.\n– Ved alder over 35 år med høyere risikoprofil. Vurderingen av OFS kan påvirkes av om kjemoterapi gis og pasientens alder (sannsynlighet for kjemoterapiindusert menopause).\n– Dersom ikke kjemoterapi benyttes vil goserelin anbefales til undergrupper med midlere eller høyere risikoprofil (kfr 7.2 og oversiktene over adjuvant behandling 7.4.1 og 7.4.2.).\n– Dersom ikke OFS gis primært og pasienten ikke mister menstruasjonen etter kjemoterapi eller hvor menstruasjon kommer tilbake innen 8 måneder etter kjemoterapi bør OFS gis i tillegg til AI eller tamoxifen.\n– Vurdering av subtype brystkreft (LumA vs LumB), risikoprofil ved genekspresjonstest, histologisk grad og stadium kan bidra til å avklare absolutte nytteeffekter og understøtte et behandlingsvalg.\nDersom OFS skal gis oppstartes OFS så snart som mulig etter at endokrin behandling er besluttet. Ingen forskjell i plan ved tillegg av tamoxifen eller AI, men det tar noe tid før AI kan ha ønsket virkning.',
+      },
+      {
+        heading: '3. Adjuvant CDK4/6-hemmer i kombinasjon med endokrin behandling',
+        text: 'Konferer tabellen «Oversikt anbefaling om bruk av CDK4/6 hemmer i kombinasjon med endokrin behandling» (vises som egen tilleggstabell i dette verktøyet).',
+      },
+      {
+        heading: '4. Utvidet adjuvant behandling (inntil 10 år)',
+        text: 'Dersom risikoprofil taler for utvidet adjuvant behandling (inntil 10 år) bør det vurderes å kontinuere tilleggsbehandling basert på menopausal status i henhold til følgende:\n– Dersom tamoxifen er benyttet de første 5 år og kvinnen på det tidspunktet er pre- eller perimenopausal eller har ukjent menopausal status eller det ikke kan bestemmes, bør det fortsettes med tamoxifen i ytterligere 5 år dersom tolerabilitet/sannsynlig absolutt nytteverdi underbygger dette.\n– Dersom tamoxifen er benyttet de første 5 år og på det tidspunkt er sikkert postmenopausal, bør kvinnen fortsette med aromatasehemmer i 2-5 år, subsidiært fortsette med tamoxifen i ytterligere 5 år dersom tolerabilitet/sannsynlig absolutt nytteverdi underbygger dette.\n– Dersom tamoxifen er benyttet primært men i mindre enn 5 år og kvinnen er vurdert å være postmenopausal, kan det skiftes til aromatasehemmer på et tidligere tidspunkt.\n– Dersom aromatasehemmer er benyttet (kjemoterapi-indusert og/eller OFS-indusert postmenopausal) de første 5 år, kan videre behandling være 5 år med tamoxifen eller 2-5 år med aromatasehemmer (dersom sikkert postmenopausal). Vurdering av eventuelt behov for/videre bruk av OFS kan vurderes ved spesielt høy risiko på individuelt grunnlag (Burstein et al., 2025; Valenza et al., 2025).\n– Ved postmenopausal status viser samlede resultater til nå at 5 års tilleggsbehandling med aromatasehemmer gir bedre risikoreduksjon enn 2-3 års tilleggsbehandling (etter gjennomført 5 år med endokrin behandling), men den absolutte effekten er avhengig av stadium og tumorkarakteristika (EBCTCG, 2025). Det foreligger enkeltstudier som ikke viser forskjell i effekt mellom 7-8 års behandlingstid og 10 år.',
+      },
+      {
+        heading: 'Supplerende informasjon',
+        text: 'Som supplerende informasjon for behandlingsvalg henvises til teksten i handlingsprogrammet og tabellarisk oversikt fra St Gallen 2025 – veiledning over adjuvant behandling av hormonreseptor positive HER2 negative. Den tabellariske oversikt anbefales brukt som del av grunnlaget for vurdering av adjuvant endokrin behandling og er også gjengitt i handlingsprogrammet.',
+      },
+    ],
+  },
+  {
+    id: 'endokrin-post',
+    title: 'NBCGs anbefalinger for adjuvant endokrin behandling (hvis indikasjon) for postmenopausale kvinner (19.11.25)',
+    shortTitle: 'Endokrin behandling — postmenopausal',
+    source: 'NBCG Handlingsprogram — adjuvant endokrin behandling, postmenopausale (rev. 19.11.25)',
+    appliesToBioGroups: ['HR+HER2-', 'HR+HER2+'],
+    menopausal: 'post',
+    intro: 'Dersom det er aktuelt med adjuvant kjemoterapi, startes hormonbehandlingen opp etter at kjemoterapien er avsluttet (Evidensnivå A). Aromatasehemmer og tamoxifen kan benyttes i sekvens eller aromatasehemmer i 5 år; slik behandling sidestilles effektmessig.',
+    sections: [
+      {
+        heading: 'Aktuelle behandlingsvalg (avhengig av risikoprofil, tolerabilitet og komorbiditet)',
+        text: '• Aromatasehemmer i 5 år\n• Tamoxifen i 5–10 år\n• Tamoxifen i 5 år etterfulgt av AI i 5 år\n• Tamoxifen i 2–3 år etterfulgt av AI i 5-8 år\n• Kvinner som har intoleranse overfor tamoxifen eller AI, kan skifte over til det andre alternativet. Hvis en kvinne har mottatt AI for mindre enn 5 år (2-<5 år), kan det gis tamoxifen til pasienten har fått totalt 10 år med endokrin behandling.\n• Aromatasehemmer i 7-10 år for høyrisikopasienter. Samlede resultater til nå viser at 5 års tilleggsbehandling med aromatasehemmer gir bedre risikoreduksjon enn 2-3 års tilleggsbehandling (etter tidligere gjennomført 5 år med endokrin behandling inkludert aromatasehemmer), men den absolutte effekten er avhengig av stadium og tumorkarakteristika.',
+      },
+      {
+        heading: 'Anbefalte behandlingsvalg ved indikasjon (Evidensnivå A)',
+        text: 'Oppstart av aromatasehemmer anbefales som første valg, hvor pasientpreferanse, risikovurdering og toleranse kan påvirke behandlingsvalget eller endringer underveis.\n\nVed lav til midlere risikoprofil:\n• Aromatasehemmer i 5 år.\n• Aromatasehemmer i 2–3 år etterfulgt av tamoxifen i 2–3 år\n• Tamoxifen i 5-10 år for pasienter med intoleranse/kontraindikasjoner for bruk av tamoxifen\n\nVed midlere til høy risikoprofil:\n• 7-10 års behandlingstid med aromatasehemmer dersom tilfredsstillende tolerabilitet.\n• Der det er besluttet å oppstarte tamoxifen primært (av medisinske eller pasientrelaterte årsaker): Tamoxifen i 2–5 år etterfulgt av aromatasehemmer i 5-8 år (sum 10 års behandling) dersom tilfredsstillende tolerabilitet.\n• Der det er besluttet å oppstarte tamoxifen primært og aromatasehemmer ikke er ønsket benyttet: tamoxifen i 10 år dersom tilfredsstillende tolerabilitet.\n• Der det er startet opp aromatasehemmer men det på grunn av medisinske eller pasientrelaterte årsaker er skiftet til tamoxifen før 2 års behandling med AI er gjennomført: tamoxifen til totalt 10 års endokrin behandlingstid.',
+      },
+      {
+        heading: 'Calcium/VitD',
+        text: 'Calcium/VitD (1000 mg/800 IE daglig) skal i utgangspunktet gis til alle som står på AI (for eksempel Calcigran forte tyggetabletter).',
+      },
+      {
+        heading: 'Adjuvant abemaciclib (CDK4/6-hemmer)',
+        text: 'CDK4/6 hemmer i kombinasjon med endokrin behandling: Konferer tabellen «Oversikt anbefaling om bruk av CDK4/6 hemmer i kombinasjon med endokrin behandling» (vises som egen tilleggstabell i dette verktøyet).',
+      },
+      {
+        heading: 'Supplerende informasjon',
+        text: 'Som supplerende informasjon for behandlingsvalg henvises til teksten i handlingsprogrammet og tabellarisk oversikt fra St Gallen 2025 – veiledning over adjuvant behandling av hormonreseptor positive HER2 negative. Den tabellariske oversikt anbefales brukt som del av grunnlaget for vurdering av adjuvant endokrin behandling og er også gjengitt i handlingsprogrammet.',
+      },
+    ],
+  },
+];
+
+// ================================================================
 //  Felles regime-/forklaringstekst (ordrett fra PDF-enes fotnoter)
 //  Vises som sammenleggbar referanse i verktøyet slik at ingen
 //  tekst fra PDF-ene går tapt.
@@ -573,7 +792,8 @@ export const sharedRegimens = [
   },
 ];
 
-export const guidelineTables = [tableNoGeneTest, tableGeneTest, tableCDK46];
+export const guidelineTables = [tableNoGeneTest, tableGeneTest, tableCDK46, tablePt1mic, tableNeoadjuvant];
 
 // Tilleggstabeller (addons) som kan være relevante samtidig med en primærtabell.
-export const addonTables = [tableCDK46];
+// Hver addon kan begrenses via appliesToBioGroups og requiresNStage.
+export const addonTables = [tableCDK46, tablePt1mic];

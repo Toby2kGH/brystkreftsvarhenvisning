@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
   tableGeneTest,
   tableNoGeneTest,
+  tableNeoadjuvant,
   addonTables,
+  referenceDocs,
   sharedRegimens,
 } from '../tablelookup/guidelineTables.js';
 import { findMatchingRows, classifyLuminalLike, simplifyT } from '../tablelookup/matcher.js';
@@ -23,6 +25,7 @@ const EMPTY_INPUT = {
   tStage: '',
   nStage: '',
   menopausal: '',
+  neoadjuvant: false,
   geneTestAvailable: false,
   geneTest: '',
   prosignaSubtype: '',
@@ -56,21 +59,41 @@ export default function TableLookup() {
     [input, effectiveLuminal]
   );
 
-  // Primærtabell avhenger av om gentest foreligger
-  const primaryTable = input.geneTestAvailable ? tableGeneTest : tableNoGeneTest;
+  // Primærtabell: neoadjuvant situasjon bruker neoadjuvant-tabellen,
+  // ellers avhenger valget av om gentest foreligger.
+  const primaryTable = input.neoadjuvant
+    ? tableNeoadjuvant
+    : input.geneTestAvailable
+    ? tableGeneTest
+    : tableNoGeneTest;
   const otherTable = input.geneTestAvailable ? tableNoGeneTest : tableGeneTest;
 
-  // Tilleggstabeller (f.eks. CDK4/6) som er relevante for denne pasienten samtidig.
-  // En pasient kan dermed få flere relevante tabeller vist på én gang.
+  // Tilleggstabeller (f.eks. CDK4/6, pT1pN1mi) som er relevante for denne
+  // pasienten samtidig. En pasient kan dermed få flere relevante tabeller
+  // vist på én gang. Addons gjelder ikke i neoadjuvant situasjon.
   const relevantTables = useMemo(() => {
-    const list = [{ table: primaryTable, role: 'Primæranbefaling' }];
-    for (const addon of addonTables) {
-      if (!addon.appliesToBioGroups || addon.appliesToBioGroups.includes(input.bioGroup)) {
-        list.push({ table: addon, role: 'Tilleggsbehandling' });
+    const list = [{ table: primaryTable, role: input.neoadjuvant ? 'Neoadjuvant' : 'Primæranbefaling' }];
+    if (!input.neoadjuvant) {
+      for (const addon of addonTables) {
+        const bioOk = !addon.appliesToBioGroups || addon.appliesToBioGroups.includes(input.bioGroup);
+        const nOk = !addon.requiresNStage || addon.requiresNStage.includes(input.nStage);
+        if (bioOk && nOk) list.push({ table: addon, role: 'Tilleggsbehandling' });
       }
     }
     return list;
-  }, [primaryTable, input.bioGroup]);
+  }, [primaryTable, input.bioGroup, input.nStage, input.neoadjuvant]);
+
+  // Relevante tekstdokumenter (narrativ, ikke tabell) — endokrin behandling
+  // velges ut fra hovedgruppe (HR+) og menopausal status.
+  const relevantDocs = useMemo(
+    () =>
+      referenceDocs.filter(
+        (doc) =>
+          (!doc.appliesToBioGroups || doc.appliesToBioGroups.includes(input.bioGroup)) &&
+          (!doc.menopausal || !input.menopausal || doc.menopausal === input.menopausal)
+      ),
+    [input.bioGroup, input.menopausal]
+  );
 
   // Treff per relevant tabell
   const matchesByTable = useMemo(
@@ -96,33 +119,57 @@ export default function TableLookup() {
           handlingsprogram.
         </p>
         <p>
-          <strong>Flere tabeller kan være relevante for samme pasient.</strong> For HR-positiv,
-          HER2-negativ sykdom vises i tillegg tabellen for adjuvant CDK4/6-hemmer som mulig
-          tilleggsbehandling.
+          <strong>Flere tabeller og dokumenter kan være relevante for samme pasient.</strong> For
+          HR-positiv, HER2-negativ sykdom vises f.eks. tabellen for adjuvant CDK4/6-hemmer og — ved
+          mikrometastase — pT1pN1(mi)/Prosigna-tabellen. For HR-positiv sykdom vises også relevant
+          tekstdokument for adjuvant endokrin behandling (pre-/postmenopausal). Velg «Neoadjuvant»
+          for å slå opp i tabellen for neoadjuvant behandling.
         </p>
       </div>
 
       {/* ---------------- Inndata ---------------- */}
       <div className="lookup-form">
         <div className="lookup-field lookup-field-toggle">
-          <span className="lookup-label">Genekspresjonstest foreligger?</span>
+          <span className="lookup-label">Behandlingssituasjon</span>
           <div className="lookup-segmented">
             <button
               type="button"
-              className={!input.geneTestAvailable ? 'active' : ''}
-              onClick={() => update('geneTestAvailable', false)}
+              className={!input.neoadjuvant ? 'active' : ''}
+              onClick={() => update('neoadjuvant', false)}
             >
-              Nei / ikke utført
+              Adjuvant (primæroperert)
             </button>
             <button
               type="button"
-              className={input.geneTestAvailable ? 'active' : ''}
-              onClick={() => update('geneTestAvailable', true)}
+              className={input.neoadjuvant ? 'active' : ''}
+              onClick={() => update('neoadjuvant', true)}
             >
-              Ja
+              Neoadjuvant
             </button>
           </div>
         </div>
+
+        {!input.neoadjuvant && (
+          <div className="lookup-field lookup-field-toggle">
+            <span className="lookup-label">Genekspresjonstest foreligger?</span>
+            <div className="lookup-segmented">
+              <button
+                type="button"
+                className={!input.geneTestAvailable ? 'active' : ''}
+                onClick={() => update('geneTestAvailable', false)}
+              >
+                Nei / ikke utført
+              </button>
+              <button
+                type="button"
+                className={input.geneTestAvailable ? 'active' : ''}
+                onClick={() => update('geneTestAvailable', true)}
+              >
+                Ja
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="lookup-field">
           <label htmlFor="lk-bio">Hovedgruppe (HR/HER2)</label>
@@ -154,6 +201,7 @@ export default function TableLookup() {
           <select id="lk-n" value={input.nStage} onChange={(e) => update('nStage', e.target.value)}>
             <option value="">— Velg —</option>
             <option value="pN0">pN0</option>
+            <option value="pN1mi">pN1mi (mikrometastase)</option>
             <option value="pN1">pN1</option>
             <option value="pN2">pN2</option>
             <option value="pN3">pN3</option>
@@ -170,7 +218,7 @@ export default function TableLookup() {
         </div>
 
         {/* Gentest-spesifikke felt */}
-        {input.geneTestAvailable && (
+        {!input.neoadjuvant && input.geneTestAvailable && (
           <>
             <div className="lookup-field">
               <label htmlFor="lk-gt">Genekspresjonstest</label>
@@ -219,8 +267,8 @@ export default function TableLookup() {
           </>
         )}
 
-        {/* Luminal-liknende klassifisering — kun uten gentest og HR+HER2- */}
-        {!input.geneTestAvailable && input.bioGroup === 'HR+HER2-' && (
+        {/* Luminal-liknende klassifisering — HR+HER2- uten gentest, eller neoadjuvant */}
+        {input.bioGroup === 'HR+HER2-' && (input.neoadjuvant || !input.geneTestAvailable) && (
           <>
             <div className="lookup-field">
               <label htmlFor="lk-ki">Ki67 (%)</label>
@@ -280,11 +328,23 @@ export default function TableLookup() {
         />
       ))}
 
+      {/* ---------------- Relevante tekstdokumenter (endokrin behandling) ---------------- */}
+      {relevantDocs.length > 0 && (
+        <div className="lookup-docs">
+          <h3 className="lookup-docs-title">Relevante tekstdokumenter</h3>
+          {relevantDocs.map((doc) => (
+            <ReferenceDoc key={doc.id} doc={doc} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
+          ))}
+        </div>
+      )}
+
       {/* ---------------- Den andre primærtabellen (referanse) ---------------- */}
-      <details className="lookup-other">
-        <summary>Vis også: {otherTable.shortTitle} (referanse, ingen highlight)</summary>
-        <LookupTable table={otherTable} matches={[]} edited={edited} setEdited={setEdited} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
-      </details>
+      {!input.neoadjuvant && (
+        <details className="lookup-other">
+          <summary>Vis også: {otherTable.shortTitle} (referanse, ingen highlight)</summary>
+          <LookupTable table={otherTable} matches={[]} edited={edited} setEdited={setEdited} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
+        </details>
+      )}
 
       {/* ---------------- Regimer / forklaringer ---------------- */}
       <details className="lookup-regimens">
@@ -481,6 +541,60 @@ function buildJournalText(row, recCols) {
     })
     .filter(Boolean)
     .join('\n');
+}
+
+// ================================================================
+//  Referansedokument (narrativ tekst, f.eks. endokrin behandling)
+// ================================================================
+
+function ReferenceDoc({ doc, copiedKey, setCopiedKey }) {
+  const copyKey = `doc:${doc.id}`;
+
+  function fullText() {
+    const parts = [doc.title];
+    if (doc.intro) parts.push(doc.intro);
+    for (const s of doc.sections) {
+      parts.push(`${s.heading}\n${s.text}`);
+    }
+    return parts.join('\n\n');
+  }
+
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(fullText());
+      setCopiedKey(copyKey);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch {
+      /* clipboard kan være blokkert */
+    }
+  }
+
+  return (
+    <details className="lookup-doc" open>
+      <summary>
+        <span className="lookup-role-badge">Tekstdokument</span>
+        {doc.shortTitle}
+      </summary>
+      <div className="lookup-doc-body">
+        <p className="lookup-doc-fulltitle">{doc.title}</p>
+        {doc.intro && <p className="lookup-doc-intro">{doc.intro}</p>}
+        {doc.sections.map((s, i) => (
+          <div key={i} className="lookup-doc-section">
+            <h4>{s.heading}</h4>
+            <p>
+              <MultilineText text={s.text} />
+            </p>
+          </div>
+        ))}
+        <div className="lookup-doc-foot">
+          <button type="button" className="lookup-copy-btn" onClick={copyAll}>
+            {copiedKey === copyKey ? 'Kopiert!' : 'Kopier hele dokumentet'}
+          </button>
+          <span className="lookup-summary-source">Kilde: {doc.source}</span>
+        </div>
+      </div>
+    </details>
+  );
 }
 
 function MultilineText({ text }) {
