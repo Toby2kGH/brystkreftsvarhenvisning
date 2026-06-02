@@ -22,6 +22,7 @@ function matchesCriteriaBlock(crit, input) {
   if (crit.luminalLike && input.luminalLike && crit.luminalLike !== input.luminalLike) return false;
 
   if (crit.tStage && input.tStage && !crit.tStage.includes(input.tStage)) return false;
+  if (crit.tSimple && input.tSimple && !crit.tSimple.includes(input.tSimple)) return false;
   if (crit.nStage && input.nStage && !crit.nStage.includes(input.nStage)) return false;
   if (crit.grade && input.grade != null && input.grade !== '' && !crit.grade.includes(Number(input.grade))) return false;
 
@@ -49,6 +50,18 @@ export function findMatchingRows(table, input) {
     if (rowMatches(row.crit, input)) matched.push(i);
   });
   return matched;
+}
+
+// Avleder forenklet T-kategori (T0–T4) fra detaljert pT-stadium.
+// Brukes av tabeller som indekseres på TNM (f.eks. CDK4/6-tabellen).
+export function simplifyT(tStage) {
+  if (!tStage) return '';
+  if (tStage === 'T0' || tStage === 'pT0') return 'T0';
+  if (tStage.startsWith('pT1') || tStage === 'T1') return 'T1';
+  if (tStage === 'pT2' || tStage === 'T2') return 'T2';
+  if (tStage === 'pT3' || tStage === 'T3') return 'T3';
+  if (tStage === 'pT4' || tStage === 'T4') return 'T4';
+  return '';
 }
 
 // ----------------------------------------------------------------

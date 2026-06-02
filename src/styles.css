@@ -3028,3 +3028,49 @@ legend {
   border-top: 1px solid var(--border);
   padding-top: 12px;
 }
+
+/* Tabelloppslag — flere relevante tabeller / roller */
+.lookup-role-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.lookup-table-wrap.addon {
+  border-left: 4px solid var(--accent);
+}
+
+.lookup-summary-block {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(30, 110, 68, 0.3);
+}
+
+.lookup-summary-block:first-of-type {
+  border-top: none;
+}
+
+.lookup-summary-tablename {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.lookup-summary-nomatch {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-style: italic;
+  margin: 2px 0;
+}
+
+.lookup-summary-block ul {
+  margin: 4px 0 2px 20px;
+}

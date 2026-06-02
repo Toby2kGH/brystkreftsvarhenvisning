@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import {
   tableGeneTest,
   tableNoGeneTest,
+  addonTables,
   sharedRegimens,
 } from '../tablelookup/guidelineTables.js';
-import { findMatchingRows, classifyLuminalLike } from '../tablelookup/matcher.js';
+import { findMatchingRows, classifyLuminalLike, simplifyT } from '../tablelookup/matcher.js';
 
 // ================================================================
 //  Tabelloppslag — ny fane (endrer ikke det eksisterende verktøyet)
@@ -49,17 +50,33 @@ export default function TableLookup() {
   );
   const effectiveLuminal = luminalOverride || luminalSuggestion?.value || '';
 
-  // Input som sendes til matcheren (med effektiv luminal-gruppe innbakt)
+  // Input som sendes til matcheren (med effektiv luminal-gruppe + forenklet T innbakt)
   const matchInput = useMemo(
-    () => ({ ...input, luminalLike: effectiveLuminal }),
+    () => ({ ...input, luminalLike: effectiveLuminal, tSimple: simplifyT(input.tStage) }),
     [input, effectiveLuminal]
   );
 
-  // Aktiv tabell avhenger av om gentest foreligger
-  const activeTable = input.geneTestAvailable ? tableGeneTest : tableNoGeneTest;
+  // Primærtabell avhenger av om gentest foreligger
+  const primaryTable = input.geneTestAvailable ? tableGeneTest : tableNoGeneTest;
   const otherTable = input.geneTestAvailable ? tableNoGeneTest : tableGeneTest;
 
-  const matches = useMemo(() => findMatchingRows(activeTable, matchInput), [activeTable, matchInput]);
+  // Tilleggstabeller (f.eks. CDK4/6) som er relevante for denne pasienten samtidig.
+  // En pasient kan dermed få flere relevante tabeller vist på én gang.
+  const relevantTables = useMemo(() => {
+    const list = [{ table: primaryTable, role: 'Primæranbefaling' }];
+    for (const addon of addonTables) {
+      if (!addon.appliesToBioGroups || addon.appliesToBioGroups.includes(input.bioGroup)) {
+        list.push({ table: addon, role: 'Tilleggsbehandling' });
+      }
+    }
+    return list;
+  }, [primaryTable, input.bioGroup]);
+
+  // Treff per relevant tabell
+  const matchesByTable = useMemo(
+    () => relevantTables.map(({ table }) => findMatchingRows(table, matchInput)),
+    [relevantTables, matchInput]
+  );
 
   function resetAll() {
     setInput(EMPTY_INPUT);
@@ -77,6 +94,11 @@ export default function TableLookup() {
           og lar deg kopiere den ordrette tabellteksten som utgangspunkt for journaltekst (kan
           tilpasses per rad). All tolkning og endelig vurdering gjøres av klinikeren mot gjeldende
           handlingsprogram.
+        </p>
+        <p>
+          <strong>Flere tabeller kan være relevante for samme pasient.</strong> For HR-positiv,
+          HER2-negativ sykdom vises i tillegg tabellen for adjuvant CDK4/6-hemmer som mulig
+          tilleggsbehandling.
         </p>
       </div>
 
@@ -117,6 +139,7 @@ export default function TableLookup() {
           <label htmlFor="lk-t">T-stadium (patologisk)</label>
           <select id="lk-t" value={input.tStage} onChange={(e) => update('tStage', e.target.value)}>
             <option value="">— Velg —</option>
+            <option value="T0">T0 (ingen påvist tumor)</option>
             <option value="pT1a">pT1a</option>
             <option value="pT1b">pT1b</option>
             <option value="pT1c">pT1c</option>
@@ -239,21 +262,25 @@ export default function TableLookup() {
         </div>
       </div>
 
-      {/* ---------------- Treff-oppsummering ---------------- */}
-      <MatchSummary table={activeTable} matches={matches} input={matchInput} />
+      {/* ---------------- Treff-oppsummering (alle relevante tabeller) ---------------- */}
+      <MatchSummary relevantTables={relevantTables} matchesByTable={matchesByTable} bioGroup={input.bioGroup} />
 
-      {/* ---------------- Aktiv tabell ---------------- */}
-      <LookupTable
-        table={activeTable}
-        matches={matches}
-        edited={edited}
-        setEdited={setEdited}
-        copiedKey={copiedKey}
-        setCopiedKey={setCopiedKey}
-        isActive
-      />
+      {/* ---------------- Relevante tabeller (primær + ev. tillegg) ---------------- */}
+      {relevantTables.map(({ table, role }, i) => (
+        <LookupTable
+          key={table.id}
+          table={table}
+          role={role}
+          matches={matchesByTable[i]}
+          edited={edited}
+          setEdited={setEdited}
+          copiedKey={copiedKey}
+          setCopiedKey={setCopiedKey}
+          isActive
+        />
+      ))}
 
-      {/* ---------------- Den andre tabellen (referanse) ---------------- */}
+      {/* ---------------- Den andre primærtabellen (referanse) ---------------- */}
       <details className="lookup-other">
         <summary>Vis også: {otherTable.shortTitle} (referanse, ingen highlight)</summary>
         <LookupTable table={otherTable} matches={[]} edited={edited} setEdited={setEdited} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
@@ -285,29 +312,49 @@ export default function TableLookup() {
 //  Treff-oppsummering
 // ================================================================
 
-function MatchSummary({ table, matches, input }) {
-  if (!input.bioGroup) {
-    return <div className="lookup-summary lookup-summary-empty">Velg minst hovedgruppe for å slå opp i tabellen.</div>;
+function MatchSummary({ relevantTables, matchesByTable, bioGroup }) {
+  if (!bioGroup) {
+    return <div className="lookup-summary lookup-summary-empty">Velg minst hovedgruppe for å slå opp i tabellen(e).</div>;
   }
-  if (matches.length === 0) {
+
+  const anyHit = matchesByTable.some((m) => m.length > 0);
+  if (!anyHit) {
     return (
       <div className="lookup-summary lookup-summary-none">
-        Ingen rad i «{table.shortTitle}» treffer foreløpig. Fyll ut flere felt, eller pasienten faller
-        utenfor denne tabellen (se handlingsprogrammet for f.eks. pT3/pT4 eller neoadjuvant situasjon).
+        Ingen rad treffer i de relevante tabellene foreløpig. Fyll ut flere felt, eller pasienten faller
+        utenfor disse tabellene (se handlingsprogrammet for f.eks. pT3/pT4 eller neoadjuvant situasjon).
       </div>
     );
   }
+
   return (
     <div className="lookup-summary lookup-summary-hit">
-      <strong>Pasienten hører hjemme i {matches.length === 1 ? 'følgende rad' : 'følgende rader'}:</strong>
-      <ul>
-        {matches.map((i) => {
-          const cells = table.rows[i].cells;
-          const path = cells.slice(0, table.mergeCount + 1).map((c) => c.replace(/\n/g, ' ').trim()).filter(Boolean);
-          return <li key={i}>{path.join(' › ')}</li>;
-        })}
-      </ul>
-      <span className="lookup-summary-source">Kilde: {table.source}</span>
+      <strong>Relevante tabeller for denne pasienten:</strong>
+      {relevantTables.map(({ table, role }, ti) => {
+        const matches = matchesByTable[ti];
+        return (
+          <div key={table.id} className="lookup-summary-block">
+            <span className="lookup-summary-tablename">
+              <span className="lookup-role-badge">{role}</span> {table.shortTitle}
+            </span>
+            {matches.length === 0 ? (
+              <p className="lookup-summary-nomatch">Ingen treffende rad ennå — fyll ut flere felt.</p>
+            ) : (
+              <ul>
+                {matches.map((i) => {
+                  const cells = table.rows[i].cells;
+                  const path = cells
+                    .slice(0, table.mergeCount + 1)
+                    .map((c) => c.replace(/\n/g, ' ').trim())
+                    .filter(Boolean);
+                  return <li key={i}>{path.join(' › ')}</li>;
+                })}
+              </ul>
+            )}
+            <span className="lookup-summary-source">Kilde: {table.source}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -316,11 +363,11 @@ function MatchSummary({ table, matches, input }) {
 //  Interaktiv tabell med rowSpan og highlighting
 // ================================================================
 
-function LookupTable({ table, matches, edited, setEdited, copiedKey, setCopiedKey, isActive }) {
+function LookupTable({ table, role, matches, edited, setEdited, copiedKey, setCopiedKey, isActive }) {
   const matchSet = useMemo(() => new Set(matches), [matches]);
   const spans = useMemo(() => computeSpans(table.rows, table.mergeCount), [table]);
-  const recIndex = table.mergeCount + 1;
-  const rationaleIndex = table.mergeCount + 2;
+  // Settet med kolonneindekser som utgjør anbefalingstekst
+  const recColSet = useMemo(() => new Set((table.recCols || []).map((rc) => rc.idx)), [table]);
   const hasMatch = matches.length > 0;
 
   function keyFor(rowIdx) {
@@ -330,7 +377,7 @@ function LookupTable({ table, matches, edited, setEdited, copiedKey, setCopiedKe
   function valueFor(rowIdx) {
     const k = keyFor(rowIdx);
     if (k in edited) return edited[k];
-    return buildJournalText(table.rows[rowIdx], recIndex, rationaleIndex);
+    return buildJournalText(table.rows[rowIdx], table.recCols);
   }
 
   async function copyText(rowIdx) {
@@ -345,8 +392,11 @@ function LookupTable({ table, matches, edited, setEdited, copiedKey, setCopiedKe
   }
 
   return (
-    <div className={`lookup-table-wrap ${isActive ? 'active' : ''}`}>
-      <h3 className="lookup-table-title">{table.title}</h3>
+    <div className={`lookup-table-wrap ${isActive ? 'active' : ''} ${table.kind === 'addon' ? 'addon' : ''}`}>
+      <h3 className="lookup-table-title">
+        {role && <span className="lookup-role-badge">{role}</span>}
+        {table.title}
+      </h3>
       <div className="lookup-table-scroll">
         <table className="lookup-table">
           <thead>
@@ -373,8 +423,7 @@ function LookupTable({ table, matches, edited, setEdited, copiedKey, setCopiedKe
                         </td>
                       );
                     }
-                    const cls =
-                      colIdx === recIndex ? 'lookup-cell-rec' : colIdx === rationaleIndex ? 'lookup-cell-rationale' : '';
+                    const cls = recColSet.has(colIdx) ? 'lookup-cell-rec' : 'lookup-cell-rationale';
                     return (
                       <td key={colIdx} className={cls}>
                         <MultilineText text={cell} />
@@ -418,10 +467,20 @@ function LookupTable({ table, matches, edited, setEdited, copiedKey, setCopiedKe
   );
 }
 
-// Bygger standard journaltekst-utgangspunkt fra en rad.
-function buildJournalText(row, recIndex, rationaleIndex) {
-  const rec = (row.cells[recIndex] || '').trim();
-  return rec;
+// Bygger standard journaltekst-utgangspunkt fra en rad ut fra tabellens
+// anbefalingskolonner (recCols). Kolonner med label prefikses (f.eks.
+// "Ribociklib: ...") slik at tabeller med flere anbefalingskolonner
+// (som CDK4/6) gir meningsfull tekst.
+function buildJournalText(row, recCols) {
+  const cols = recCols && recCols.length ? recCols : [{ idx: row.cells.length - 2 }];
+  return cols
+    .map((rc) => {
+      const v = (row.cells[rc.idx] || '').trim();
+      if (!v) return '';
+      return rc.label ? `${rc.label}: ${v}` : v;
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 function MultilineText({ text }) {

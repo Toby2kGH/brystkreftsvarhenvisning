@@ -48,8 +48,13 @@ export const tableGeneTest = {
     'Anbefalinger for primæropererte pasienter med HR+HER2- pT1-2pN0 status eller postmenopausale pasienter med pT1-2pN1 status hvor svar på anbefalt genekspresjonstest foreligger',
   shortTitle: 'Genekspresjonstest foreligger',
   source: 'NBCG Handlingsprogram — tabell «genekspresjonstest foreligger» (rev. 12.24)',
+  // Hvilken type tabell: 'primary' = hovedoppslag, 'addon' = tilleggsbehandling
+  kind: 'primary',
   // Antall venstre-kolonner som kan slås sammen (rowSpan): gruppe, N-status, genekspresjonstest
   mergeCount: 3,
+  // Kolonner som utgjør anbefalings-/journaltekst (resten av ikke-merge-kolonnene
+  // regnes som «grunnlag/utdyping» og vises dempet).
+  recCols: [{ idx: 4 }],
   columns: [
     'Hoved-gruppe',
     'N status',
@@ -230,8 +235,10 @@ export const tableNoGeneTest = {
     'Anbefalinger for adjuvant systemisk behandling etter primærkirurgi dersom det ikke er indikasjon for genekspresjonstest eller slik test ikke er utført (19.11.25)',
   shortTitle: 'Genekspresjonstest ikke utført',
   source: 'NBCG Handlingsprogram — tabell «ikke genekspresjonstest» (rev. 19.11.25)',
+  kind: 'primary',
   // Venstre-kolonner som kan slås sammen: hovedgruppe, subgruppering
   mergeCount: 2,
+  recCols: [{ idx: 3 }],
   columns: [
     'Hoved-gruppe',
     'Subgruppering ved undersøkelser av tumor',
@@ -474,6 +481,66 @@ export const tableNoGeneTest = {
 };
 
 // ================================================================
+//  TABELL 3 — Adjuvant CDK4/6-hemmer i kombinasjon med endokrin
+//  behandling (TILLEGGSBEHANDLING for HR-positiv sykdom).
+//  Kilde: "Oversikt anbefaling om bruk av CDK4/6 hemmer i
+//  kombinasjon med endokrin behandling (19.11.25)"
+//
+//  Denne tabellen er en addon: den er relevant SAMTIDIG med
+//  primærtabellen (med/uten gentest) for HR+HER2- pasienter, slik
+//  at flere relevante tabeller kan vises for samme pasient.
+//
+//  Indekseres på TNM (forenklet T0–T4 + N0–N3) og anatomisk
+//  stadium. Cellene inneholder de ordrette betingelsene
+//  (grad/GES), så verktøyet highlighter kun riktig TNM-rad — det
+//  avgjør ikke ja/nei selv.
+// ================================================================
+
+export const tableCDK46 = {
+  id: 'cdk46',
+  title: 'Oversikt anbefaling om bruk av CDK4/6 hemmer i kombinasjon med endokrin behandling (19.11.25)',
+  shortTitle: 'CDK4/6-hemmer (tillegg, HR+)',
+  source: 'NBCG Handlingsprogram — tabell «adjuvant CDK4/6-hemmer» (rev. 19.11.25)',
+  kind: 'addon',
+  // Relevant som tillegg for HR-positiv, HER2-negativ sykdom
+  appliesToBioGroups: ['HR+HER2-'],
+  // Kun anatomisk stadium (kolonne 0) slås sammen
+  mergeCount: 1,
+  // Begge medikamentkolonnene utgjør anbefalingsteksten
+  recCols: [
+    { idx: 2, label: 'Ribociklib' },
+    { idx: 3, label: 'Abemaciklib' },
+  ],
+  columns: ['Anatomisk stadieinndeling', 'TNM', 'Ribociklib anbefales', 'Abemaciklib anbefales'],
+  rows: [
+    { cells: ['I', 'T1N0', 'Nei', 'Nei'], crit: { tSimple: ['T1'], nStage: ['pN0'] } },
+
+    { cells: ['IIA', 'T0N1*', 'Om grad 3 eller høyrisiko på GES#', 'Nei'], crit: { tSimple: ['T0'], nStage: ['pN1'] } },
+    { cells: ['IIA', 'T1N1*', 'Om grad 3 eller høyrisiko på GES#', 'Om grad 3 (1. valg)'], crit: { tSimple: ['T1'], nStage: ['pN1'] } },
+    { cells: ['IIA', 'T2N0', 'Om grad 3 eller høyrisiko på GES#', 'Nei'], crit: { tSimple: ['T2'], nStage: ['pN0'] } },
+
+    { cells: ['IIB', 'T2N1', 'Ja\n(avstå om grad 1 eller lavrisiko GES#)', 'Om grad 3 (1. valg)'], crit: { tSimple: ['T2'], nStage: ['pN1'] } },
+    { cells: ['IIB', 'T3N0', 'Ja\n(avstå om grad 1 eller lavrisiko GES#)', 'Nei'], crit: { tSimple: ['T3'], nStage: ['pN0'] } },
+
+    { cells: ['IIIA', 'T0N2', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T0'], nStage: ['pN2'] } },
+    { cells: ['IIIA', 'T1N2', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T1'], nStage: ['pN2'] } },
+    { cells: ['IIIA', 'T2N2', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T2'], nStage: ['pN2'] } },
+    { cells: ['IIIA', 'T3N1', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T3'], nStage: ['pN1'] } },
+    { cells: ['IIIA', 'T3N2', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T3'], nStage: ['pN2'] } },
+
+    { cells: ['IIIB', 'T4N0', 'Ja', 'Nei'], crit: { tSimple: ['T4'], nStage: ['pN0'] } },
+    { cells: ['IIIB', 'T4N1', 'Ja', 'Om grad 3 eller tumor ≥ 5 cm (1. valg)'], crit: { tSimple: ['T4'], nStage: ['pN1'] } },
+    { cells: ['IIIB', 'T4N2', 'Ja', 'Ja (1. valg)'], crit: { tSimple: ['T4'], nStage: ['pN2'] } },
+
+    { cells: ['IIIC', 'AnyTN3', 'Ja', 'Ja (1. valg)'], crit: { nStage: ['pN3'] } },
+  ],
+  footnotes: [
+    '* Ingen behandlingsindikasjon ved pN1mic (mikrometastase). #GES = genekspresjon.',
+    'Tabellen er en tilleggsvurdering for HR+HER2- sykdom og kommer i tillegg til primæranbefalingen. Cellene angir betingelsene (grad/GES) ordrett — vurder disse opp mot pasienten.',
+  ],
+};
+
+// ================================================================
 //  Felles regime-/forklaringstekst (ordrett fra PDF-enes fotnoter)
 //  Vises som sammenleggbar referanse i verktøyet slik at ingen
 //  tekst fra PDF-ene går tapt.
@@ -506,4 +573,7 @@ export const sharedRegimens = [
   },
 ];
 
-export const guidelineTables = [tableNoGeneTest, tableGeneTest];
+export const guidelineTables = [tableNoGeneTest, tableGeneTest, tableCDK46];
+
+// Tilleggstabeller (addons) som kan være relevante samtidig med en primærtabell.
+export const addonTables = [tableCDK46];

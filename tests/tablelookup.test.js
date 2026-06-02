@@ -5,8 +5,8 @@
 //  følger karakteristikaene fra PDF-en.
 // ============================================================
 import { describe, it, expect } from 'vitest';
-import { tableGeneTest, tableNoGeneTest } from '../src/tablelookup/guidelineTables.js';
-import { findMatchingRows, rowMatches, classifyLuminalLike } from '../src/tablelookup/matcher.js';
+import { tableGeneTest, tableNoGeneTest, tableCDK46, addonTables } from '../src/tablelookup/guidelineTables.js';
+import { findMatchingRows, rowMatches, classifyLuminalLike, simplifyT } from '../src/tablelookup/matcher.js';
 
 // Hjelper: tekst-stien (gruppe › ... › ytterligere) for en treff-rad
 function pathOf(table, idx) {
@@ -117,6 +117,56 @@ describe('Luminal-liknende klassifisering', () => {
   });
   it('Ingen data → null (ingen forslag)', () => {
     expect(classifyLuminalLike({ ki67: '', grade: '', hrPercent: '' })).toBeNull();
+  });
+});
+
+describe('Tabelloppslag — CDK4/6-hemmer (tilleggstabell)', () => {
+  it('er registrert som addon for HR+HER2-', () => {
+    expect(addonTables).toContain(tableCDK46);
+    expect(tableCDK46.appliesToBioGroups).toContain('HR+HER2-');
+  });
+
+  it('simplifyT mapper pT-stadier til T0–T4', () => {
+    expect(simplifyT('pT1a')).toBe('T1');
+    expect(simplifyT('pT1c')).toBe('T1');
+    expect(simplifyT('pT2')).toBe('T2');
+    expect(simplifyT('pT4')).toBe('T4');
+    expect(simplifyT('T0')).toBe('T0');
+  });
+
+  it('T2N1 (pT2/pN1) → IIB-rad med Ribociklib Ja', () => {
+    const m = findMatchingRows(tableCDK46, { tSimple: simplifyT('pT2'), nStage: 'pN1' });
+    expect(m).toHaveLength(1);
+    const row = tableCDK46.rows[m[0]];
+    expect(row.cells[1]).toBe('T2N1');
+    expect(row.cells[2]).toContain('Ja');
+  });
+
+  it('T1N0 → stadium I, begge Nei', () => {
+    const m = findMatchingRows(tableCDK46, { tSimple: simplifyT('pT1c'), nStage: 'pN0' });
+    expect(m).toHaveLength(1);
+    expect(tableCDK46.rows[m[0]].cells[0]).toBe('I');
+  });
+
+  it('AnyT N3 treffer uavhengig av T', () => {
+    const m1 = findMatchingRows(tableCDK46, { tSimple: 'T1', nStage: 'pN3' });
+    const m2 = findMatchingRows(tableCDK46, { tSimple: 'T4', nStage: 'pN3' });
+    expect(m1).toEqual(m2);
+    expect(tableCDK46.rows[m1[0]].cells[1]).toBe('AnyTN3');
+  });
+
+  it('T4N1 → Abemaciklib-betingelse om grad 3 / tumor ≥ 5 cm', () => {
+    const m = findMatchingRows(tableCDK46, { tSimple: 'T4', nStage: 'pN1' });
+    expect(tableCDK46.rows[m[0]].cells[3]).toContain('≥ 5 cm');
+  });
+
+  it('hvert fullt TNM-kasus gir nøyaktig én CDK-rad', () => {
+    for (const t of ['T0', 'T1', 'T2', 'T3', 'T4']) {
+      for (const n of ['pN0', 'pN1', 'pN2', 'pN3']) {
+        const m = findMatchingRows(tableCDK46, { tSimple: t, nStage: n });
+        expect(m.length).toBeLessThanOrEqual(1);
+      }
+    }
   });
 });
 
