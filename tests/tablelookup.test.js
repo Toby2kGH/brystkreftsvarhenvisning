@@ -14,7 +14,8 @@ import {
   addonTables,
   referenceDocs,
 } from '../src/tablelookup/guidelineTables.js';
-import { findMatchingRows, rowMatches, classifyLuminalLike, simplifyT } from '../src/tablelookup/matcher.js';
+import { findMatchingRows, rowMatches, classifyLuminalLike, simplifyT, deriveMatchInput } from '../src/tablelookup/matcher.js';
+import { evaluateCQL } from '../src/cql/cqlEngine.js';
 
 // Hjelper: tekst-stien (gruppe › ... › ytterligere) for en treff-rad
 function pathOf(table, idx) {
@@ -263,6 +264,56 @@ describe('rowMatches — bioGroups (flere grupper) og luminalLikeIn', () => {
     const crit = { bioGroup: 'HR+HER2-', luminalLikeIn: ['B', 'inconclusive'] };
     expect(rowMatches(crit, { bioGroup: 'HR+HER2-', luminalLike: 'A' })).toBe(false);
     expect(rowMatches(crit, { bioGroup: 'HR+HER2-', luminalLike: 'B' })).toBe(true);
+  });
+});
+
+describe('deriveMatchInput — samme inndata/derivering som Pasientvurdering', () => {
+  // Kjør rå pasientdata gjennom CQL og deretter adapteren, slik appen gjør.
+  function pipeline(patient, override) {
+    const facts = evaluateCQL(patient);
+    return deriveMatchInput(facts, override);
+  }
+
+  it('tumorstørrelse → T-stadium (25 mm → pT2/T2, 18 mm → pT1c/T1, 8 mm → pT1b/T1)', () => {
+    const base = { erPercent: 95, prPercent: 80, her2ihc: '0', nStage: 'N0', menopausalStatus: 'post' };
+    expect(pipeline({ ...base, tumorSizeMm: 25 }).matchInput.tStage).toBe('pT2');
+    expect(pipeline({ ...base, tumorSizeMm: 25 }).matchInput.tSimple).toBe('T2');
+    expect(pipeline({ ...base, tumorSizeMm: 18 }).matchInput.tStage).toBe('pT1c');
+    expect(pipeline({ ...base, tumorSizeMm: 18 }).matchInput.tSimple).toBe('T1');
+    expect(pipeline({ ...base, tumorSizeMm: 8 }).matchInput.tStage).toBe('pT1b');
+  });
+
+  it('reseptorstatus → biogruppe (TN mappes til HR-HER2-)', () => {
+    const tn = pipeline({ erPercent: 0, prPercent: 0, her2ihc: '0', tumorSizeMm: 10, nStage: 'N0', menopausalStatus: 'post' });
+    expect(tn.matchInput.bioGroup).toBe('HR-HER2-');
+    const hrpos = pipeline({ erPercent: 95, prPercent: 80, her2ihc: '0', tumorSizeMm: 10, nStage: 'N0', menopausalStatus: 'post' });
+    expect(hrpos.matchInput.bioGroup).toBe('HR+HER2-');
+    const her2 = pipeline({ erPercent: 0, prPercent: 0, her2ihc: '3+', tumorSizeMm: 10, nStage: 'N0', menopausalStatus: 'post' });
+    expect(her2.matchInput.bioGroup).toBe('HR-HER2+');
+  });
+
+  it('N-stadium og neoadjuvant-modus mappes', () => {
+    const mi = pipeline({ erPercent: 0, prPercent: 0, her2ihc: '3+', tumorSizeMm: 35, nStage: 'N1mi', menopausalStatus: 'pre', treatmentMode: 'neoadjuvant' }).matchInput;
+    expect(mi.nStage).toBe('pN1mi');
+    expect(mi.neoadjuvant).toBe(true);
+  });
+
+  it('hele kjeden: T2N1 post + OncotypeDx RS>25 → riktig rad i gentest-tabellen', () => {
+    const { matchInput } = pipeline({
+      erPercent: 95, prPercent: 80, her2ihc: '1+', tumorSizeMm: 25, nStage: 'N1',
+      menopausalStatus: 'post', geneTest: 'oncotypedx', rsScore: 30, grade: 2,
+    });
+    expect(matchInput.bioGroup).toBe('HR+HER2-');
+    expect(matchInput.geneTestAvailable).toBe(true);
+    const m = findMatchingRows(tableGeneTest, matchInput);
+    expect(m).toHaveLength(1);
+    expect(tableGeneTest.rows[m[0]].cells[2]).toContain('RS>25');
+  });
+
+  it('manuell luminal-overstyring vinner over forslag', () => {
+    const facts = evaluateCQL({ erPercent: 95, prPercent: 80, her2ihc: '0', tumorSizeMm: 30, nStage: 'N0', menopausalStatus: 'post', grade: 1, ki67: 5 });
+    expect(deriveMatchInput(facts).matchInput.luminalLike).toBe('A');
+    expect(deriveMatchInput(facts, 'B').matchInput.luminalLike).toBe('B');
   });
 });
 

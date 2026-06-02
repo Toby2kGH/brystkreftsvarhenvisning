@@ -32,7 +32,7 @@ const INITIAL_STATE = {
   pcrStatus: '',
 };
 
-export default function PatientForm({ onSubmit, loading, onShowTables }) {
+export default function PatientForm({ onSubmit, loading, onShowTables, submitLabel, loadingLabel }) {
   const [form, setForm] = useState(INITIAL_STATE);
 
   function handleChange(e) {
@@ -331,7 +331,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
       )}
 
       <button type="submit" className="submit-btn" disabled={loading}>
-        {loading ? 'Evaluerer...' : 'Evaluer behandlingsvalg'}
+        {loading ? (loadingLabel || 'Evaluerer...') : (submitLabel || 'Evaluer behandlingsvalg')}
       </button>
 
       {onShowTables && (

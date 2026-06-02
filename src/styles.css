@@ -3137,3 +3137,73 @@ legend {
   padding-top: 10px;
   margin-top: 6px;
 }
+
+/* Tabelloppslag — avledede fakta fra pasientskjema */
+.lookup-derived {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.lookup-derived-title {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.lookup-derived-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lookup-derived-chip {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  min-width: 90px;
+}
+
+.lookup-derived-key {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-light);
+}
+
+.lookup-derived-val {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lookup-derived-luminal {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 520px;
+}
+
+.lookup-derived-luminal label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.lookup-derived-luminal select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  max-width: 320px;
+}

@@ -54,6 +54,53 @@ export function findMatchingRows(table, input) {
   return matched;
 }
 
+// ----------------------------------------------------------------
+//  Oversetter deriverte CQL-fakta (fra evaluateCQL) til matcher-input.
+//  Her "finner vi fram logikken" for hva som er T1/N1, biogruppe osv.
+//  basert på samme derivering som resten av verktøyet bruker.
+// ----------------------------------------------------------------
+const BIO_MAP = {
+  'HR+HER2-': 'HR+HER2-',
+  'HR+HER2+': 'HR+HER2+',
+  'HR-HER2+': 'HR-HER2+',
+  TN: 'HR-HER2-',
+};
+const N_MAP = { N0: 'pN0', N1mi: 'pN1mi', N1: 'pN1', N2: 'pN2', N3: 'pN3' };
+
+export function deriveMatchInput(facts, luminalOverride = '') {
+  const luminalSuggestion = classifyLuminalLike({
+    ki67: facts.ki67Value ?? '',
+    grade: facts.grade ?? '',
+    hrPercent: facts.erPercent ?? '',
+  });
+  const tStage = facts.tStage ? 'p' + facts.tStage : ''; // 'T1a' → 'pT1a'
+  const menopausal =
+    facts.menopausalStatus === 'post'
+      ? 'post'
+      : facts.menopausalStatus === 'pre' || facts.menopausalStatus === 'peri'
+      ? 'pre'
+      : '';
+
+  const matchInput = {
+    bioGroup: BIO_MAP[facts.bioGroup] || '',
+    tStage,
+    tSimple: simplifyT(tStage),
+    nStage: N_MAP[facts.nStage] || '',
+    menopausal,
+    neoadjuvant: !!facts.isNeoadjuvant,
+    geneTestAvailable: !!facts.geneTestDone,
+    geneTest: facts.geneTestDone ? facts.geneTest : '',
+    prosignaSubtype: facts.prosignaSubtype || '',
+    rorScore: facts.rorScore ?? '',
+    rsScore: facts.rsScore ?? '',
+    ki67: facts.ki67Value ?? '',
+    grade: facts.grade ?? '',
+    hrPercent: facts.erPercent ?? '',
+    luminalLike: luminalOverride || luminalSuggestion?.value || '',
+  };
+  return { matchInput, luminalSuggestion };
+}
+
 // Avleder forenklet T-kategori (T0–T4) fra detaljert pT-stadium.
 // Brukes av tabeller som indekseres på TNM (f.eks. CDK4/6-tabellen).
 export function simplifyT(tStage) {

@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import PatientForm from './PatientForm.jsx';
+import { evaluateCQL } from '../cql/cqlEngine.js';
 import {
   tableGeneTest,
   tableNoGeneTest,
@@ -7,343 +9,167 @@ import {
   referenceDocs,
   sharedRegimens,
 } from '../tablelookup/guidelineTables.js';
-import { findMatchingRows, classifyLuminalLike, simplifyT } from '../tablelookup/matcher.js';
+import { findMatchingRows, deriveMatchInput } from '../tablelookup/matcher.js';
 
 // ================================================================
 //  Tabelloppslag — ny fane (endrer ikke det eksisterende verktøyet)
 // ================================================================
 //
-//  I motsetning til "Pasientvurdering"/"Beslutningstre" gir denne
-//  fanen INGEN algoritmisk anbefaling. Den slår kun opp hvor i de
-//  offisielle NBCG-tabellene pasienten hører hjemme, highlighter
-//  riktig rad, og tilbyr den ordrette tabellteksten som redigerbart
-//  utgangspunkt for journaltekst.
+//  Bruker SAMME pasientskjema som "Pasientvurdering" (PatientForm) og
+//  SAMME deriveringslogikk (evaluateCQL) for å finne fram til hva som
+//  er T-stadium, N-stadium, biologisk undergruppe, menopausal status,
+//  luminal subtype osv. ut fra inndata. Deretter slår verktøyet kun
+//  opp hvor i de offisielle NBCG-tabellene pasienten hører hjemme —
+//  det gir INGEN algoritmisk anbefaling, men highlighter riktig rad og
+//  tilbyr den ordrette tabellteksten som redigerbart journaltekst.
 // ================================================================
 
-const EMPTY_INPUT = {
-  bioGroup: '',
-  tStage: '',
-  nStage: '',
-  menopausal: '',
-  neoadjuvant: false,
-  geneTestAvailable: false,
-  geneTest: '',
-  prosignaSubtype: '',
-  rorScore: '',
-  rsScore: '',
-  ki67: '',
-  grade: '',
-  hrPercent: '',
-};
-
 export default function TableLookup() {
-  const [input, setInput] = useState(EMPTY_INPUT);
-  const [luminalOverride, setLuminalOverride] = useState(''); // manuell overstyring av luminal-liknende gruppe
+  const [facts, setFacts] = useState(null); // deriverte CQL-fakta (null før oppslag)
+  const [luminalOverride, setLuminalOverride] = useState(''); // manuell overstyring av luminal-gruppe
   const [edited, setEdited] = useState({}); // redigert journaltekst: key = `${tableId}:${rowIdx}`
   const [copiedKey, setCopiedKey] = useState(null);
 
-  function update(field, value) {
-    setInput((prev) => ({ ...prev, [field]: value }));
+  // Kjør samme derivering som "Pasientvurdering" og bygg matcher-input.
+  function handleLookup(patientData) {
+    setFacts(evaluateCQL(patientData));
+    setLuminalOverride('');
+    setEdited({});
   }
 
-  // Foreslått luminal-liknende klassifisering (kun relevant uten gentest, HR+HER2-)
-  const luminalSuggestion = useMemo(
-    () => classifyLuminalLike({ ki67: input.ki67, grade: input.grade, hrPercent: input.hrPercent }),
-    [input.ki67, input.grade, input.hrPercent]
-  );
-  const effectiveLuminal = luminalOverride || luminalSuggestion?.value || '';
-
-  // Input som sendes til matcheren (med effektiv luminal-gruppe + forenklet T innbakt)
-  const matchInput = useMemo(
-    () => ({ ...input, luminalLike: effectiveLuminal, tSimple: simplifyT(input.tStage) }),
-    [input, effectiveLuminal]
+  const { matchInput, luminalSuggestion } = useMemo(
+    () => (facts ? deriveMatchInput(facts, luminalOverride) : { matchInput: null, luminalSuggestion: null }),
+    [facts, luminalOverride]
   );
 
   // Primærtabell: neoadjuvant situasjon bruker neoadjuvant-tabellen,
   // ellers avhenger valget av om gentest foreligger.
-  const primaryTable = input.neoadjuvant
+  const primaryTable = matchInput?.neoadjuvant
     ? tableNeoadjuvant
-    : input.geneTestAvailable
+    : matchInput?.geneTestAvailable
     ? tableGeneTest
     : tableNoGeneTest;
-  const otherTable = input.geneTestAvailable ? tableNoGeneTest : tableGeneTest;
+  const otherTable = matchInput?.geneTestAvailable ? tableNoGeneTest : tableGeneTest;
 
   // Tilleggstabeller (f.eks. CDK4/6, pT1pN1mi) som er relevante for denne
   // pasienten samtidig. En pasient kan dermed få flere relevante tabeller
   // vist på én gang. Addons gjelder ikke i neoadjuvant situasjon.
   const relevantTables = useMemo(() => {
-    const list = [{ table: primaryTable, role: input.neoadjuvant ? 'Neoadjuvant' : 'Primæranbefaling' }];
-    if (!input.neoadjuvant) {
+    if (!matchInput) return [];
+    const list = [{ table: primaryTable, role: matchInput.neoadjuvant ? 'Neoadjuvant' : 'Primæranbefaling' }];
+    if (!matchInput.neoadjuvant) {
       for (const addon of addonTables) {
-        const bioOk = !addon.appliesToBioGroups || addon.appliesToBioGroups.includes(input.bioGroup);
-        const nOk = !addon.requiresNStage || addon.requiresNStage.includes(input.nStage);
+        const bioOk = !addon.appliesToBioGroups || addon.appliesToBioGroups.includes(matchInput.bioGroup);
+        const nOk = !addon.requiresNStage || addon.requiresNStage.includes(matchInput.nStage);
         if (bioOk && nOk) list.push({ table: addon, role: 'Tilleggsbehandling' });
       }
     }
     return list;
-  }, [primaryTable, input.bioGroup, input.nStage, input.neoadjuvant]);
+  }, [primaryTable, matchInput]);
 
   // Relevante tekstdokumenter (narrativ, ikke tabell) — endokrin behandling
   // velges ut fra hovedgruppe (HR+) og menopausal status.
   const relevantDocs = useMemo(
     () =>
-      referenceDocs.filter(
-        (doc) =>
-          (!doc.appliesToBioGroups || doc.appliesToBioGroups.includes(input.bioGroup)) &&
-          (!doc.menopausal || !input.menopausal || doc.menopausal === input.menopausal)
-      ),
-    [input.bioGroup, input.menopausal]
+      matchInput
+        ? referenceDocs.filter(
+            (doc) =>
+              (!doc.appliesToBioGroups || doc.appliesToBioGroups.includes(matchInput.bioGroup)) &&
+              (!doc.menopausal || !matchInput.menopausal || doc.menopausal === matchInput.menopausal)
+          )
+        : [],
+    [matchInput]
   );
 
   // Treff per relevant tabell
   const matchesByTable = useMemo(
-    () => relevantTables.map(({ table }) => findMatchingRows(table, matchInput)),
+    () => (matchInput ? relevantTables.map(({ table }) => findMatchingRows(table, matchInput)) : []),
     [relevantTables, matchInput]
   );
 
-  function resetAll() {
-    setInput(EMPTY_INPUT);
-    setLuminalOverride('');
-    setEdited({});
-  }
+  // Skal luminal-gruppen vises/kunne overstyres? (kun når den påvirker oppslaget)
+  const luminalRelevant =
+    matchInput && matchInput.bioGroup === 'HR+HER2-' && (matchInput.neoadjuvant || !matchInput.geneTestAvailable);
 
   return (
     <div className="lookup">
       <div className="lookup-intro">
         <h2>Tabelloppslag</h2>
         <p>
-          Dette verktøyet gir <strong>ingen algoritmisk anbefaling</strong>. Det viser hvor i de
-          offisielle NBCG-tabellene pasienten hører hjemme basert på inndata, highlighter riktig rad,
-          og lar deg kopiere den ordrette tabellteksten som utgangspunkt for journaltekst (kan
-          tilpasses per rad). All tolkning og endelig vurdering gjøres av klinikeren mot gjeldende
-          handlingsprogram.
+          Fyll ut <strong>samme pasientskjema som på «Pasientvurdering»</strong>. Verktøyet bruker den
+          samme deriveringslogikken til å finne fram til hva som er T-stadium, N-stadium, biologisk
+          undergruppe, menopausal status og luminal subtype — og slår deretter opp hvor i de offisielle
+          NBCG-tabellene pasienten hører hjemme. Det gir <strong>ingen algoritmisk anbefaling</strong>,
+          men highlighter riktig rad og tilbyr den ordrette tabellteksten som utgangspunkt for
+          journaltekst (kan tilpasses per rad).
         </p>
         <p>
           <strong>Flere tabeller og dokumenter kan være relevante for samme pasient.</strong> For
           HR-positiv, HER2-negativ sykdom vises f.eks. tabellen for adjuvant CDK4/6-hemmer og — ved
           mikrometastase — pT1pN1(mi)/Prosigna-tabellen. For HR-positiv sykdom vises også relevant
-          tekstdokument for adjuvant endokrin behandling (pre-/postmenopausal). Velg «Neoadjuvant»
-          for å slå opp i tabellen for neoadjuvant behandling.
+          tekstdokument for adjuvant endokrin behandling. Velg «Neoadjuvant» som behandlingsmodus for å
+          slå opp i tabellen for neoadjuvant behandling.
         </p>
       </div>
 
-      {/* ---------------- Inndata ---------------- */}
-      <div className="lookup-form">
-        <div className="lookup-field lookup-field-toggle">
-          <span className="lookup-label">Behandlingssituasjon</span>
-          <div className="lookup-segmented">
-            <button
-              type="button"
-              className={!input.neoadjuvant ? 'active' : ''}
-              onClick={() => update('neoadjuvant', false)}
-            >
-              Adjuvant (primæroperert)
-            </button>
-            <button
-              type="button"
-              className={input.neoadjuvant ? 'active' : ''}
-              onClick={() => update('neoadjuvant', true)}
-            >
-              Neoadjuvant
-            </button>
-          </div>
-        </div>
+      {/* ---------------- Inndata: samme skjema som Pasientvurdering ---------------- */}
+      <PatientForm onSubmit={handleLookup} submitLabel="Slå opp i tabellene" loadingLabel="Slår opp…" />
 
-        {!input.neoadjuvant && (
-          <div className="lookup-field lookup-field-toggle">
-            <span className="lookup-label">Genekspresjonstest foreligger?</span>
-            <div className="lookup-segmented">
-              <button
-                type="button"
-                className={!input.geneTestAvailable ? 'active' : ''}
-                onClick={() => update('geneTestAvailable', false)}
-              >
-                Nei / ikke utført
-              </button>
-              <button
-                type="button"
-                className={input.geneTestAvailable ? 'active' : ''}
-                onClick={() => update('geneTestAvailable', true)}
-              >
-                Ja
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="lookup-field">
-          <label htmlFor="lk-bio">Hovedgruppe (HR/HER2)</label>
-          <select id="lk-bio" value={input.bioGroup} onChange={(e) => update('bioGroup', e.target.value)}>
-            <option value="">— Velg —</option>
-            <option value="HR+HER2-">HR+ HER2-</option>
-            <option value="HR+HER2+">HR+ HER2+</option>
-            <option value="HR-HER2+">HR- HER2+</option>
-            <option value="HR-HER2-">HR- HER2- (trippel negativ)</option>
-          </select>
-        </div>
-
-        <div className="lookup-field">
-          <label htmlFor="lk-t">T-stadium (patologisk)</label>
-          <select id="lk-t" value={input.tStage} onChange={(e) => update('tStage', e.target.value)}>
-            <option value="">— Velg —</option>
-            <option value="T0">T0 (ingen påvist tumor)</option>
-            <option value="pT1a">pT1a</option>
-            <option value="pT1b">pT1b</option>
-            <option value="pT1c">pT1c</option>
-            <option value="pT2">pT2</option>
-            <option value="pT3">pT3</option>
-            <option value="pT4">pT4</option>
-          </select>
-        </div>
-
-        <div className="lookup-field">
-          <label htmlFor="lk-n">N-stadium (patologisk)</label>
-          <select id="lk-n" value={input.nStage} onChange={(e) => update('nStage', e.target.value)}>
-            <option value="">— Velg —</option>
-            <option value="pN0">pN0</option>
-            <option value="pN1mi">pN1mi (mikrometastase)</option>
-            <option value="pN1">pN1</option>
-            <option value="pN2">pN2</option>
-            <option value="pN3">pN3</option>
-          </select>
-        </div>
-
-        <div className="lookup-field">
-          <label htmlFor="lk-meno">Menopausal status</label>
-          <select id="lk-meno" value={input.menopausal} onChange={(e) => update('menopausal', e.target.value)}>
-            <option value="">— Velg —</option>
-            <option value="pre">Premenopausal</option>
-            <option value="post">Postmenopausal</option>
-          </select>
-        </div>
-
-        {/* Gentest-spesifikke felt */}
-        {!input.neoadjuvant && input.geneTestAvailable && (
-          <>
-            <div className="lookup-field">
-              <label htmlFor="lk-gt">Genekspresjonstest</label>
-              <select id="lk-gt" value={input.geneTest} onChange={(e) => update('geneTest', e.target.value)}>
-                <option value="">— Velg —</option>
-                <option value="prosigna">Prosigna (ROR)</option>
-                <option value="oncotypedx">OncotypeDx (RS)</option>
-              </select>
-            </div>
-
-            {input.geneTest === 'prosigna' && (
-              <>
-                <div className="lookup-field">
-                  <label htmlFor="lk-ror">Prosigna ROR-score</label>
-                  <input
-                    id="lk-ror"
-                    type="number"
-                    value={input.rorScore}
-                    onChange={(e) => update('rorScore', e.target.value)}
-                    placeholder="0–100"
-                  />
-                </div>
-                <div className="lookup-field">
-                  <label htmlFor="lk-sub">Molekylær subtype (PAM50)</label>
-                  <select id="lk-sub" value={input.prosignaSubtype} onChange={(e) => update('prosignaSubtype', e.target.value)}>
-                    <option value="">— Velg (brukes ved ROR 41–60) —</option>
-                    <option value="lumA">Luminal A</option>
-                    <option value="lumB">Luminal B</option>
-                  </select>
-                </div>
-              </>
-            )}
-
-            {input.geneTest === 'oncotypedx' && (
-              <div className="lookup-field">
-                <label htmlFor="lk-rs">OncotypeDx RS-score</label>
-                <input
-                  id="lk-rs"
-                  type="number"
-                  value={input.rsScore}
-                  onChange={(e) => update('rsScore', e.target.value)}
-                  placeholder="0–100"
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Luminal-liknende klassifisering — HR+HER2- uten gentest, eller neoadjuvant */}
-        {input.bioGroup === 'HR+HER2-' && (input.neoadjuvant || !input.geneTestAvailable) && (
-          <>
-            <div className="lookup-field">
-              <label htmlFor="lk-ki">Ki67 (%)</label>
-              <input id="lk-ki" type="number" value={input.ki67} onChange={(e) => update('ki67', e.target.value)} placeholder="%" />
-            </div>
-            <div className="lookup-field">
-              <label htmlFor="lk-grade">Histologisk grad</label>
-              <select id="lk-grade" value={input.grade} onChange={(e) => update('grade', e.target.value)}>
-                <option value="">— Velg —</option>
-                <option value="1">Grad 1</option>
-                <option value="2">Grad 2</option>
-                <option value="3">Grad 3</option>
-              </select>
-            </div>
-            <div className="lookup-field">
-              <label htmlFor="lk-hr">HR-ekspresjon (%)</label>
-              <input id="lk-hr" type="number" value={input.hrPercent} onChange={(e) => update('hrPercent', e.target.value)} placeholder="%" />
-            </div>
-            <div className="lookup-field lookup-field-wide">
-              <label htmlFor="lk-lum">Luminal-liknende gruppe</label>
-              <select id="lk-lum" value={effectiveLuminal} onChange={(e) => setLuminalOverride(e.target.value)}>
-                <option value="">— Ikke valgt —</option>
-                <option value="A">Lum A-liknende</option>
-                <option value="B">LumB-liknende</option>
-                <option value="inconclusive">Ikke konklusiv Luminal gruppe</option>
-              </select>
-              {luminalSuggestion && (
-                <p className="lookup-suggestion">
-                  Forslag basert på input: <strong>{luminalSuggestion.label}</strong>. {luminalSuggestion.explanation}
-                  {luminalOverride && luminalOverride !== luminalSuggestion.value && ' (overstyrt manuelt)'}
-                </p>
-              )}
-            </div>
-          </>
-        )}
-
-        <div className="lookup-field lookup-actions">
-          <button type="button" className="lookup-reset" onClick={resetAll}>Nullstill</button>
-        </div>
-      </div>
-
-      {/* ---------------- Treff-oppsummering (alle relevante tabeller) ---------------- */}
-      <MatchSummary relevantTables={relevantTables} matchesByTable={matchesByTable} bioGroup={input.bioGroup} />
-
-      {/* ---------------- Relevante tabeller (primær + ev. tillegg) ---------------- */}
-      {relevantTables.map(({ table, role }, i) => (
-        <LookupTable
-          key={table.id}
-          table={table}
-          role={role}
-          matches={matchesByTable[i]}
-          edited={edited}
-          setEdited={setEdited}
-          copiedKey={copiedKey}
-          setCopiedKey={setCopiedKey}
-          isActive
+      {/* ---------------- Avledede fakta + luminal-overstyring ---------------- */}
+      {matchInput && (
+        <DerivedFacts
+          matchInput={matchInput}
+          luminalSuggestion={luminalSuggestion}
+          luminalRelevant={luminalRelevant}
+          luminalOverride={luminalOverride}
+          setLuminalOverride={setLuminalOverride}
         />
-      ))}
-
-      {/* ---------------- Relevante tekstdokumenter (endokrin behandling) ---------------- */}
-      {relevantDocs.length > 0 && (
-        <div className="lookup-docs">
-          <h3 className="lookup-docs-title">Relevante tekstdokumenter</h3>
-          {relevantDocs.map((doc) => (
-            <ReferenceDoc key={doc.id} doc={doc} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
-          ))}
-        </div>
       )}
 
-      {/* ---------------- Den andre primærtabellen (referanse) ---------------- */}
-      {!input.neoadjuvant && (
-        <details className="lookup-other">
-          <summary>Vis også: {otherTable.shortTitle} (referanse, ingen highlight)</summary>
-          <LookupTable table={otherTable} matches={[]} edited={edited} setEdited={setEdited} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
-        </details>
+      {!matchInput && (
+        <p className="lookup-summary lookup-summary-empty">
+          Fyll ut pasientskjemaet over og trykk «Slå opp i tabellene» for å se hvor pasienten hører hjemme.
+        </p>
+      )}
+
+      {matchInput && (
+        <>
+          {/* ---------------- Treff-oppsummering (alle relevante tabeller) ---------------- */}
+          <MatchSummary relevantTables={relevantTables} matchesByTable={matchesByTable} bioGroup={matchInput.bioGroup} />
+
+          {/* ---------------- Relevante tabeller (primær + ev. tillegg) ---------------- */}
+          {relevantTables.map(({ table, role }, i) => (
+            <LookupTable
+              key={table.id}
+              table={table}
+              role={role}
+              matches={matchesByTable[i]}
+              edited={edited}
+              setEdited={setEdited}
+              copiedKey={copiedKey}
+              setCopiedKey={setCopiedKey}
+              isActive
+            />
+          ))}
+
+          {/* ---------------- Relevante tekstdokumenter (endokrin behandling) ---------------- */}
+          {relevantDocs.length > 0 && (
+            <div className="lookup-docs">
+              <h3 className="lookup-docs-title">Relevante tekstdokumenter</h3>
+              {relevantDocs.map((doc) => (
+                <ReferenceDoc key={doc.id} doc={doc} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
+              ))}
+            </div>
+          )}
+
+          {/* ---------------- Den andre primærtabellen (referanse) ---------------- */}
+          {!matchInput.neoadjuvant && (
+            <details className="lookup-other">
+              <summary>Vis også: {otherTable.shortTitle} (referanse, ingen highlight)</summary>
+              <LookupTable table={otherTable} matches={[]} edited={edited} setEdited={setEdited} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
+            </details>
+          )}
+        </>
       )}
 
       {/* ---------------- Regimer / forklaringer ---------------- */}
@@ -369,12 +195,80 @@ export default function TableLookup() {
 }
 
 // ================================================================
+//  Avledede fakta — viser hva som ble derivert fra pasientdata
+//  (T-stadium, N-stadium, biogruppe osv.) + luminal-overstyring.
+// ================================================================
+
+const BIO_LABEL = {
+  'HR+HER2-': 'HR+ HER2-',
+  'HR+HER2+': 'HR+ HER2+',
+  'HR-HER2+': 'HR- HER2+',
+  'HR-HER2-': 'HR- HER2- (trippel negativ)',
+};
+const MENO_LABEL = { pre: 'Premenopausal', post: 'Postmenopausal' };
+const LUMINAL_LABEL = { A: 'Lum A-liknende', B: 'LumB-liknende', inconclusive: 'Ikke konklusiv' };
+
+function DerivedFacts({ matchInput, luminalSuggestion, luminalRelevant, luminalOverride, setLuminalOverride }) {
+  const chips = [
+    { label: 'Modus', value: matchInput.neoadjuvant ? 'Neoadjuvant' : 'Adjuvant' },
+    { label: 'Biogruppe', value: BIO_LABEL[matchInput.bioGroup] || '—' },
+    { label: 'T-stadium', value: matchInput.tStage ? `${matchInput.tStage} (${matchInput.tSimple})` : '—' },
+    { label: 'N-stadium', value: matchInput.nStage || '—' },
+    { label: 'Menopausal', value: MENO_LABEL[matchInput.menopausal] || '—' },
+  ];
+  if (matchInput.geneTestAvailable) {
+    if (matchInput.geneTest === 'prosigna') {
+      chips.push({ label: 'Prosigna ROR', value: matchInput.rorScore !== '' ? String(matchInput.rorScore) : '—' });
+      if (matchInput.prosignaSubtype) chips.push({ label: 'PAM50', value: matchInput.prosignaSubtype === 'lumA' ? 'Luminal A' : 'Luminal B' });
+    } else if (matchInput.geneTest === 'oncotypedx') {
+      chips.push({ label: 'OncotypeDx RS', value: matchInput.rsScore !== '' ? String(matchInput.rsScore) : '—' });
+    }
+  }
+
+  return (
+    <div className="lookup-derived">
+      <h3 className="lookup-derived-title">Avledet fra pasientdata</h3>
+      <div className="lookup-derived-chips">
+        {chips.map((c) => (
+          <div key={c.label} className="lookup-derived-chip">
+            <span className="lookup-derived-key">{c.label}</span>
+            <span className="lookup-derived-val">{c.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {luminalRelevant && (
+        <div className="lookup-derived-luminal">
+          <label htmlFor="lk-lum-override">Luminal-liknende gruppe</label>
+          <select id="lk-lum-override" value={luminalOverride || matchInput.luminalLike} onChange={(e) => setLuminalOverride(e.target.value)}>
+            <option value="">— Ikke valgt —</option>
+            <option value="A">Lum A-liknende</option>
+            <option value="B">LumB-liknende</option>
+            <option value="inconclusive">Ikke konklusiv Luminal gruppe</option>
+          </select>
+          {luminalSuggestion && (
+            <p className="lookup-suggestion">
+              Forslag fra deriverte verdier: <strong>{LUMINAL_LABEL[luminalSuggestion.value] || luminalSuggestion.label}</strong>. {luminalSuggestion.explanation}
+              {luminalOverride && luminalOverride !== luminalSuggestion.value && ' (overstyrt manuelt)'}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ================================================================
 //  Treff-oppsummering
 // ================================================================
 
 function MatchSummary({ relevantTables, matchesByTable, bioGroup }) {
   if (!bioGroup) {
-    return <div className="lookup-summary lookup-summary-empty">Velg minst hovedgruppe for å slå opp i tabellen(e).</div>;
+    return (
+      <div className="lookup-summary lookup-summary-empty">
+        Klarte ikke å avlede biologisk undergruppe fra inndata (sjekk ER/PR- og HER2-status).
+      </div>
+    );
   }
 
   const anyHit = matchesByTable.some((m) => m.length > 0);
