@@ -2714,3 +2714,317 @@ legend {
   color: var(--text-light);
   margin-top: 2px;
 }
+
+/* ============================================================
+   Tabelloppslag (ny fane) — egne stiler, påvirker ikke resten
+   ============================================================ */
+
+.lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lookup-intro h2 {
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.lookup-intro p {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* Inndata-skjema */
+.lookup-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.lookup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lookup-field-wide {
+  grid-column: 1 / -1;
+}
+
+.lookup-field label,
+.lookup-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.lookup-field select,
+.lookup-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.lookup-field select:focus,
+.lookup-field input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+}
+
+/* Segmentert Ja/Nei-bryter */
+.lookup-segmented {
+  display: inline-flex;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  width: fit-content;
+}
+
+.lookup-segmented button {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.lookup-segmented button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.lookup-suggestion {
+  font-size: 0.82rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.lookup-actions {
+  justify-content: flex-end;
+}
+
+.lookup-reset {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.lookup-reset:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Treff-oppsummering */
+.lookup-summary {
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 0.92rem;
+}
+
+.lookup-summary-empty {
+  background: var(--bg);
+  color: var(--text-light);
+  border: 1px dashed var(--border);
+}
+
+.lookup-summary-none {
+  background: #fef9e7;
+  border: 1px solid var(--warning);
+  color: #7e5b1e;
+}
+
+.lookup-summary-hit {
+  background: #eafaf1;
+  border: 1px solid var(--accent);
+  color: #1e6e44;
+}
+
+.lookup-summary-hit ul {
+  margin: 6px 0 4px 20px;
+}
+
+.lookup-summary-source {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* Tabell */
+.lookup-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.lookup-table-wrap.active {
+  border-color: var(--primary-light);
+}
+
+.lookup-table-title {
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.lookup-table-scroll {
+  overflow-x: auto;
+}
+
+.lookup-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 900px;
+  font-size: 0.8rem;
+}
+
+.lookup-table th,
+.lookup-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.lookup-table thead th {
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.78rem;
+  position: sticky;
+  top: 0;
+}
+
+.lookup-cell-merge {
+  background: #f0f4f8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lookup-cell-rec {
+  min-width: 240px;
+}
+
+.lookup-cell-rationale {
+  min-width: 220px;
+  color: var(--text-light);
+}
+
+/* Highlight av treff-rad */
+.lookup-row-hit > td {
+  background: #fff6e0;
+}
+
+.lookup-row-hit > td.lookup-cell-merge {
+  background: #ffeec2;
+}
+
+.lookup-row-hit {
+  outline: 2px solid var(--warning);
+}
+
+/* Journaltekst-kolonne */
+.lookup-journal-col {
+  min-width: 260px;
+}
+
+.lookup-journal-cell {
+  background: #fafbfc;
+}
+
+.lookup-journal-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lookup-journal-box textarea {
+  width: 100%;
+  border: 1px solid var(--primary-light);
+  border-radius: var(--radius);
+  padding: 8px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  resize: vertical;
+  background: #fff;
+  color: var(--text);
+}
+
+.lookup-copy-btn {
+  align-self: flex-start;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.lookup-copy-btn:hover {
+  background: var(--primary-light);
+}
+
+.lookup-footnotes {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.lookup-footnotes p {
+  margin-bottom: 4px;
+}
+
+/* Andre tabell + regimer (sammenleggbart) */
+.lookup-other > summary,
+.lookup-regimens > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 10px 0;
+}
+
+.lookup-regimens-body {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.lookup-regimen {
+  margin-bottom: 12px;
+}
+
+.lookup-regimen h4 {
+  color: var(--primary);
+  font-size: 0.88rem;
+  margin-bottom: 2px;
+}
+
+.lookup-regimen p {
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.lookup-disclaimer {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  font-style: italic;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
