@@ -1,4 +1,4 @@
-# Kritisk gjennomgang: Brystkreft Beslutningsstøtte som nasjonalt rammeverk
+# Kritisk gjennomgang: Brystkreft Retningslinjegraver som nasjonalt rammeverk
 
 **Dato:** 2026-03-10
 **Kontekst:** Evaluering av koden som potensielt rammeverk for alle handlingsprogram og beslutningstrær innenfor norsk kreftbehandling
@@ -91,7 +91,7 @@ Mangler:
 - Regional stråling (aksille, supraclaviculært, parasternalt)
 - PMRT-kriterier
 
-#### F. Kirurgisk beslutningsstøtte — fraværende
+#### F. Kirurgisk retningslinjegraver — fraværende
 - Sentinel node-kriterier
 - Aksillær disseksjon vs. observasjon
 - Rekonstruksjonsalternativer
@@ -190,7 +190,7 @@ Mangler:
 | 🟢 Middels | Fullstendig strålebehandlingslogikk | Klinisk detalj |
 | 🟢 Middels | Geriatrisk/komorbiditetsvurdering | Klinisk relevans |
 | 🟢 Middels | WCAG 2.1 AA tilgjengelighet | Lovkrav |
-| ⚪ Lavere | Kirurgisk beslutningsstøtte | Utvidelse av scope |
+| ⚪ Lavere | Kirurgisk retningslinjegraver | Utvidelse av scope |
 | ⚪ Lavere | Oppfølgingsprotokoll | Utvidelse av scope |
 
 ---

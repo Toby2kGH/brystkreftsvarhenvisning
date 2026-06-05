@@ -512,6 +512,19 @@ export default function ReferralLetterGenerator({ result }) {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {}
     });
   }
 
@@ -580,10 +593,21 @@ export default function ReferralLetterGenerator({ result }) {
       {/* Mode content */}
       <div className="ref-mode-content">
 
+        {/* Rendered preview + copy — shown first for easy access */}
+        <div className="ref-preview-section">
+          <div className="ref-preview-header">
+            <h4>Generert tekst</h4>
+            <button className="copy-btn" onClick={() => copyToClipboard(renderedText)}>
+              {copied ? 'Kopiert!' : 'Kopier til utklippstavle'}
+            </button>
+          </div>
+          <pre className="ref-preview-text">{renderedText}</pre>
+        </div>
+
         {/* MODE 1: Standard (current) */}
         {mode === 'standard' && (
           <div className="ref-standard">
-            <p className="ref-description">Standardtekst generert fra beslutningsstøtten, slik den er i dag.</p>
+            <p className="ref-description">Standardtekst generert fra retningslinjegraverens regelmotor.</p>
           </div>
         )}
 
@@ -658,17 +682,6 @@ export default function ReferralLetterGenerator({ result }) {
             </div>
           </div>
         )}
-
-        {/* Rendered preview + copy */}
-        <div className="ref-preview-section">
-          <div className="ref-preview-header">
-            <h4>Forhåndsvisning</h4>
-            <button className="copy-btn" onClick={() => copyToClipboard(renderedText)}>
-              {copied ? 'Kopiert!' : 'Kopier til utklippstavle'}
-            </button>
-          </div>
-          <pre className="ref-preview-text">{renderedText}</pre>
-        </div>
       </div>
     </div>
   );

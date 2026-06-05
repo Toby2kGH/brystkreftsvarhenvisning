@@ -1,5 +1,5 @@
 /**
- * Kjernetyper for klinisk beslutningsstøttesystem.
+ * Kjernetyper for klinisk retningslinjegraversystem.
  *
  * Disse typene sikrer korrekthet gjennom hele pipelinen:
  *   PatientInput → CQLOutput → DMN-tabeller → TreatmentPlan

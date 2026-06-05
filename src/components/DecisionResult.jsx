@@ -30,6 +30,19 @@ export default function DecisionResult({ result }) {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {}
     });
   }
 
@@ -202,7 +215,7 @@ export default function DecisionResult({ result }) {
               <strong>Biologisk gruppe: {cqlOutput?.bioGroup}</strong>
               {' '}—
               {cqlOutput?.bioGroup === 'HR+HER2-' && ' HR-positiv + HER2-negativ = Luminal (hormonreseptorpositiv).'}
-              {cqlOutput?.bioGroup === 'HR+HER2+' && ' HR-positiv + HER2-positiv = Dobbelpositive. Krever bade HER2-rettet og endokrin terapi.'}
+              {cqlOutput?.bioGroup === 'HR+HER2+' && ' HR-positiv + HER2-positiv = Dobbelpositive. Krever både HER2-rettet og endokrin terapi.'}
               {cqlOutput?.bioGroup === 'HR-HER2+' && ' HR-negativ + HER2-positiv = Kun HER2-rettet terapi (ingen endokrin).'}
               {cqlOutput?.bioGroup === 'TN' && ' HR-negativ + HER2-negativ = Trippel negativ. Krever kjemoterapi.'}
               {cqlOutput?.bioGroup === 'unknown' && ' Kan ikke bestemmes — mangler reseptordata.'}
@@ -252,9 +265,9 @@ export default function DecisionResult({ result }) {
             <DataRow label="ER" value={cqlOutput?.erPositive ? `Positiv${cqlOutput.erPercent ? ` (${cqlOutput.erPercent}%)` : ''}` : `Negativ${cqlOutput?.erLowPositive ? ' (lav-positiv 1-10%)' : ''}`} />
             <DataRow label="PR" value={cqlOutput?.prPositive ? `Positiv${cqlOutput.prPercent ? ` (${cqlOutput.prPercent}%)` : ''}` : 'Negativ'} />
             <DataRow label="HR" value={cqlOutput?.hrPositive ? 'Positiv (ER+ eller PR+)' : 'Negativ'} />
-            <DataRow label="HER2" value={cqlOutput?.her2Status} />
+            <DataRow label="HER2" value={cqlOutput?.her2Status === 'positive' ? 'Positiv' : cqlOutput?.her2Status === 'negative' ? 'Negativ' : cqlOutput?.her2Status === 'equivocal' ? 'Ekvivokal' : 'Ukjent'} />
             {cqlOutput?.her2ihc && <DataRow label="HER2 IHC" value={cqlOutput.her2ihc} />}
-            {cqlOutput?.her2sish && <DataRow label="HER2 SISH" value={cqlOutput.her2sish} />}
+            {cqlOutput?.her2sish && <DataRow label="HER2 SISH" value={cqlOutput.her2sish === 'positive' ? 'Amplifisert' : cqlOutput.her2sish === 'negative' ? 'Ikke amplifisert' : cqlOutput.her2sish} />}
             <DataRow label="Ki-67" value={cqlOutput?.ki67Value != null ? `${cqlOutput.ki67Value}%` : '—'} />
             <DataRow label="Grad" value={cqlOutput?.grade ?? '—'} />
             <DataRow label="T-stadium" value={cqlOutput?.tStage ?? '—'} />

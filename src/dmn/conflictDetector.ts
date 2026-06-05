@@ -1,7 +1,7 @@
 /**
  * Regelkonfliktdetektor — Identifiserer overlappende og motstridende regler.
  *
- * For klinisk beslutningsstøtte kan motstridende regler føre til uforutsigbare
+ * For klinisk retningslinjegraver kan motstridende regler føre til uforutsigbare
  * anbefalinger. Denne modulen detekterer:
  *
  * 1. Eksakte duplikater (identiske betingelser)

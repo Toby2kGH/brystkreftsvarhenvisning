@@ -1,5 +1,5 @@
 /* ============================================================
-   Brystkreft Beslutningsstøtte - Stilark
+   Brystkreft Retningslinjegraver - Stilark
    ============================================================ */
 
 :root {
@@ -56,6 +56,15 @@ body {
 .subtitle {
   color: var(--text-light);
   font-size: 0.95rem;
+}
+
+.nbcg-link {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
+.nbcg-link:hover {
+  color: var(--primary);
 }
 
 .nav {

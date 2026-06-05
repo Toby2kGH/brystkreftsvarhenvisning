@@ -1,6 +1,6 @@
-# Arkitektur — Brystkreft Beslutningsstøtte
+# Arkitektur — Brystkreft Retningslinjegraver
 
-Klinisk beslutningsstøtteverktøy for adjuvant/neoadjuvant brystkreftbehandling,
+Klinisk retningslinjegraververktøy for adjuvant/neoadjuvant brystkreftbehandling,
 basert på **NBCG retningslinjer** og **Nasjonalt handlingsprogram for brystkreft**.
 
 ## Klinisk kilde

@@ -1,5 +1,5 @@
 /**
- * CQL-bibliotek: Brystkreft CDK4/6-inhibitor Beslutningsstøtte
+ * CQL-bibliotek: Brystkreft CDK4/6-inhibitor Retningslinjegraver
  *
  * Formål: Hente og transformere pasientdata fra FHIR/mCODE-ressurser
  * for bruk i DMN-beslutningsregler for CDK4/6-inhibitorvalg.

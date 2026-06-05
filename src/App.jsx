@@ -50,14 +50,26 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.details?.join(', ') || err.error || 'Ukjent feil');
+        let errorMessage = `Serverfeil (${response.status})`;
+        try {
+          const ct = response.headers.get('content-type');
+          if (ct && ct.includes('application/json')) {
+            const err = await response.json();
+            errorMessage = err.details?.join(', ') || err.error || errorMessage;
+          }
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      const ct = response.headers.get('content-type');
+      if (!ct || !ct.includes('application/json')) {
+        throw new Error('Uventet svarformat fra server (forventet JSON)');
       }
 
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'En ukjent feil oppstod ved evaluering');
     } finally {
       setLoading(false);
     }
@@ -144,8 +156,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Brystkreft Beslutningsstøtte</h1>
-        <p className="subtitle">Adjuvant behandlingsprotokoll per NBCG Handlingsprogram</p>
+        <h1>Brystkreft Retningslinjegraver</h1>
+        <p className="subtitle">
+          Adjuvant behandlingsprotokoll per{' '}
+          <a href="https://nbcg.no/retningslinjer-2/retningslinjer/" target="_blank" rel="noopener noreferrer" className="nbcg-link">
+            NBCG Handlingsprogram
+          </a>
+        </p>
         <nav className="nav">
           <button
             className={`nav-btn ${page === 'form' ? 'active' : ''}`}
@@ -295,7 +312,7 @@ export default function App() {
           BPM+ Health-arkitektur: CQL (datahenting) + DMN (beslutningslogikk) | mCODE/FHIR-kompatibel
         </p>
         <p className="disclaimer">
-          Kun for å visualisere råd ifra handlingsprogrammet til NBCG og generere journaltekst. Kan tilpasses lokalt, men er kun for å forkorte arbeidstid, det er ingen beslutningstøtte og det er viktig å kritisk vurdere tekst samt sjekke siste versjon av handlingsprogram.
+          Kun for å visualisere råd ifra handlingsprogrammet til NBCG og generere journaltekst. Kan tilpasses lokalt, men er kun for å forkorte arbeidstid. Dette er ingen beslutningstøtte — det er viktig å kritisk vurdere tekst samt sjekke siste versjon av handlingsprogram.
         </p>
       </footer>
     </div>

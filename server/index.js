@@ -1,5 +1,5 @@
 /**
- * Express-server for Brystkreft Beslutningsstøtte
+ * Express-server for Brystkreft Retningslinjegraver
  *
  * Pipeline: Patient Form → CQL (facts) → DMN tables (ALL decisions) → Treatment Builder → Display
  *
@@ -428,7 +428,7 @@ app.get('/cds-services', (_req, res) => {
     services: [{
       hook: 'patient-view',
       id: 'breast-cancer-adjuvant-cds',
-      title: 'Brystkreft Adjuvant Beslutningsstøtte (NBCG)',
+      title: 'Brystkreft Adjuvant Retningslinjegraver (NBCG)',
       description: 'Behandlingsanbefalinger for adjuvant brystkreft basert på NBCG Handlingsprogram',
       prefetch: {
         patient: 'Patient/{{context.patientId}}',
@@ -727,6 +727,20 @@ app.post('/api/run-tests', (_req, res) => {
       });
     }
   });
+});
+
+// ============================================================
+// Production static file serving
+// ============================================================
+
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/cds-services')) {
+    return res.status(404).json({ error: 'Endepunkt ikke funnet' });
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // ============================================================
