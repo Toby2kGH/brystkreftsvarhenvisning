@@ -76,14 +76,14 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
       age: form.age !== '' ? Number(form.age) : undefined,
       rorScore: form.rorScore !== '' ? Number(form.rorScore) : undefined,
       rsScore: form.rsScore !== '' ? Number(form.rsScore) : undefined,
-      tStageOverride: form.tStageOverride || undefined,
-      her2ihc: form.her2ihc || undefined,
-      her2sish: form.her2sish || undefined,
-      geneTest: form.geneTest || undefined,
-      prosignaSubtype: form.prosignaSubtype || undefined,
-      brcaStatus: form.brcaStatus || undefined,
-      histologicalType: form.histologicalType || undefined,
-      pcrStatus: form.pcrStatus || undefined,
+      tStageOverride: form.tStageOverride !== '' ? form.tStageOverride : undefined,
+      her2ihc: form.her2ihc !== '' ? form.her2ihc : undefined,
+      her2sish: form.her2sish !== '' ? form.her2sish : undefined,
+      geneTest: form.geneTest !== '' ? form.geneTest : undefined,
+      prosignaSubtype: form.prosignaSubtype !== '' ? form.prosignaSubtype : undefined,
+      brcaStatus: form.brcaStatus !== '' ? form.brcaStatus : undefined,
+      histologicalType: form.histologicalType !== '' ? form.histologicalType : undefined,
+      pcrStatus: form.pcrStatus !== '' ? form.pcrStatus : undefined,
     };
     onSubmit(data);
   }
@@ -101,7 +101,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
   const showOncotype = form.geneTest === 'oncotypedx' && showOncotypeOption;
 
   return (
-    <form className="patient-form" onSubmit={handleSubmit}>
+    <form className="patient-form" onSubmit={handleSubmit} noValidate>
       <h2>Pasientdata — Brystkreft Retningslinjegraver</h2>
 
       {/* Treatment Mode */}

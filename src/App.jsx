@@ -49,14 +49,26 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.details?.join(', ') || err.error || 'Ukjent feil');
+        let errorMessage = `Serverfeil (${response.status})`;
+        try {
+          const ct = response.headers.get('content-type');
+          if (ct && ct.includes('application/json')) {
+            const err = await response.json();
+            errorMessage = err.details?.join(', ') || err.error || errorMessage;
+          }
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      const ct = response.headers.get('content-type');
+      if (!ct || !ct.includes('application/json')) {
+        throw new Error('Uventet svarformat fra server (forventet JSON)');
       }
 
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'En ukjent feil oppstod ved evaluering');
     } finally {
       setLoading(false);
     }

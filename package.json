@@ -11,6 +11,7 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "start": "node server/index.js",
     "lint": "eslint src/ server/"
   },
   "dependencies": {

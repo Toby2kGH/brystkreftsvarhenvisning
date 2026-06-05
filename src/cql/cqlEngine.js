@@ -208,7 +208,7 @@ export function evaluateCQL(clinicalData) {
     erPercent: erPercent ?? null,
     prPercent: prPercent ?? null,
     her2Status: her2, her2Positive, her2Negative,
-    her2ihc: her2ihc || null, her2sish: her2sish || null,
+    her2ihc: her2ihc ?? null, her2sish: her2sish ?? null,
 
     // Biologisk klassifisering
     bioGroup, luminalSubtype,
