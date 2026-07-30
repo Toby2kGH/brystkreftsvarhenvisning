@@ -5,6 +5,10 @@ import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
 import './styles.css';
 
+// I produksjon (Vercel) finnes ikke skrive-/admin-endepunktene — skjul UI som
+// ellers ville feilet stille. Redigering skjer kun i lokalt utviklingsmiljø.
+const IS_PROD = import.meta.env.PROD;
+
 export default function App() {
   const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree'
   const [result, setResult] = useState(null);
@@ -162,6 +166,10 @@ export default function App() {
             NBCG Handlingsprogram
           </a>
         </p>
+        <p className="guideline-version">
+          Innhold verifisert mot NBCG Handlingsprogram mars 2025 (+ tabeller 17.12.24 / 04.09.25 / 15.11.23).
+          NBCG oppdaterer jevnlig — kontroller mot gjeldende versjon på nbcg.no før klinisk bruk.
+        </p>
         <nav className="nav">
           <button
             className={`nav-btn ${page === 'form' ? 'active' : ''}`}
@@ -203,19 +211,21 @@ export default function App() {
       <main className="main">
         {page === 'form' && (
           <>
-            {/* Algoritmesett-panel */}
-            <div className="alg-toolbar">
-              <button className="alg-toggle-btn" onClick={() => setShowAlgPanel(!showAlgPanel)}>
-                {showAlgPanel ? 'Skjul' : 'Algoritmesett'}
-              </button>
-              <button className="alg-export-btn" onClick={handleExportTables}>Eksporter regler</button>
-              <label className="alg-import-btn">
-                Importer regler
-                <input type="file" accept=".json" onChange={handleImportTables} hidden />
-              </label>
-            </div>
+            {/* Algoritmesett-panel — kun i lokalt miljø (skrive-endepunkter finnes ikke i prod) */}
+            {!IS_PROD && (
+              <div className="alg-toolbar">
+                <button className="alg-toggle-btn" onClick={() => setShowAlgPanel(!showAlgPanel)}>
+                  {showAlgPanel ? 'Skjul' : 'Algoritmesett'}
+                </button>
+                <button className="alg-export-btn" onClick={handleExportTables}>Eksporter regler</button>
+                <label className="alg-import-btn">
+                  Importer regler
+                  <input type="file" accept=".json" onChange={handleImportTables} hidden />
+                </label>
+              </div>
+            )}
 
-            {showAlgPanel && (
+            {!IS_PROD && showAlgPanel && (
               <div className="alg-panel">
                 <h3>Lagrede algoritmesett</h3>
                 <p className="alg-desc">Lagre nåværende regelsett med navn for å kunne bytte mellom versjoner og sammenligne.</p>

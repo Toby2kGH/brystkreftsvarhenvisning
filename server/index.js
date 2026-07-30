@@ -25,8 +25,22 @@ import { getThresholds, getThresholdValue, updateThreshold, resetThresholds, get
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(cors());
+
+// CORS: standard tillat kun samme-origin/localhost. Sett ALLOWED_ORIGINS
+// (kommaseparert) for å tillate spesifikke origins i et kontrollert miljø.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors({
+  origin(origin, cb) {
+    // Tillat verktøy uten origin (curl, samme-origin) og eksplisitt tillatte origins
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Origin ikke tillatt av CORS'));
+  },
+}));
 app.use(express.json({ limit: '5mb' }));
+
+// Kjøremodus: skrive-/testendepunkter er kun tilgjengelige lokalt (ikke i deploy).
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // ============================================================
 // SQLite-database — erstatter JSON-filer
@@ -666,6 +680,10 @@ let lastTestTime = 0;
 const TEST_COOLDOWN_MS = 10000; // 10 sekunder mellom kjøringer
 
 app.post('/api/run-tests', (_req, res) => {
+  // Sikkerhet: testkjøring shell-er ut og er kun tilgjengelig lokalt (ikke i deploy).
+  if (IS_PRODUCTION) {
+    return res.status(403).json({ error: 'Testkjøring er deaktivert i produksjonsmiljø.' });
+  }
   // Rate limiting
   const now = Date.now();
   if (testRunning) {

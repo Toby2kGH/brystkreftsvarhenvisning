@@ -58,6 +58,13 @@ body {
   font-size: 0.95rem;
 }
 
+.guideline-version {
+  color: var(--text-light);
+  font-size: 0.78rem;
+  margin-top: 4px;
+  max-width: 640px;
+}
+
 .nbcg-link {
   color: var(--primary-light);
   text-decoration: underline;
@@ -1074,6 +1081,31 @@ legend {
 .warnings-box ul {
   margin-left: 16px;
   margin-top: 4px;
+}
+
+/* Skrivebeskyttet-banner i beslutningslogikk-visningen (produksjon) */
+.viewer-readonly-banner {
+  display: inline-block;
+  margin-top: 8px;
+  background: #eef2f7;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Ansvarsfraskrivelse rett ved anbefalingen */
+.result-disclaimer {
+  background: #fef5e7;
+  border: 1px solid #f5cba7;
+  border-left: 4px solid #e67e22;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 /* Kritiske advarsler — tydeligere enn informative merknader */

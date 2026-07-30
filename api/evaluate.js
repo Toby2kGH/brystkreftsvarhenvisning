@@ -15,6 +15,9 @@ export default function handler(req, res) {
 
   try {
     const clinicalData = req.body;
+    if (!clinicalData || typeof clinicalData !== 'object') {
+      return res.status(400).json({ error: 'Mangler eller ugyldig forespørselskropp (forventet JSON)' });
+    }
     const validation = validateClinicalData(clinicalData);
     if (!validation.valid) {
       return res.status(400).json({ error: 'Manglende pasientdata', details: validation.errors });

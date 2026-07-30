@@ -2,3 +2,8 @@ node_modules/
 dist/
 .env
 *.log
+# SQLite-database (kan inneholde lokale data) — skal aldri committes
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+server/cds-data.sqlite*

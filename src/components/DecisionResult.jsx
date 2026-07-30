@@ -72,6 +72,12 @@ export default function DecisionResult({ result }) {
     <div className="decision-result">
       <h2>Behandlingsanbefaling</h2>
 
+      <div className="result-disclaimer">
+        ⚠ Dette er <strong>ingen beslutningsstøtte</strong> — kun en visualisering av råd fra NBCG
+        Handlingsprogram og hjelp til å generere journaltekst. Vurder alltid teksten kritisk og
+        sjekk siste versjon av handlingsprogrammet før klinisk bruk.
+      </div>
+
       {/* Biological Profile */}
       <div className="bio-profile">
         <span className={`bio-badge bio-${bioGroup?.replace(/[+\-]/g, '')}`}>
