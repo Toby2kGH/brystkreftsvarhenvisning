@@ -3,6 +3,7 @@ import PatientForm from './components/PatientForm.jsx';
 import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
+import { GUIDELINE_VERSION, SCOPE_NOTE } from './guidelineVersion.js';
 import './styles.css';
 
 // I produksjon (Vercel) finnes ikke skrive-/admin-endepunktene — skjul UI som
@@ -167,8 +168,8 @@ export default function App() {
           </a>
         </p>
         <p className="guideline-version">
-          Innhold verifisert mot NBCG Handlingsprogram mars 2025 (+ tabeller 17.12.24 / 04.09.25 / 15.11.23).
-          NBCG oppdaterer jevnlig — kontroller mot gjeldende versjon på nbcg.no før klinisk bruk.
+          Innhold verifisert mot NBCG Handlingsprogram {GUIDELINE_VERSION.handlingsprogram} (+ tabeller {GUIDELINE_VERSION.tables}).
+          NBCG oppdaterer jevnlig — kontroller mot gjeldende versjon på nbcg.no før klinisk bruk. {SCOPE_NOTE}
         </p>
         <nav className="nav">
           <button

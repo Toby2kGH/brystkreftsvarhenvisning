@@ -35,7 +35,7 @@ const TREE = {
       id: 'neoadjuvant',
       label: 'Neoadjuvant',
       question: 'Hvilken biologisk undergruppe?',
-      description: 'Behandling FØR kirurgi — for store/lokalavanserte tumorer (NBCG 15.11.23)',
+      description: 'Behandling FØR kirurgi — for store/lokalavanserte tumorer (NBCG 04.09.25)',
       icon: '⏩',
       tableRef: 'neoadjuvant',
       children: [

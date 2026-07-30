@@ -386,7 +386,7 @@ export function buildJournalText(cqlOutput, treatmentPlan) {
   if (cqlOutput.stadium) lines.push(`Stadium: ${cqlOutput.stadium}`);
   if (cqlOutput.grade) lines.push(`Grad: ${cqlOutput.grade}`);
   if (cqlOutput.ki67Value != null) lines.push(`Ki-67: ${cqlOutput.ki67Value}%`);
-  if (cqlOutput.luminalSubtype) lines.push(`Luminal subtype: ${cqlOutput.luminalSubtype}`);
+  if (cqlOutput.luminalSubtype && cqlOutput.luminalSubtype !== 'unknown') lines.push(`Luminal subtype: ${cqlOutput.luminalSubtype}`);
   if (cqlOutput.geneTestDone) {
     lines.push(`Genekspresjonstest: ${translateGeneTest(cqlOutput.geneTest)}`);
     if (cqlOutput.rorScore != null) lines.push(`  ROR-score: ${cqlOutput.rorScore}`);

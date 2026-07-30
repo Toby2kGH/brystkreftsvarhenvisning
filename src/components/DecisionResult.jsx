@@ -34,7 +34,7 @@ function isCriticalWarning(w) {
 
 function formatSourceRef(ref) {
   if (!ref) return '';
-  return [ref.document, ref.chapter, ref.page, ref.study || ref.trial].filter(Boolean).join(' · ');
+  return [ref.document, ref.revision, ref.chapter, ref.page, ref.trialReference, ref.nbcgTable].filter(Boolean).join(' · ');
 }
 
 export default function DecisionResult({ result }) {

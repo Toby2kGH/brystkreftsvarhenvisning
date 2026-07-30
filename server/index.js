@@ -26,8 +26,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
-// CORS: standard tillat kun samme-origin/localhost. Sett ALLOWED_ORIGINS
-// (kommaseparert) for å tillate spesifikke origins i et kontrollert miljø.
+// CORS: sett ALLOWED_ORIGINS (kommaseparert) for å låse til spesifikke origins.
+// Er den ikke satt, tillates alle origins (kun ment for lokal utvikling — den
+// deploybare prod-flaten er den skrivebeskyttede Vercel-serverless-flaten).
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map((o) => o.trim()).filter(Boolean);
 app.use(cors({
