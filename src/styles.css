@@ -1076,6 +1076,44 @@ legend {
   margin-top: 4px;
 }
 
+/* Kritiske advarsler — tydeligere enn informative merknader */
+.warnings-critical {
+  background: #fdecea;
+  border: 1px solid #f5b7b1;
+  border-left: 4px solid #c0392b;
+}
+
+.warnings-critical strong {
+  color: #c0392b;
+}
+
+.warnings-info {
+  background: #fef9e7;
+  border: 1px solid #f9e79f;
+}
+
+/* Utilstrekkelige data — prominent hard-stopp */
+.insufficient-data-banner {
+  background: #fdecea;
+  border: 2px solid #c0392b;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.insufficient-data-banner strong {
+  display: block;
+  color: #c0392b;
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+
+.insufficient-data-banner p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
 /* Journal text box - kopierbar tekst øverst i resultatvisning */
 .journal-text-box {
   background: var(--surface);
@@ -1213,6 +1251,13 @@ legend {
   color: var(--text-light);
   font-size: 0.8rem;
   margin-top: 4px;
+}
+
+.step-source {
+  color: var(--text-light);
+  font-size: 0.78rem;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .no-steps {

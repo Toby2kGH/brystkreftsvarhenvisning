@@ -190,9 +190,11 @@ const DEFAULT_NEOADJUVANT_TEMPLATE = [
   { type: 'cond', condition: 'hasEC90', trueText: ' Pasienten følges for hjertetoksisitet.', falseText: '' },
   { type: 'cond', condition: 'isTN', trueText: '\n\nVed trippel negativ sykdom med immunterapi-indikasjon: immunterapiblodprøver bestilles i forkant.', falseText: '\n\nStandard ca mammae blodprøver bestilles, evt FSH/LH/østradiol.' },
   { type: 'text', value: '\n\nDet er indikasjon for postoperativ strålebehandling avhengig av operasjonstype.' },
-  { type: 'text', value: '\n\nVidere indikasjon for adjuvant behandling med ' },
-  { type: 'var', varId: 'endocrineRegimen' },
-  { type: 'text', value: '.' },
+  { type: 'cond', condition: 'hasEndocrine', trueText: '\n\nVidere indikasjon for adjuvant endokrin behandling: ', falseText: '' },
+  { type: 'cond', condition: 'hasEndocrine', trueText: '', falseText: '', useVar: 'endocrineRegimen' },
+  { type: 'cond', condition: 'hasEndocrine', trueText: '.', falseText: '' },
+  { type: 'cond', condition: 'hasWarnings', trueText: '\n\nMerknader: ', falseText: '' },
+  { type: 'cond', condition: 'hasWarnings', trueText: '', falseText: '', useVar: 'warnings' },
 ];
 
 // ============================================================

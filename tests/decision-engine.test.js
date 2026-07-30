@@ -75,8 +75,8 @@ describe('CQL: Full evaluateCQL', () => {
 });
 
 describe('CQL: Validation', () => {
-  it('passes with ER + HER2 + N-stage', () => {
-    expect(validateClinicalData({ erStatus: 'positive', her2ihc: '0', nStage: 'N0' }).valid).toBe(true);
+  it('passes with ER + PR + HER2 + N-stage + menopausal', () => {
+    expect(validateClinicalData({ erStatus: 'positive', prStatus: 'positive', her2ihc: '0', nStage: 'N0', menopausalStatus: 'post' }).valid).toBe(true);
   });
   it('fails with missing fields', () => {
     expect(validateClinicalData({}).valid).toBe(false);

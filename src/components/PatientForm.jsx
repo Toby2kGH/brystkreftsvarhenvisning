@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 
 const INITIAL_STATE = {
   treatmentMode: 'adjuvant',
-  // Receptor
-  erStatus: 'positive',
+  // Receptor — nøytrale defaults: tving eksplisitt valg (unngå stille HR+-antagelse)
+  erStatus: '',
   erPercent: '',
-  prStatus: 'positive',
+  prStatus: '',
   prPercent: '',
   // HER2
   her2ihc: '',
@@ -23,7 +23,7 @@ const INITIAL_STATE = {
   rsScore: '',
   prosignaSubtype: '',
   // Patient
-  menopausalStatus: 'post',
+  menopausalStatus: '',
   age: '',
   surgeryType: 'bcs',
   // BRCA
@@ -141,6 +141,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
           <label>
             ER-status {form.erPercent !== '' ? <span className="derived-status">({Number(form.erPercent) > 10 ? 'Positiv' : Number(form.erPercent) >= 1 ? 'Lav-positiv → regnes negativ' : 'Negativ'})</span> : null}
             <select name="erStatus" value={form.erPercent !== '' ? (Number(form.erPercent) > 10 ? 'positive' : 'negative') : form.erStatus} onChange={handleChange} disabled={form.erPercent !== ''}>
+              <option value="">Ikke angitt</option>
               <option value="positive">Positiv</option>
               <option value="negative">Negativ</option>
             </select>
@@ -153,6 +154,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
           <label>
             PR-status
             <select name="prStatus" value={form.prStatus} onChange={handleChange}>
+              <option value="">Ikke angitt</option>
               <option value="positive">Positiv</option>
               <option value="negative">Negativ</option>
             </select>
@@ -289,6 +291,7 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
           <label>
             Menopausal status
             <select name="menopausalStatus" value={form.menopausalStatus} onChange={handleChange}>
+              <option value="">Velg …</option>
               <option value="pre">Premenopausal</option>
               <option value="peri">Perimenopausal</option>
               <option value="post">Postmenopausal</option>
