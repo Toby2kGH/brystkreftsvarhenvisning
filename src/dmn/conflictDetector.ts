@@ -117,6 +117,10 @@ function analyzeOverlap(ruleA: DMNRule, ruleB: DMNRule): OverlapType {
       continue;
     }
 
+    // På dette punktet er begge definert (nøkkelen finnes i begge regler).
+    // Guarden smalner typen fra ConditionValue | undefined til ConditionValue.
+    if (condA === undefined || condB === undefined) continue;
+
     // Begge har denne betingelsen
     const rel = conditionRelation(condA, condB);
     if (rel === 'disjoint') {
