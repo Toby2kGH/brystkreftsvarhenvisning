@@ -3107,6 +3107,30 @@ legend {
 .tlw-template-actions button:hover:not(:disabled) { background: var(--primary-light); color: white; }
 .tlw-template-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Tabelloppslag 2.0 — seksjoner per relevant tabell (ordrette NBCG-tabeller) */
+
+.tlw-section { margin-bottom: 22px; }
+.tlw-section + .tlw-section { border-top: 1px solid var(--border); padding-top: 18px; }
+.tlw-section-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.tlw-section-head strong { font-size: 0.95rem; color: var(--text); }
+.tlw-role-badge { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #eaf2f8; color: var(--primary); border: 1px solid var(--primary-light); border-radius: 10px; padding: 2px 8px; }
+.tlw-section-counts { margin-left: auto; font-size: 0.78rem; color: var(--text-light); }
+
+.tlw-derived-note { display: block; font-size: 0.75rem; font-weight: normal; color: var(--text-light); margin-top: 4px; line-height: 1.4; }
+.tlw-derived-note.tlw-overridden { color: #9a7d0a; }
+
+/* Radens oppslagsvei kan bli lang — la den bryte i stedet for å presse kortet */
+.tlw-row .tlw-rule-id { white-space: normal; text-align: left; line-height: 1.35; }
+
+/* Anbefalingscellene er poenget med raden; grunnlag/forbehold vises dempet */
+.tlw-out-rec .tlw-out-val { font-weight: 600; }
+.tlw-out:not(.tlw-out-rec) .tlw-out-val { color: var(--text-light); }
+.tlw-out-val { white-space: pre-wrap; }
+
+.tlw-footnotes { margin-top: 10px; font-size: 0.78rem; color: var(--text-light); }
+.tlw-footnotes > summary { cursor: pointer; color: var(--primary); }
+.tlw-footnotes ul { margin: 8px 0 0 18px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+
 /* ============================================================
    Tabelloppslag (ny fane) — egne stiler, påvirker ikke resten
    ============================================================ */
