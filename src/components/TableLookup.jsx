@@ -6,6 +6,7 @@ import {
   sharedRegimens,
 } from '../tablelookup/guidelineTables.js';
 import { findMatchingRows, classifyLuminalLike, simplifyT } from '../tablelookup/matcher.js';
+import { buildJournalText } from '../tablelookup/journalText.js';
 
 // ================================================================
 //  Tabelloppslag — ny fane (endrer ikke det eksisterende verktøyet)
@@ -465,22 +466,6 @@ function LookupTable({ table, role, matches, edited, setEdited, copiedKey, setCo
       )}
     </div>
   );
-}
-
-// Bygger standard journaltekst-utgangspunkt fra en rad ut fra tabellens
-// anbefalingskolonner (recCols). Kolonner med label prefikses (f.eks.
-// "Ribociklib: ...") slik at tabeller med flere anbefalingskolonner
-// (som CDK4/6) gir meningsfull tekst.
-function buildJournalText(row, recCols) {
-  const cols = recCols && recCols.length ? recCols : [{ idx: row.cells.length - 2 }];
-  return cols
-    .map((rc) => {
-      const v = (row.cells[rc.idx] || '').trim();
-      if (!v) return '';
-      return rc.label ? `${rc.label}: ${v}` : v;
-    })
-    .filter(Boolean)
-    .join('\n');
 }
 
 function MultilineText({ text }) {

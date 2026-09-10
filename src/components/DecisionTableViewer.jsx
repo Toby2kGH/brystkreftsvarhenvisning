@@ -301,14 +301,22 @@ export default function DecisionTableViewer() {
 
   if (loading) return <p>Laster beslutningstabeller...</p>;
 
+  // Skrive-/testendepunkter finnes ikke i produksjon (Vercel) — vis kun-lese-modus.
+  const IS_PROD = import.meta.env.PROD;
+
   return (
     <div className="table-viewer">
       <div className="table-viewer-header">
         <h2>Beslutningslogikk — Alle tabeller</h2>
         <p className="viewer-description">
-          Alle kliniske beslutninger er uttrykt som transparente, redigerbare tabeller.
-          Klinikere og beslutningstakere kan inspisere, verifisere og endre logikken direkte.
+          Alle kliniske beslutninger er uttrykt som transparente tabeller med kildehenvisning
+          til NBCG. {IS_PROD
+            ? 'Denne visningen er skrivebeskyttet — logikken kan kun endres i lokalt utviklingsmiljø.'
+            : 'Klinikere og beslutningstakere kan inspisere, verifisere og endre logikken direkte.'}
         </p>
+        {IS_PROD && (
+          <div className="viewer-readonly-banner">🔒 Skrivebeskyttet visning</div>
+        )}
       </div>
 
       {/* Table tabs */}
@@ -324,12 +332,14 @@ export default function DecisionTableViewer() {
             {t.name.length > 25 ? t.name.slice(0, 25) + '…' : t.name}
           </button>
         ))}
-        <button className="tab-btn add-table-btn" onClick={() => setShowNewTable(true)} title="Legg til ny tabell">+ Ny tabell</button>
-        <button className="tab-btn reset-btn" onClick={resetTables}>Tilbakestill alle</button>
+        {!IS_PROD && <button className="tab-btn add-table-btn" onClick={() => setShowNewTable(true)} title="Legg til ny tabell">+ Ny tabell</button>}
+        {!IS_PROD && <button className="tab-btn reset-btn" onClick={resetTables}>Tilbakestill alle</button>}
         <button className="tab-btn changelog-btn" onClick={() => { setShowChangeLog(!showChangeLog); if (!showChangeLog) fetchChangeLog(); }}>Endringslogg</button>
-        <button className={`tab-btn test-btn ${testRunning ? 'running' : ''}`} onClick={runTests} disabled={testRunning}>
-          {testRunning ? 'Kjorer tester...' : 'Kjor tester'}
-        </button>
+        {!IS_PROD && (
+          <button className={`tab-btn test-btn ${testRunning ? 'running' : ''}`} onClick={runTests} disabled={testRunning}>
+            {testRunning ? 'Kjorer tester...' : 'Kjor tester'}
+          </button>
+        )}
       </div>
 
       {saveMessage && <div className="save-message">{saveMessage}</div>}
@@ -441,7 +451,7 @@ export default function DecisionTableViewer() {
             <span>Versjon: <strong>{selectedTable.version || '—'}</strong></span>
             <span>Oppdatert: <strong>{selectedTable.lastUpdated || '—'}</strong></span>
             <span>Regler: <strong>{selectedTable.rules.length}</strong></span>
-            {!isStandardTable(selectedTable.id) && (
+            {!IS_PROD && !isStandardTable(selectedTable.id) && (
               <button className="delete-table-btn" onClick={() => deleteTable(selectedTable.id)}>Slett tabell</button>
             )}
             <button className="diff-btn" onClick={() => fetchDiff(selectedTable.id)}>Vis endringer fra standard</button>
@@ -575,7 +585,7 @@ export default function DecisionTableViewer() {
                       onCancel={cancelEdit}
                     />
                   ) : (
-                    <GenericRuleDisplay rule={rule} table={selectedTable} onEdit={() => startEdit(rule, selectedTable)} onDelete={() => deleteRule(rule.id)} onRevert={isStandardTable(selectedTable.id) ? (ruleId) => revertRule(selectedTable.id, ruleId) : null} />
+                    <GenericRuleDisplay rule={rule} table={selectedTable} readOnly={IS_PROD} onEdit={() => startEdit(rule, selectedTable)} onDelete={() => deleteRule(rule.id)} onRevert={isStandardTable(selectedTable.id) ? (ruleId) => revertRule(selectedTable.id, ruleId) : null} />
                   )}
                 </div>
               ))}
@@ -754,16 +764,16 @@ function parseOutputs(outputEntries) {
 // Display component
 // ================================================================
 
-function GenericRuleDisplay({ rule, table, onEdit, onDelete, onRevert }) {
+function GenericRuleDisplay({ rule, table, onEdit, onDelete, onRevert, readOnly }) {
   return (
     <>
       <div className="rule-header">
         <span className="rule-id">{rule.id}</span>
         {rule.isModified && <span className="rule-modified-badge" title={`Endret ${rule.lastModifiedAt ? new Date(rule.lastModifiedAt).toLocaleString('nb-NO') : ''} av ${rule.lastModifiedBy || 'ukjent'}`}>Endret</span>}
         {rule.priority != null && table.hitPolicy === 'PRIORITY' && <span className="rule-priority">Prioritet: {rule.priority}</span>}
-        <button className="edit-btn" onClick={onEdit}>Rediger</button>
-        {rule.isModified && onRevert && <button className="revert-btn" onClick={() => onRevert(rule.id)}>Tilbakestill</button>}
-        <button className="delete-rule-btn" onClick={onDelete}>Slett</button>
+        {!readOnly && <button className="edit-btn" onClick={onEdit}>Rediger</button>}
+        {!readOnly && rule.isModified && onRevert && <button className="revert-btn" onClick={() => onRevert(rule.id)}>Tilbakestill</button>}
+        {!readOnly && <button className="delete-rule-btn" onClick={onDelete}>Slett</button>}
       </div>
       {rule.description && <p className="rule-description">{rule.description}</p>}
       {rule.sourceRef && (

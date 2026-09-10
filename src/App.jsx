@@ -4,10 +4,16 @@ import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
 import TableLookup from './components/TableLookup.jsx';
+import TableLookupWorkbench from './components/TableLookupWorkbench.jsx';
+import { GUIDELINE_VERSION, SCOPE_NOTE } from './guidelineVersion.js';
 import './styles.css';
 
+// I produksjon (Vercel) finnes ikke skrive-/admin-endepunktene — skjul UI som
+// ellers ville feilet stille. Redigering skjer kun i lokalt utviklingsmiljø.
+const IS_PROD = import.meta.env.PROD;
+
 export default function App() {
-  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup'
+  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup' | 'lookup2'
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -154,7 +160,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${page === 'lookup2' ? ' app-wide' : ''}`}>
       <header className="app-header">
         <h1>Brystkreft Retningslinjegraver</h1>
         <p className="subtitle">
@@ -162,6 +168,10 @@ export default function App() {
           <a href="https://nbcg.no/retningslinjer-2/retningslinjer/" target="_blank" rel="noopener noreferrer" className="nbcg-link">
             NBCG Handlingsprogram
           </a>
+        </p>
+        <p className="guideline-version">
+          Innhold verifisert mot NBCG Handlingsprogram {GUIDELINE_VERSION.handlingsprogram} (+ tabeller {GUIDELINE_VERSION.tables}).
+          NBCG oppdaterer jevnlig — kontroller mot gjeldende versjon på nbcg.no før klinisk bruk. {SCOPE_NOTE}
         </p>
         <nav className="nav">
           <button
@@ -188,6 +198,12 @@ export default function App() {
           >
             Tabelloppslag
           </button>
+          <button
+            className={`nav-btn ${page === 'lookup2' ? 'active' : ''}`}
+            onClick={() => setPage('lookup2')}
+          >
+            Tabelloppslag 2.0
+          </button>
         </nav>
       </header>
 
@@ -210,19 +226,21 @@ export default function App() {
       <main className="main">
         {page === 'form' && (
           <>
-            {/* Algoritmesett-panel */}
-            <div className="alg-toolbar">
-              <button className="alg-toggle-btn" onClick={() => setShowAlgPanel(!showAlgPanel)}>
-                {showAlgPanel ? 'Skjul' : 'Algoritmesett'}
-              </button>
-              <button className="alg-export-btn" onClick={handleExportTables}>Eksporter regler</button>
-              <label className="alg-import-btn">
-                Importer regler
-                <input type="file" accept=".json" onChange={handleImportTables} hidden />
-              </label>
-            </div>
+            {/* Algoritmesett-panel — kun i lokalt miljø (skrive-endepunkter finnes ikke i prod) */}
+            {!IS_PROD && (
+              <div className="alg-toolbar">
+                <button className="alg-toggle-btn" onClick={() => setShowAlgPanel(!showAlgPanel)}>
+                  {showAlgPanel ? 'Skjul' : 'Algoritmesett'}
+                </button>
+                <button className="alg-export-btn" onClick={handleExportTables}>Eksporter regler</button>
+                <label className="alg-import-btn">
+                  Importer regler
+                  <input type="file" accept=".json" onChange={handleImportTables} hidden />
+                </label>
+              </div>
+            )}
 
-            {showAlgPanel && (
+            {!IS_PROD && showAlgPanel && (
               <div className="alg-panel">
                 <h3>Lagrede algoritmesett</h3>
                 <p className="alg-desc">Lagre nåværende regelsett med navn for å kunne bytte mellom versjoner og sammenligne.</p>
@@ -305,6 +323,8 @@ export default function App() {
         {page === 'tables' && <DecisionTableViewer />}
 
         {page === 'lookup' && <TableLookup />}
+
+        {page === 'lookup2' && <TableLookupWorkbench />}
       </main>
 
       <footer className="app-footer">

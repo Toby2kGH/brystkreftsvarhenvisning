@@ -26,6 +26,7 @@ export function evaluateDecisionTable(table, context) {
         priority: rule.priority ?? 0,
         description: rule.description,
         outputs: rule.outputs,
+        sourceRef: rule.sourceRef,
       });
     }
   }

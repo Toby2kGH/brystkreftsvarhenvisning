@@ -7,6 +7,8 @@ const STEP_TYPE_LABELS = {
   cdk46: 'CDK4/6-inhibitor',
   radiation: 'Strålebehandling',
   bisphosphonate: 'Bisfosfonat',
+  targeted: 'Målrettet terapi',
+  custom: 'Annet',
 };
 
 const STEP_TYPE_COLORS = {
@@ -15,7 +17,25 @@ const STEP_TYPE_COLORS = {
   cdk46: '#8e44ad',
   radiation: '#e67e22',
   bisphosphonate: '#27ae60',
+  targeted: '#16a085',
+  custom: '#7f8c8d',
 };
+
+// Klassifiser advarsler i to nivåer: kritiske (endrer/blokkerer behandling)
+// og informative (grenseverdier o.l.). Kritiske vises tydeligere.
+const CRITICAL_WARNING_PATTERNS = [
+  /🔴/, /utilstrekkelige data/i, /fertilitet/i, /LVEF/i, /hjertetoksisitet/i,
+  /gonadotoksisk/i, /progresjon/i, /OFS-vurdering/i, /Datakvalitet/i,
+];
+
+function isCriticalWarning(w) {
+  return CRITICAL_WARNING_PATTERNS.some((re) => re.test(w));
+}
+
+function formatSourceRef(ref) {
+  if (!ref) return '';
+  return [ref.document, ref.revision, ref.chapter, ref.page, ref.trialReference, ref.nbcgTable].filter(Boolean).join(' · ');
+}
 
 export default function DecisionResult({ result }) {
   const { treatmentPlan, cqlOutput, dmnResult, journalText, referralText } = result;
@@ -24,7 +44,9 @@ export default function DecisionResult({ result }) {
 
   if (!treatmentPlan) return null;
 
-  const { bioGroup, steps, warnings, isNeoadjuvant, luminalSubtype, chemoPathway } = treatmentPlan;
+  const { bioGroup, steps, warnings, isNeoadjuvant, luminalSubtype, chemoPathway, insufficientData } = treatmentPlan;
+  const criticalWarnings = (warnings || []).filter(isCriticalWarning);
+  const infoWarnings = (warnings || []).filter((w) => !isCriticalWarning(w));
 
   function copyToClipboard(text, setCopied) {
     navigator.clipboard.writeText(text).then(() => {
@@ -50,6 +72,12 @@ export default function DecisionResult({ result }) {
     <div className="decision-result">
       <h2>Behandlingsanbefaling</h2>
 
+      <div className="result-disclaimer">
+        ⚠ Dette er <strong>ingen beslutningsstøtte</strong> — kun en visualisering av råd fra NBCG
+        Handlingsprogram og hjelp til å generere journaltekst. Vurder alltid teksten kritisk og
+        sjekk siste versjon av handlingsprogrammet før klinisk bruk.
+      </div>
+
       {/* Biological Profile */}
       <div className="bio-profile">
         <span className={`bio-badge bio-${bioGroup?.replace(/[+\-]/g, '')}`}>
@@ -69,12 +97,36 @@ export default function DecisionResult({ result }) {
         )}
       </div>
 
-      {/* Warnings */}
-      {warnings?.length > 0 && (
-        <div className="warnings-box">
+      {/* Utilstrekkelige data — prominent hard-stopp */}
+      {insufficientData && (
+        <div className="insufficient-data-banner">
+          <strong>⛔ Utilstrekkelige data — ingen behandlingsanbefaling</strong>
+          <p>
+            Biologisk undergruppe kunne ikke bestemmes (typisk HER2 IHC 2+ uten utført SISH,
+            eller manglende reseptorstatus). Avklar HER2 (SISH ved IHC 2+) og ER/PR-status,
+            og kjør vurderingen på nytt.
+          </p>
+        </div>
+      )}
+
+      {/* Kritiske advarsler */}
+      {criticalWarnings.length > 0 && (
+        <div className="warnings-box warnings-critical">
+          <strong>⚠ Viktige advarsler:</strong>
+          <ul>
+            {criticalWarnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Informative merknader */}
+      {infoWarnings.length > 0 && (
+        <div className="warnings-box warnings-info">
           <strong>Merknader:</strong>
           <ul>
-            {warnings.map((w, i) => (
+            {infoWarnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
           </ul>
@@ -125,6 +177,9 @@ export default function DecisionResult({ result }) {
                   )}
                   {step.rationale && (
                     <p className="step-rationale">{step.rationale}</p>
+                  )}
+                  {step.sourceRef && (
+                    <p className="step-source">📖 {formatSourceRef(step.sourceRef)}</p>
                   )}
                 </li>
               ))}

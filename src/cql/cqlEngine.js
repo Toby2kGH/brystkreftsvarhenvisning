@@ -278,14 +278,21 @@ export function evaluateCQL(clinicalData) {
  */
 export function validateClinicalData(clinicalData) {
   const errors = [];
-  if (clinicalData.erStatus == null && clinicalData.erPercent == null) {
+  const missing = (v) => v == null || v === '';
+  if (missing(clinicalData.erStatus) && missing(clinicalData.erPercent)) {
     errors.push('Østrogenreseptor (ER) status mangler');
   }
-  if (clinicalData.her2Status == null && clinicalData.her2ihc == null) {
+  if (missing(clinicalData.prStatus) && missing(clinicalData.prPercent)) {
+    errors.push('Progesteronreseptor (PR) status mangler');
+  }
+  if (missing(clinicalData.her2Status) && missing(clinicalData.her2ihc)) {
     errors.push('HER2-status mangler (angi IHC eller direkte status)');
   }
-  if (clinicalData.nStage == null && clinicalData.metastatic == null) {
+  if (missing(clinicalData.nStage) && missing(clinicalData.metastatic)) {
     errors.push('N-stadium eller metastatisk status mangler');
+  }
+  if (missing(clinicalData.menopausalStatus)) {
+    errors.push('Menopausal status mangler (velg pre-/peri-/postmenopausal eller ukjent)');
   }
   return { valid: errors.length === 0, errors };
 }

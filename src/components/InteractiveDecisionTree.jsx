@@ -11,6 +11,9 @@ import {
   TN_TABLE,
   NEOADJUVANT_TABLE,
 } from '../dmn/decisionTables.js';
+import { renderTemplate, makeTemplateStorage, copyText } from '../textgen/templateEngine.js';
+import { TemplateEditor, VariablePalette } from '../textgen/TemplateEditor.jsx';
+import { formatSource, formatCondition, formatCDK46 } from '../dmn/ruleFormat.js';
 
 /**
  * Interactive Decision Tree — click through nodes to explore the clinical logic.
@@ -33,7 +36,7 @@ const TREE = {
       id: 'neoadjuvant',
       label: 'Neoadjuvant',
       question: 'Hvilken biologisk undergruppe?',
-      description: 'Behandling FØR kirurgi — for store/lokalavanserte tumorer (NBCG 15.11.23)',
+      description: 'Behandling FØR kirurgi — for store/lokalavanserte tumorer (NBCG 04.09.25)',
       icon: '⏩',
       tableRef: 'neoadjuvant',
       children: [
@@ -376,12 +379,100 @@ function getTable(tableRef) {
 }
 
 // ============================================================
+// Manuell tekstgenerering — variabler resolves fra klinikerens valgte node/regel.
+// Ingen algoritme tar beslutningen: klinikeren navigerer selv til riktig rad.
+// ============================================================
+
+const TREE_TEMPLATE_VARIABLES = [
+  { group: 'Beslutning', vars: [
+    { id: 'path', label: 'Beslutningsvei' },
+    { id: 'tableName', label: 'NBCG-tabell' },
+    { id: 'ruleId', label: 'Regel-ID' },
+    { id: 'ruleDesc', label: 'Regelbeskrivelse' },
+  ]},
+  { group: 'Anbefaling', vars: [
+    { id: 'regimen', label: 'Regime' },
+    { id: 'detail', label: 'Detaljer' },
+    { id: 'rationale', label: 'Begrunnelse' },
+    { id: 'duration', label: 'Varighet' },
+    { id: 'therapy', label: 'Terapi' },
+    { id: 'warnings', label: 'Advarsler' },
+  ]},
+  { group: 'Kilde', vars: [
+    { id: 'source', label: 'NBCG-kildehenvisning' },
+  ]},
+];
+
+const TREE_CONDITIONS = [
+  { id: 'hasRegimen', label: 'Har regime' },
+  { id: 'hasDuration', label: 'Har varighet' },
+  { id: 'hasWarnings', label: 'Har advarsler' },
+];
+
+const DEFAULT_TREE_TEMPLATE = [
+  { type: 'text', value: 'Beslutningsvei: ' },
+  { type: 'var', varId: 'path' },
+  { type: 'text', value: '\n\nNBCG-tabell: ' },
+  { type: 'var', varId: 'tableName' },
+  { type: 'text', value: ' (regel ' },
+  { type: 'var', varId: 'ruleId' },
+  { type: 'text', value: ').\n\n' },
+  { type: 'cond', condition: 'hasRegimen', trueText: 'Anbefalt: ', falseText: '' },
+  { type: 'cond', condition: 'hasRegimen', trueText: '', falseText: '', useVar: 'regimen' },
+  { type: 'cond', condition: 'hasRegimen', trueText: '. ', falseText: '' },
+  { type: 'var', varId: 'rationale' },
+  { type: 'cond', condition: 'hasDuration', trueText: '\nVarighet: ', falseText: '' },
+  { type: 'cond', condition: 'hasDuration', trueText: '', falseText: '', useVar: 'duration' },
+  { type: 'cond', condition: 'hasWarnings', trueText: '\n\nMerknader: ', falseText: '' },
+  { type: 'cond', condition: 'hasWarnings', trueText: '', falseText: '', useVar: 'warnings' },
+  { type: 'text', value: '\n\nKilde: ' },
+  { type: 'var', varId: 'source' },
+];
+
+function resolveTreeVar(id, ctx) {
+  const o = (ctx.rule && ctx.rule.outputs) || {};
+  switch (id) {
+    case 'path': return ctx.pathLabels.join(' → ');
+    case 'tableName': return ctx.table?.name || '—';
+    case 'ruleId': return ctx.rule?.id || '—';
+    case 'ruleDesc': return ctx.rule?.description || '—';
+    case 'regimen': return o.regimen || '—';
+    case 'detail': return o.detail || '—';
+    case 'rationale': return o.rationale || '—';
+    case 'duration': return o.duration || '—';
+    case 'therapy': return o.therapy || '—';
+    case 'warnings': return (o.warnings && o.warnings.length) ? o.warnings.join('. ') : 'Ingen';
+    case 'source': return formatSource(ctx.rule, ctx.table);
+    default: return `[${id}]`;
+  }
+}
+
+function evalTreeCond(id, ctx) {
+  const o = (ctx.rule && ctx.rule.outputs) || {};
+  switch (id) {
+    case 'hasRegimen': return !!o.regimen;
+    case 'hasDuration': return !!o.duration;
+    case 'hasWarnings': return !!(o.warnings && o.warnings.length);
+    default: return false;
+  }
+}
+
+const treeStorage = makeTemplateStorage('treeLookupTemplates');
+
+// ============================================================
 // Component
 // ============================================================
 
 export default function InteractiveDecisionTree() {
   // Path is an array of node IDs representing the traversal
   const [path, setPath] = useState(['root']);
+
+  // Manuell tekstgenerering (klinikerdrevet oppslag → tekst)
+  const [genOpen, setGenOpen] = useState(false);
+  const [blocks, setBlocks] = useState(DEFAULT_TREE_TEMPLATE);
+  const [copied, setCopied] = useState(false);
+  const [savedTemplates, setSavedTemplates] = useState(() => treeStorage.load());
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   // Walk the tree to find a node by traversing the path
   const findNode = useCallback((nodeId, tree) => {
@@ -420,6 +511,31 @@ export default function InteractiveDecisionTree() {
     : null;
 
   const table = currentNode.tableRef ? getTable(currentNode.tableRef) : null;
+
+  // Kontekst for manuell tekstgenerering
+  const pathLabels = breadcrumbNodes.map((n) => n.label);
+  const genCtx = { rule, table, pathLabels };
+  const renderedText = renderTemplate(blocks, (id) => resolveTreeVar(id, genCtx), (id) => evalTreeCond(id, genCtx));
+
+  function handleCopy() {
+    copyText(renderedText, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+  function handleSaveTemplate() {
+    const name = newTemplateName.trim();
+    if (!name) return;
+    treeStorage.save(name, blocks);
+    setSavedTemplates(treeStorage.load());
+    setNewTemplateName('');
+  }
+  function handleLoadTemplate(name) {
+    const saved = treeStorage.load();
+    if (saved[name]) setBlocks(saved[name]);
+  }
+  function handleDeleteTemplate(name) {
+    treeStorage.remove(name);
+    setSavedTemplates(treeStorage.load());
+  }
+  const savedTemplateNames = Object.keys(savedTemplates);
 
   return (
     <div className="dtree-container">
@@ -462,6 +578,12 @@ export default function InteractiveDecisionTree() {
             </span>
           )}
         </div>
+
+        {table && (
+          <p className="dtree-source-cite" title="Kildehenvisning til NBCG Handlingsprogram">
+            📖 {formatSource(rule, table)}
+          </p>
+        )}
 
         {currentNode.description && (
           <p className="dtree-node-desc">{currentNode.description}</p>
@@ -572,6 +694,58 @@ export default function InteractiveDecisionTree() {
           </div>
         )}
 
+        {/* Manuell tekstgenerering fra valgt regel — klinikerdrevet, ingen algoritme */}
+        {currentNode.leaf && rule && (
+          <div className="dtree-textgen">
+            <button className="dtree-textgen-toggle" onClick={() => setGenOpen(!genOpen)}>
+              {genOpen ? 'Skjul tekstgenerering' : '📝 Generer journaltekst fra dette valget'}
+            </button>
+            {genOpen && (
+              <div className="dtree-textgen-body">
+                <p className="dtree-textgen-note">
+                  Teksten bygges direkte fra regelen du manuelt navigerte til
+                  (tabell «{table?.name}», regel {rule.id}). Klinikeren velger selv rad —
+                  ingen automatisk beslutning gjøres. Rediger malen ved behov.
+                </p>
+                <div className="dtree-textgen-preview-header">
+                  <h4>Generert tekst</h4>
+                  <button className="copy-btn" onClick={handleCopy}>{copied ? 'Kopiert!' : 'Kopier til utklippstavle'}</button>
+                </div>
+                <pre className="dtree-textgen-preview">{renderedText}</pre>
+
+                <details className="dtree-textgen-editor">
+                  <summary>Rediger mal</summary>
+                  {savedTemplateNames.length > 0 && (
+                    <div className="dtree-saved-templates">
+                      <strong>Lagrede maler:</strong>
+                      {savedTemplateNames.map((name) => (
+                        <span key={name} className="dtree-saved-template">
+                          <button onClick={() => handleLoadTemplate(name)}>{name}</button>
+                          <button className="dtree-tpl-del" onClick={() => handleDeleteTemplate(name)} title="Slett">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <VariablePalette variables={TREE_TEMPLATE_VARIABLES} onInsert={(varId) => setBlocks([...blocks, { type: 'var', varId }])} />
+                  <TemplateEditor
+                    blocks={blocks}
+                    onChange={setBlocks}
+                    variables={TREE_TEMPLATE_VARIABLES}
+                    conditions={TREE_CONDITIONS}
+                    resolvePreview={(id) => resolveTreeVar(id, genCtx)}
+                    evalPreview={(id) => evalTreeCond(id, genCtx)}
+                  />
+                  <div className="dtree-textgen-actions">
+                    <input type="text" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} placeholder="Navn på mal..." />
+                    <button onClick={handleSaveTemplate} disabled={!newTemplateName.trim()}>Lagre mal</button>
+                    <button onClick={() => setBlocks(DEFAULT_TREE_TEMPLATE)}>Tilbakestill</button>
+                  </div>
+                </details>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Non-leaf: show question and choices */}
         {!currentNode.leaf && currentNode.children && (
           <div className="dtree-choices">
@@ -629,33 +803,4 @@ export default function InteractiveDecisionTree() {
       )}
     </div>
   );
-}
-
-function formatCondition(val) {
-  if (val === null || val === undefined) return 'vilkårlig';
-  if (Array.isArray(val)) return val.join(' / ');
-  if (typeof val === 'object') {
-    const parts = [];
-    if ('gte' in val) parts.push(`≥${val.gte}`);
-    if ('gt' in val) parts.push(`>${val.gt}`);
-    if ('lte' in val) parts.push(`≤${val.lte}`);
-    if ('lt' in val) parts.push(`<${val.lt}`);
-    if ('not' in val) parts.push(`ikke ${val.not}`);
-    return parts.join(', ');
-  }
-  if (typeof val === 'boolean') return val ? 'ja' : 'nei';
-  return String(val);
-}
-
-function formatCDK46(val) {
-  const map = {
-    yes: 'Ja — anbefalt',
-    no: 'Nei',
-    first_choice: 'Førstevalg',
-    if_G3: 'Kun ved Grad 3',
-    'if_G3_or_gesHigh': 'Ved Grad 3 eller GES høy risiko',
-    'if_G3_or_5cm': 'Ved Grad 3 eller tumor ≥5cm (førstevalg)',
-    'yes_unless_low': 'Ja (avstå ved Grad 1 eller lavrisiko GES)',
-  };
-  return map[val] || val;
 }
