@@ -3,6 +3,7 @@ import PatientForm from './components/PatientForm.jsx';
 import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
+import TableLookupWorkbench from './components/TableLookupWorkbench.jsx';
 import { GUIDELINE_VERSION, SCOPE_NOTE } from './guidelineVersion.js';
 import './styles.css';
 
@@ -11,7 +12,7 @@ import './styles.css';
 const IS_PROD = import.meta.env.PROD;
 
 export default function App() {
-  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree'
+  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup2'
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -158,7 +159,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${page === 'lookup2' ? ' app-wide' : ''}`}>
       <header className="app-header">
         <h1>Brystkreft Retningslinjegraver</h1>
         <p className="subtitle">
@@ -189,6 +190,12 @@ export default function App() {
             onClick={() => setPage('tables')}
           >
             Beslutningslogikk
+          </button>
+          <button
+            className={`nav-btn ${page === 'lookup2' ? 'active' : ''}`}
+            onClick={() => setPage('lookup2')}
+          >
+            Tabelloppslag 2.0
           </button>
         </nav>
       </header>
@@ -307,6 +314,8 @@ export default function App() {
         {page === 'tree' && <InteractiveDecisionTree />}
 
         {page === 'tables' && <DecisionTableViewer />}
+
+        {page === 'lookup2' && <TableLookupWorkbench />}
       </main>
 
       <footer className="app-footer">

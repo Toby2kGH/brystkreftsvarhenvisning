@@ -13,6 +13,7 @@ import {
 } from '../dmn/decisionTables.js';
 import { renderTemplate, makeTemplateStorage, copyText } from '../textgen/templateEngine.js';
 import { TemplateEditor, VariablePalette } from '../textgen/TemplateEditor.jsx';
+import { formatSource, formatCondition, formatCDK46 } from '../dmn/ruleFormat.js';
 
 /**
  * Interactive Decision Tree — click through nodes to explore the clinical logic.
@@ -375,21 +376,6 @@ function getRule(tableRef, ruleId) {
 
 function getTable(tableRef) {
   return TABLE_MAP[tableRef] || null;
-}
-
-// ============================================================
-// Kildehenvisning (NBCG) — sourceRef med fallback til tabellens guidelineSource
-// ============================================================
-
-function resolveSource(rule, table) {
-  return (rule && rule.sourceRef) || (table && table.guidelineSource) || null;
-}
-
-function formatSource(rule, table) {
-  const ref = resolveSource(rule, table);
-  if (!ref) return 'NBCG Handlingsprogram';
-  const parts = [ref.document, ref.revision, ref.chapter, ref.page, ref.trialReference || ref.study, ref.nbcgTable].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'NBCG Handlingsprogram';
 }
 
 // ============================================================
@@ -817,33 +803,4 @@ export default function InteractiveDecisionTree() {
       )}
     </div>
   );
-}
-
-function formatCondition(val) {
-  if (val === null || val === undefined) return 'vilkårlig';
-  if (Array.isArray(val)) return val.join(' / ');
-  if (typeof val === 'object') {
-    const parts = [];
-    if ('gte' in val) parts.push(`≥${val.gte}`);
-    if ('gt' in val) parts.push(`>${val.gt}`);
-    if ('lte' in val) parts.push(`≤${val.lte}`);
-    if ('lt' in val) parts.push(`<${val.lt}`);
-    if ('not' in val) parts.push(`ikke ${val.not}`);
-    return parts.join(', ');
-  }
-  if (typeof val === 'boolean') return val ? 'ja' : 'nei';
-  return String(val);
-}
-
-function formatCDK46(val) {
-  const map = {
-    yes: 'Ja — anbefalt',
-    no: 'Nei',
-    first_choice: 'Førstevalg',
-    if_G3: 'Kun ved Grad 3',
-    'if_G3_or_gesHigh': 'Ved Grad 3 eller GES høy risiko',
-    'if_G3_or_5cm': 'Ved Grad 3 eller tumor ≥5cm (førstevalg)',
-    'yes_unless_low': 'Ja (avstå ved Grad 1 eller lavrisiko GES)',
-  };
-  return map[val] || val;
 }

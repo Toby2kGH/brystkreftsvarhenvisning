@@ -97,7 +97,7 @@ function evaluateRule(rule, context) {
  * - Boolean: true/false eksakt match
  * - Null/undefined: behandles som "any" (wildcard)
  */
-function matchCondition(expected, actual) {
+export function matchCondition(expected, actual) {
   // Null/undefined condition = wildcard (matches anything)
   if (expected == null) return true;
 

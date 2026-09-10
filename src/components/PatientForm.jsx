@@ -1,108 +1,54 @@
 import React, { useState } from 'react';
+import {
+  INITIAL_STATE,
+  applyFieldChange,
+  normalizePatientData,
+  deriveFormVisibility,
+} from '../clinical/patientFields.js';
 
-const INITIAL_STATE = {
-  treatmentMode: 'adjuvant',
-  // Receptor — nøytrale defaults: tving eksplisitt valg (unngå stille HR+-antagelse)
-  erStatus: '',
-  erPercent: '',
-  prStatus: '',
-  prPercent: '',
-  // HER2
-  her2ihc: '',
-  her2sish: '',
-  // Tumor
-  ki67: '',
-  grade: '',
-  tumorSizeMm: '',
-  tStageOverride: '',
-  nStage: 'N0',
-  histologicalType: '',
-  // Gene expression
-  geneTest: 'none',
-  rorScore: '',
-  rsScore: '',
-  prosignaSubtype: '',
-  // Patient
-  menopausalStatus: '',
-  age: '',
-  surgeryType: 'bcs',
-  // BRCA
-  brcaStatus: 'not_tested',
-  // Post-neoadjuvant
-  pcrStatus: '',
-};
-
-export default function PatientForm({ onSubmit, loading, onShowTables }) {
-  const [form, setForm] = useState(INITIAL_STATE);
+/**
+ * Pasientskjema.
+ *
+ * Ukontrollert som standard (Pasientvurdering-siden). Sendes `value` og
+ * `onChange` inn, blir skjemaet kontrollert av forelderen — det er slik
+ * Tabelloppslag 2.0 gjenbruker de samme feltene i venstre kolonne, uten at
+ * feltlogikken må skrives to ganger. `embedded` skjuler overskrift og
+ * submit-knapp for bruk inne i en annen arbeidsflate.
+ */
+export default function PatientForm({ onSubmit, loading, onShowTables, value, onChange, embedded }) {
+  const [internalForm, setInternalForm] = useState(INITIAL_STATE);
+  const isControlled = value != null && typeof onChange === 'function';
+  const form = isControlled ? value : internalForm;
 
   function handleChange(e) {
-    setForm((prev) => {
-      const next = { ...prev, [e.target.name]: e.target.value };
-      // Reset gene test when switching to neoadjuvant (gene tests not relevant)
-      if (e.target.name === 'treatmentMode' && e.target.value === 'neoadjuvant') {
-        next.geneTest = 'none';
-        next.rorScore = '';
-        next.rsScore = '';
-        next.prosignaSubtype = '';
-      }
-      // Reset gene test if current selection becomes unavailable
-      if (['nStage', 'tumorSizeMm', 'tStageOverride', 'menopausalStatus'].includes(e.target.name)) {
-        const isT3 = next.tStageOverride === 'T4' || (next.tumorSizeMm !== '' && Number(next.tumorSizeMm) > 50);
-        const isN1Plus = ['N1', 'N2', 'N3'].includes(next.nStage);
-        if (next.geneTest === 'prosigna' && (isT3 || isN1Plus)) {
-          next.geneTest = 'none';
-          next.rorScore = '';
-          next.prosignaSubtype = '';
-        }
-        if (next.geneTest === 'oncotypedx' && !(isN1Plus && next.menopausalStatus === 'post')) {
-          next.geneTest = 'none';
-          next.rsScore = '';
-        }
-      }
-      return next;
-    });
+    const { name, value: fieldValue } = e.target;
+    if (isControlled) {
+      onChange(applyFieldChange(form, name, fieldValue));
+    } else {
+      setInternalForm((prev) => applyFieldChange(prev, name, fieldValue));
+    }
   }
 
   function handleSubmit(e) {
     e.preventDefault();
-    // Convert numeric fields
-    const data = {
-      ...form,
-      erPercent: form.erPercent !== '' ? Number(form.erPercent) : undefined,
-      prPercent: form.prPercent !== '' ? Number(form.prPercent) : undefined,
-      ki67: form.ki67 !== '' ? Number(form.ki67) : undefined,
-      grade: form.grade !== '' ? Number(form.grade) : undefined,
-      tumorSizeMm: form.tumorSizeMm !== '' ? Number(form.tumorSizeMm) : undefined,
-      age: form.age !== '' ? Number(form.age) : undefined,
-      rorScore: form.rorScore !== '' ? Number(form.rorScore) : undefined,
-      rsScore: form.rsScore !== '' ? Number(form.rsScore) : undefined,
-      tStageOverride: form.tStageOverride !== '' ? form.tStageOverride : undefined,
-      her2ihc: form.her2ihc !== '' ? form.her2ihc : undefined,
-      her2sish: form.her2sish !== '' ? form.her2sish : undefined,
-      geneTest: form.geneTest !== '' ? form.geneTest : undefined,
-      prosignaSubtype: form.prosignaSubtype !== '' ? form.prosignaSubtype : undefined,
-      brcaStatus: form.brcaStatus !== '' ? form.brcaStatus : undefined,
-      histologicalType: form.histologicalType !== '' ? form.histologicalType : undefined,
-      pcrStatus: form.pcrStatus !== '' ? form.pcrStatus : undefined,
-    };
-    onSubmit(data);
+    onSubmit(normalizePatientData(form));
   }
 
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const isNeoadjuvant = form.treatmentMode === 'neoadjuvant';
-  const showSISH = form.her2ihc === '2+';
-  const isT3orHigher = form.tStageOverride === 'T4' || (form.tumorSizeMm !== '' && Number(form.tumorSizeMm) > 50);
-  const isN1orHigher = ['N1', 'N2', 'N3'].includes(form.nStage);
-  const showGeneTestSection = !isNeoadjuvant;
-  const showProsignaOption = !isT3orHigher && !isN1orHigher;
-  const showOncotypeOption = isN1orHigher && form.menopausalStatus === 'post';
-  const showProsigna = form.geneTest === 'prosigna' && showProsignaOption;
-  const showOncotype = form.geneTest === 'oncotypedx' && showOncotypeOption;
+  const {
+    isNeoadjuvant,
+    showSISH,
+    showGeneTestSection,
+    showProsignaOption,
+    showOncotypeOption,
+    showProsigna,
+    showOncotype,
+  } = deriveFormVisibility(form);
 
   return (
     <form className="patient-form" onSubmit={handleSubmit} noValidate>
-      <h2>Pasientdata — Brystkreft Retningslinjegraver</h2>
+      {!embedded && <h2>Pasientdata — Brystkreft Retningslinjegraver</h2>}
 
       {/* Treatment Mode */}
       <fieldset>
@@ -367,11 +313,13 @@ export default function PatientForm({ onSubmit, loading, onShowTables }) {
         </>
       )}
 
-      <button type="submit" className="submit-btn" disabled={loading}>
-        {loading ? 'Evaluerer...' : 'Evaluer behandlingsvalg'}
-      </button>
+      {!embedded && (
+        <button type="submit" className="submit-btn" disabled={loading}>
+          {loading ? 'Evaluerer...' : 'Evaluer behandlingsvalg'}
+        </button>
+      )}
 
-      {onShowTables && (
+      {!embedded && onShowTables && (
         <p className="tables-link">
           <a href="#beslutningslogikk" onClick={(e) => { e.preventDefault(); onShowTables(); }}>
             Vis bakenforliggende beslutningsstruktur
