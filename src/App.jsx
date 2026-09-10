@@ -4,6 +4,7 @@ import DecisionResult from './components/DecisionResult.jsx';
 import DecisionTableViewer from './components/DecisionTableViewer.jsx';
 import InteractiveDecisionTree from './components/InteractiveDecisionTree.jsx';
 import TableLookup from './components/TableLookup.jsx';
+import TableLookup11 from './components/TableLookup11.jsx';
 import TableLookupWorkbench from './components/TableLookupWorkbench.jsx';
 import { GUIDELINE_VERSION, SCOPE_NOTE } from './guidelineVersion.js';
 import './styles.css';
@@ -13,7 +14,7 @@ import './styles.css';
 const IS_PROD = import.meta.env.PROD;
 
 export default function App() {
-  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup' | 'lookup2'
+  const [page, setPage] = useState('form'); // 'form' | 'tables' | 'tree' | 'lookup' | 'lookup11' | 'lookup2'
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -160,7 +161,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app${page === 'lookup2' ? ' app-wide' : ''}`}>
+    <div className={`app${page === 'lookup2' || page === 'lookup11' ? ' app-wide' : ''}`}>
       <header className="app-header">
         <h1>Brystkreft Retningslinjegraver</h1>
         <p className="subtitle">
@@ -197,6 +198,12 @@ export default function App() {
             onClick={() => setPage('lookup')}
           >
             Tabelloppslag
+          </button>
+          <button
+            className={`nav-btn ${page === 'lookup11' ? 'active' : ''}`}
+            onClick={() => setPage('lookup11')}
+          >
+            Tabelloppslag 1.1
           </button>
           <button
             className={`nav-btn ${page === 'lookup2' ? 'active' : ''}`}
@@ -323,6 +330,8 @@ export default function App() {
         {page === 'tables' && <DecisionTableViewer />}
 
         {page === 'lookup' && <TableLookup />}
+
+        {page === 'lookup11' && <TableLookup11 />}
 
         {page === 'lookup2' && <TableLookupWorkbench />}
       </main>
