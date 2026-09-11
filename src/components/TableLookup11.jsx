@@ -1,37 +1,31 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   tableGeneTest,
   tableNoGeneTest,
   addonTables,
+  guidelineTables,
   sharedRegimens,
 } from '../tablelookup/guidelineTables.js';
 import { findMatchingRows } from '../tablelookup/matcher.js';
 import { MultilineText, computeSpans } from '../tablelookup/tableGrid.jsx';
 import { buildRowPath } from '../tablelookup/journalText.js';
-import {
-  rowKey,
-  buildLookupText,
-  buildRecommendationsOnly,
-  buildSources,
-  buildFootnotes,
-  defaultSelection,
-} from '../tablelookup/lookupText.js';
+import { buildPickedText, describePick, hasPick, movePick } from '../tablelookup/lookupText.js';
+import { buildIntro } from '../tablelookup/introText.js';
 import { renderTemplate, makeTemplateStorage, copyText } from '../textgen/templateEngine.js';
 import { TemplateEditor, VariablePalette } from '../textgen/TemplateEditor.jsx';
-import { GUIDELINE_VERSION, SCOPE_NOTE } from '../guidelineVersion.js';
+import { SCOPE_NOTE } from '../guidelineVersion.js';
 
 // ================================================================
-//  Tabelloppslag 1.1 — rent oppslagsverktøy
+//  Tabelloppslag 1.1 — oppslagsverktøy der legen plukker selv
 //
-//  Verktøyet regner ingenting ut. Alle verdier oppslaget bruker er
-//  eksplisitt oppgitt av legen, hele tabellen vises alltid (ingen rad
-//  skjules eller utelukkes), og all generert tekst er enten legens egne
-//  verdier eller ordrett fra NBCG-tabellen. Det er skillet mot
-//  Pasientvurdering og Tabelloppslag 2.0, som utleder biologisk gruppe,
-//  stadium og luminalgruppe fra tallene.
+//  Forskjellen fra 1.05: markert er ikke det samme som valgt. Tabellen
+//  markerer fortsatt hver rad som passer opplysningene, men det er bare
+//  informasjon om hvor pasienten lander. Journalutkastet starter tomt, og
+//  legen legger til de radene og fotnotene som faktisk gjelder, i den
+//  rekkefølgen han vil ha dem.
+//
+//  Som i 1.05 regner verktøyet ingenting ut, og hele tabellen står alltid.
 // ================================================================
-
-// ---- Felter som styrer oppslaget (alle eksplisitte valg) --------
 
 const BIO_GROUPS = [
   { value: 'HR+HER2-', label: 'HR+ HER2-' },
@@ -49,8 +43,8 @@ const LUMINAL_OPTIONS = [
   { value: 'inconclusive', label: 'Ikke konklusiv Luminal gruppe' },
 ];
 
-// Tabellens egne karakteristika, gjengitt ordrett som lesehjelp. Legen leser
-// kriteriene og velger selv — verktøyet klassifiserer ikke.
+// Tabellens egne karakteristika, ordrett som lesehjelp. Legen leser kriteriene
+// og velger selv — verktøyet klassifiserer ikke.
 const LUMINAL_CRITERIA =
   'Lum A-liknende: Ki67<10%, G1-2, HR>50%. ' +
   'LumB-liknende: 1) Ki67>35%, eller 2) grad 3 og samsvarende høy Ki67, eller 3) HR<50%. ' +
@@ -70,147 +64,77 @@ const EMPTY_LOOKUP = {
 };
 
 // Felter som aldri påvirker oppslaget — kun transkribert til teksten.
-const EMPTY_JOURNAL = {
-  erPercent: '',
-  prPercent: '',
-  her2: '',
-  ki67: '',
-  grade: '',
-  age: '',
-};
+const EMPTY_JOURNAL = { erPercent: '', prPercent: '', her2: '', ki67: '', grade: '', age: '' };
 
-// Forenklet T ('pT2' → 'T2') for CDK4/6-tabellen, som indekseres på TNM.
-// Ren omskriving av legens eget valg, ikke en utledning.
+/** Forenklet T ('pT2' → 'T2') for CDK4/6-tabellen. Ren omskriving av legens eget valg. */
 function simpleT(tStage) {
   if (!tStage) return '';
   if (tStage.startsWith('pT1')) return 'T1';
   return tStage.replace(/^p/, '');
 }
 
-// ---- Malvariabler: kun legens verdier + ordrett tabelltekst -----
-
-const MENOPAUSAL_LABEL = { pre: 'premenopausal', post: 'postmenopausal' };
-const GENE_TEST_LABEL = { prosigna: 'Prosigna (PAM50)', oncotypedx: 'OncotypeDx' };
-const PAM50_LABEL = { lumA: 'Luminal A', lumB: 'Luminal B' };
+// ---- Malvariabler ----------------------------------------------
 
 const TEMPLATE_VARIABLES = [
-  { group: 'Oppgitt av deg — oppslag', vars: [
+  { group: 'Oppgitt av deg', vars: [
+    { id: 'innledning', label: 'Innledning (hele setningen)' },
     { id: 'hovedgruppe', label: 'Hovedgruppe (HR/HER2)' },
-    { id: 'tStadium', label: 'T-stadium' },
-    { id: 'nStadium', label: 'N-stadium' },
-    { id: 'tnm', label: 'T- og N-stadium samlet' },
+    { id: 'tnm', label: 'T- og N-stadium' },
     { id: 'menopausal', label: 'Menopausal status' },
-    { id: 'gentest', label: 'Genekspresjonstest med score' },
-    { id: 'pam50', label: 'PAM50 subtype' },
     { id: 'luminal', label: 'Luminal-liknende gruppe' },
-  ]},
-  { group: 'Oppgitt av deg — journal', vars: [
     { id: 'alder', label: 'Alder' },
-    { id: 'erProsent', label: 'ER (%)' },
-    { id: 'prProsent', label: 'PR (%)' },
-    { id: 'erPr', label: 'ER og PR samlet' },
-    { id: 'her2', label: 'HER2 (IHC/ISH)' },
-    { id: 'ki67', label: 'Ki-67 (%)' },
+    { id: 'erPr', label: 'ER og PR' },
+    { id: 'ki67', label: 'Ki-67' },
     { id: 'grad', label: 'Histologisk grad' },
   ]},
-  { group: 'Ordrett fra tabellene', vars: [
-    { id: 'tabelltekst', label: 'Alle valgte rader (med kilde)' },
-    { id: 'tabellAnbefalinger', label: 'Kun anbefalingstekst' },
-    { id: 'tabellKilder', label: 'Kilder' },
-    { id: 'tabellFotnoter', label: 'Fotnoter' },
+  { group: 'Valgt fra tabellene', vars: [
+    { id: 'utvalg', label: 'Alt du har lagt til, i din rekkefølge' },
   ]},
 ];
 
 const TEMPLATE_CONDITIONS = [
-  { id: 'harAlder', label: 'Alder er oppgitt' },
-  { id: 'harGrad', label: 'Grad er oppgitt' },
-  { id: 'harKi67', label: 'Ki-67 er oppgitt' },
-  { id: 'harGentest', label: 'Genekspresjonstest er oppgitt' },
-  { id: 'harLuminal', label: 'Luminal-gruppe er oppgitt' },
-  { id: 'harFotnoter', label: 'Valgte tabeller har fotnoter' },
+  { id: 'harInnledning', label: 'Innledningen har innhold' },
+  { id: 'harUtvalg', label: 'Noe er lagt til i utkastet' },
 ];
 
 function resolveVar(id, ctx) {
-  const { lookup, journal, sections, selected } = ctx;
-  const dash = (v) => (v === '' || v == null ? '—' : v);
+  const { lookup, journal, picks } = ctx;
+  const blank = (v) => (v === '' || v == null ? '' : v);
   switch (id) {
-    case 'hovedgruppe': return dash(BIO_GROUPS.find((b) => b.value === lookup.bioGroup)?.label);
-    case 'tStadium': return dash(lookup.tStage);
-    case 'nStadium': return dash(lookup.nStage);
-    case 'tnm': return [lookup.tStage, lookup.nStage].filter(Boolean).join('') || '—';
-    case 'menopausal': return dash(MENOPAUSAL_LABEL[lookup.menopausal]);
-    case 'gentest': {
-      if (!lookup.geneTestAvailable || !lookup.geneTest) return 'ikke utført';
-      const name = GENE_TEST_LABEL[lookup.geneTest] || lookup.geneTest;
-      if (lookup.geneTest === 'prosigna' && lookup.rorScore !== '') return `${name}, ROR-score ${lookup.rorScore}`;
-      if (lookup.geneTest === 'oncotypedx' && lookup.rsScore !== '') return `${name}, RS ${lookup.rsScore}`;
-      return name;
-    }
-    case 'pam50': return dash(PAM50_LABEL[lookup.prosignaSubtype]);
-    case 'luminal': return dash(LUMINAL_OPTIONS.find((l) => l.value === lookup.luminalLike)?.label);
-    case 'alder': return journal.age !== '' ? `${journal.age} år` : '—';
-    case 'erProsent': return journal.erPercent !== '' ? `${journal.erPercent} %` : '—';
-    case 'prProsent': return journal.prPercent !== '' ? `${journal.prPercent} %` : '—';
-    case 'erPr': {
-      const parts = [];
-      if (journal.erPercent !== '') parts.push(`ER ${journal.erPercent} %`);
-      if (journal.prPercent !== '') parts.push(`PR ${journal.prPercent} %`);
-      return parts.join(', ') || '—';
-    }
-    case 'her2': return dash(journal.her2);
-    case 'ki67': return journal.ki67 !== '' ? `Ki-67 ${journal.ki67} %` : '—';
-    case 'grad': return journal.grade !== '' ? `grad ${journal.grade}` : '—';
-    case 'tabelltekst': return buildLookupText(sections, selected) || '—';
-    case 'tabellAnbefalinger': return buildRecommendationsOnly(sections, selected) || '—';
-    case 'tabellKilder': return buildSources(sections, selected) || '—';
-    case 'tabellFotnoter': return buildFootnotes(sections, selected) || 'Ingen';
+    case 'innledning': return buildIntro(lookup, journal);
+    case 'hovedgruppe': return blank(BIO_GROUPS.find((b) => b.value === lookup.bioGroup)?.label);
+    case 'tnm': return [lookup.tStage, lookup.nStage].filter(Boolean).join('');
+    case 'menopausal': return lookup.menopausal === 'post' ? 'postmenopausal'
+      : lookup.menopausal === 'pre' ? 'premenopausal' : '';
+    case 'luminal': return blank(LUMINAL_OPTIONS.find((l) => l.value === lookup.luminalLike)?.label);
+    case 'alder': return journal.age !== '' ? `${journal.age} år` : '';
+    case 'erPr': return [
+      journal.erPercent !== '' ? `ER ${journal.erPercent} %` : '',
+      journal.prPercent !== '' ? `PR ${journal.prPercent} %` : '',
+    ].filter(Boolean).join(', ');
+    case 'ki67': return journal.ki67 !== '' ? `Ki-67 ${journal.ki67} %` : '';
+    case 'grad': return journal.grade !== '' ? `grad ${journal.grade}` : '';
+    case 'utvalg': return buildPickedText(picks, guidelineTables);
     default: return `[${id}]`;
   }
 }
 
 function evalCond(id, ctx) {
-  const { lookup, journal, sections, selected } = ctx;
   switch (id) {
-    case 'harAlder': return journal.age !== '';
-    case 'harGrad': return journal.grade !== '';
-    case 'harKi67': return journal.ki67 !== '';
-    case 'harGentest': return !!(lookup.geneTestAvailable && lookup.geneTest);
-    case 'harLuminal': return !!lookup.luminalLike;
-    case 'harFotnoter': return !!buildFootnotes(sections, selected);
+    case 'harInnledning': return !!buildIntro(ctx.lookup, ctx.journal);
+    case 'harUtvalg': return ctx.picks.length > 0;
     default: return false;
   }
 }
 
-// Innledningen består utelukkende av verdier legen selv har oppgitt.
-const TEMPLATE_WITH_PATIENT = [
-  { type: 'cond', condition: 'harAlder', trueText: 'Kvinne ', falseText: 'Pasient med ' },
-  { type: 'cond', condition: 'harAlder', trueText: '', falseText: '', useVar: 'alder' },
-  { type: 'cond', condition: 'harAlder', trueText: ', ', falseText: '' },
-  { type: 'var', varId: 'menopausal' },
-  { type: 'text', value: '. ' },
-  { type: 'var', varId: 'hovedgruppe' },
-  { type: 'text', value: ' ' },
-  { type: 'var', varId: 'tnm' },
-  { type: 'text', value: ', ' },
-  { type: 'var', varId: 'erPr' },
-  { type: 'cond', condition: 'harKi67', trueText: ', ', falseText: '' },
-  { type: 'cond', condition: 'harKi67', trueText: '', falseText: '', useVar: 'ki67' },
-  { type: 'cond', condition: 'harGrad', trueText: ', ', falseText: '' },
-  { type: 'cond', condition: 'harGrad', trueText: '', falseText: '', useVar: 'grad' },
-  { type: 'cond', condition: 'harGentest', trueText: '. Genekspresjonstest: ', falseText: '' },
-  { type: 'cond', condition: 'harGentest', trueText: '', falseText: '', useVar: 'gentest' },
-  { type: 'cond', condition: 'harLuminal', trueText: '. Vurdert som ', falseText: '' },
-  { type: 'cond', condition: 'harLuminal', trueText: '', falseText: '', useVar: 'luminal' },
-  { type: 'text', value: '.\n\nOppslag i NBCG sine anbefalingstabeller:\n\n' },
-  { type: 'var', varId: 'tabelltekst' },
-];
-
-const TEMPLATE_TABLE_ONLY = [
+const DEFAULT_TEMPLATE = [
+  { type: 'cond', condition: 'harInnledning', trueText: '', falseText: '', useVar: 'innledning' },
+  { type: 'cond', condition: 'harInnledning', trueText: '\n\n', falseText: '' },
   { type: 'text', value: 'Oppslag i NBCG sine anbefalingstabeller:\n\n' },
-  { type: 'var', varId: 'tabelltekst' },
+  { type: 'var', varId: 'utvalg' },
 ];
 
-const storage = makeTemplateStorage('lookup11Templates');
+const storage = makeTemplateStorage('lookup11PicksTemplates');
 
 // ================================================================
 //  Komponent
@@ -219,30 +143,18 @@ const storage = makeTemplateStorage('lookup11Templates');
 export default function TableLookup11() {
   const [lookup, setLookup] = useState(EMPTY_LOOKUP);
   const [journal, setJournal] = useState(EMPTY_JOURNAL);
-  const [mode, setMode] = useState('withPatient'); // 'withPatient' | 'tableOnly'
-  const [blocks, setBlocks] = useState(TEMPLATE_WITH_PATIENT);
-  const [touchedTemplate, setTouchedTemplate] = useState(false);
-  const [deselected, setDeselected] = useState(() => new Set());
+  const [picks, setPicks] = useState([]);
+  const [blocks, setBlocks] = useState(DEFAULT_TEMPLATE);
   const [savedTemplates, setSavedTemplates] = useState(() => storage.load());
   const [newTemplateName, setNewTemplateName] = useState('');
   const [copied, setCopied] = useState(false);
 
-  function updateLookup(field, value) {
-    setLookup((prev) => ({ ...prev, [field]: value }));
-  }
-  function updateJournal(field, value) {
-    setJournal((prev) => ({ ...prev, [field]: value }));
-  }
+  const updateLookup = (field, value) => setLookup((p) => ({ ...p, [field]: value }));
+  const updateJournal = (field, value) => setJournal((p) => ({ ...p, [field]: value }));
 
-  // Matcher-input er legens valg, ordrett — pluss forenklet T, som er en ren
-  // omskriving av T-stadiet legen alt har valgt.
-  const matchInput = useMemo(
-    () => ({ ...lookup, tSimple: simpleT(lookup.tStage) }),
-    [lookup],
-  );
+  const matchInput = useMemo(() => ({ ...lookup, tSimple: simpleT(lookup.tStage) }), [lookup]);
 
-  // Relevante tabeller, som i Tabelloppslag: primærtabell etter gentest-status,
-  // tillegg etter hovedgruppe. Flere tabeller kan gjelde samtidig.
+  // Relevante tabeller: primærtabell etter gentest-status, tillegg etter hovedgruppe.
   const sections = useMemo(() => {
     const primary = lookup.geneTestAvailable ? tableGeneTest : tableNoGeneTest;
     const list = [{ table: primary, role: 'Primæranbefaling' }];
@@ -255,42 +167,28 @@ export default function TableLookup11() {
   }, [lookup.geneTestAvailable, lookup.bioGroup, matchInput]);
 
   const otherTable = lookup.geneTestAvailable ? tableNoGeneTest : tableGeneTest;
-
-  // Alle treff er med som standard; legen fjerner det som ikke skal i brevet.
-  const selected = useMemo(() => {
-    const all = defaultSelection(sections);
-    for (const key of deselected) all.delete(key);
-    return all;
-  }, [sections, deselected]);
-
   const totalMatches = sections.reduce((n, s) => n + s.matches.length, 0);
 
-  // Malen følger veksleren så lenge legen ikke har redigert den selv.
-  useEffect(() => {
-    if (touchedTemplate) return;
-    setBlocks(mode === 'withPatient' ? TEMPLATE_WITH_PATIENT : TEMPLATE_TABLE_ONLY);
-  }, [mode, touchedTemplate]);
-
-  const ctx = { lookup, journal, sections, selected };
+  const ctx = { lookup, journal, picks };
   const renderedText = useMemo(
-    () => (selected.size ? renderTemplate(blocks, (id) => resolveVar(id, ctx), (id) => evalCond(id, ctx)) : ''),
-    [blocks, lookup, journal, sections, selected],
+    () => (picks.length ? renderTemplate(blocks, (id) => resolveVar(id, ctx), (id) => evalCond(id, ctx)) : ''),
+    [blocks, lookup, journal, picks],
   );
 
-  function toggleRow(tableId, rowIndex) {
-    const key = rowKey(tableId, rowIndex);
-    setDeselected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  function addPick(kind, tableId, index) {
+    setPicks((prev) => (hasPick(prev, kind, tableId, index) ? prev : [...prev, { kind, tableId, index }]));
+  }
+  function removePick(at) {
+    setPicks((prev) => prev.filter((_, i) => i !== at));
+  }
+  function removePickByRef(kind, tableId, index) {
+    setPicks((prev) => prev.filter((p) => !(p.kind === kind && p.tableId === tableId && p.index === index)));
   }
 
   function handleReset() {
     setLookup(EMPTY_LOOKUP);
     setJournal(EMPTY_JOURNAL);
-    setDeselected(new Set());
+    setPicks([]);
   }
 
   function handleCopy() {
@@ -313,11 +211,6 @@ export default function TableLookup11() {
     setSavedTemplates(storage.load());
   }
 
-  function handleTemplateChange(next) {
-    setTouchedTemplate(true);
-    setBlocks(next);
-  }
-
   const savedNames = Object.keys(savedTemplates);
   const showLuminal = lookup.bioGroup === 'HR+HER2-' && !lookup.geneTestAvailable;
 
@@ -325,21 +218,37 @@ export default function TableLookup11() {
     <div className="tl11">
       <div className="tl11-header">
         <h2>Tabelloppslag 1.1</h2>
-        <p className="tl11-subtitle">
-          Et rent oppslagsverktøy. Du oppgir selv hvor pasienten hører hjemme, verktøyet
-          viser hele NBCG-tabellen og markerer raden, og teksten settes sammen av dine egne
-          verdier og tabellens ordrette tekst.
+        <p className="tl11-lead">
+          Du oppgir hvor pasienten hører hjemme, tabellen markerer raden, og du legger selv
+          det du vil ha inn i journalutkastet.
         </p>
-        <p className="tl11-mdr">
-          <strong>Verktøyet regner ingenting ut.</strong> Hovedgruppe, stadium, menopausal status
-          og luminal gruppe er verdier du oppgir — ingen av dem utledes fra tall. Ingen rad
-          skjules eller utelukkes: hele tabellen står slik den gjør i handlingsprogrammet.
-          Dette er ingen beslutningsstøtte, og all tolkning gjøres av deg.
-        </p>
+        <details className="tl11-about">
+          <summary>Om verktøyet</summary>
+          <p>
+            <strong>Verktøyet regner ingenting ut.</strong> Hovedgruppe, stadium, menopausal
+            status og luminal gruppe er verdier du oppgir — ingen av dem utledes fra tall.
+            Ingen rad skjules eller utelukkes: hele tabellen står slik den gjør i
+            handlingsprogrammet. At en rad er markert betyr bare at den passer opplysningene
+            dine; ingenting havner i journalteksten før du legger det til.
+          </p>
+          <p>
+            Dette er ingen beslutningsstøtte, og all tolkning gjøres av deg. All generert
+            tekst er enten verdier du selv har oppgitt eller ordrett fra NBCG-tabellen.
+            Kontroller alltid mot siste versjon av handlingsprogrammet. {SCOPE_NOTE}
+          </p>
+          <p className="tl11-revisions">
+            Oppslaget bruker: {guidelineTables.map((t, i) => (
+              <React.Fragment key={t.id}>
+                {i > 0 && ' · '}
+                {t.shortTitle} <strong>rev. {t.revision}</strong>
+              </React.Fragment>
+            ))}
+          </p>
+        </details>
       </div>
 
       <div className="tl11-grid">
-        {/* ============ 01 OPPSLAGSGRUNNLAG ============ */}
+        {/* ============ 01 GRUNNLAG ============ */}
         <section className="tl11-col tl11-col-input">
           <div className="tl11-col-head">
             <span className="tl11-step">01 / Grunnlag</span>
@@ -351,7 +260,6 @@ export default function TableLookup11() {
 
           <fieldset className="tl11-fieldset tl11-fieldset-lookup">
             <legend>Styrer oppslaget</legend>
-            <p className="tl11-fieldset-note">Disse verdiene bestemmer hvilken rad som markeres.</p>
 
             <label className="tl11-field">
               Hovedgruppe (HR/HER2)
@@ -416,7 +324,7 @@ export default function TableLookup11() {
                     <label className="tl11-field">
                       PAM50 subtype
                       <select value={lookup.prosignaSubtype} onChange={(e) => updateLookup('prosignaSubtype', e.target.value)}>
-                        <option value="">— Velg (brukes ved ROR 41–60) —</option>
+                        <option value="">— Velg (ved ROR 41–60) —</option>
                         <option value="lumA">Luminal A</option>
                         <option value="lumB">Luminal B</option>
                       </select>
@@ -447,7 +355,6 @@ export default function TableLookup11() {
 
           <fieldset className="tl11-fieldset tl11-fieldset-journal">
             <legend>Gjengis bare i teksten</legend>
-            <p className="tl11-fieldset-note">Påvirker ikke oppslaget — skrives kun inn i journalteksten.</p>
 
             <div className="tl11-field-row">
               <label className="tl11-field">
@@ -499,16 +406,14 @@ export default function TableLookup11() {
           <div className="tl11-col-head">
             <span className="tl11-step">02 / Oppslag</span>
             <h3>NBCG-tabellene</h3>
-            <p className="tl11-col-desc">
-              Hele tabellen vises alltid. Markert rad er der opplysningene dine peker.
-            </p>
+            <p className="tl11-col-desc">Markert rad passer opplysningene dine. Legg til det du vil ha i teksten.</p>
           </div>
 
           {!lookup.bioGroup ? (
             <div className="tl11-empty">
               <div className="tl11-empty-icon">☰</div>
               <h4>Velg hovedgruppe</h4>
-              <p>Oppslaget markerer rad når du har oppgitt hovedgruppe. Tabellene vises uansett i sin helhet.</p>
+              <p>Tabellene vises i sin helhet uansett — oppslaget markerer rad når hovedgruppe er valgt.</p>
             </div>
           ) : (
             <>
@@ -525,8 +430,9 @@ export default function TableLookup11() {
                   table={table}
                   role={role}
                   matches={matches}
-                  selected={selected}
-                  onToggleRow={toggleRow}
+                  picks={picks}
+                  onAdd={addPick}
+                  onRemove={removePickByRef}
                 />
               ))}
             </>
@@ -534,7 +440,7 @@ export default function TableLookup11() {
 
           <details className="tl11-other">
             <summary>Vis også: {otherTable.shortTitle} (referanse, ingen markering)</summary>
-            <GuidelineTableView table={otherTable} matches={[]} selected={selected} onToggleRow={toggleRow} />
+            <GuidelineTableView table={otherTable} matches={[]} picks={picks} onAdd={addPick} onRemove={removePickByRef} />
           </details>
 
           <details className="tl11-regimens">
@@ -548,54 +454,40 @@ export default function TableLookup11() {
               ))}
             </div>
           </details>
-
-          <p className="tl11-disclaimer">
-            Verktøyet gjengir tabeller fra NBCG sitt handlingsprogram for å vise hvor pasienten hører
-            hjemme og forenkle journalføring. Det er ingen beslutningsstøtte. Innhold verifisert mot
-            NBCG Handlingsprogram {GUIDELINE_VERSION.handlingsprogram} (+ tabeller {GUIDELINE_VERSION.tables}).
-            Kontroller alltid mot siste versjon. {SCOPE_NOTE}
-          </p>
         </section>
 
-        {/* ============ 03 SVARBREV ============ */}
+        {/* ============ 03 JOURNALUTKAST ============ */}
         <section className="tl11-col tl11-col-doc">
           <div className="tl11-col-head">
             <span className="tl11-step">03 / Dokumentasjon</span>
             <div className="tl11-title-row">
               <h3>Journalutkast</h3>
-              <span className="tl11-count">{renderedText.length}</span>
+              <span className="tl11-count">{picks.length}</span>
             </div>
             <p className="tl11-col-desc">Mal-basert svar på henvisning</p>
           </div>
 
-          <div className="tl11-mode">
-            <button
-              className={`tl11-mode-btn ${mode === 'withPatient' ? 'active' : ''}`}
-              onClick={() => setMode('withPatient')}
-            >
-              Med pasientopplysninger
-            </button>
-            <button
-              className={`tl11-mode-btn ${mode === 'tableOnly' ? 'active' : ''}`}
-              onClick={() => setMode('tableOnly')}
-            >
-              Kun tabelltekst
-            </button>
-          </div>
-          {touchedTemplate && (
-            <p className="tl11-mode-note">
-              Malen er redigert manuelt, så veksleren endrer den ikke lenger. Bruk «Tilbakestill mal».
-            </p>
-          )}
-
-          {!selected.size ? (
+          {!picks.length ? (
             <div className="tl11-empty">
               <div className="tl11-empty-icon">¶</div>
-              <h4>Fra tabell til utkast</h4>
-              <p>Når en rad er markert, samles den ordrette tabellteksten, forbeholdene og kilden her.</p>
+              <h4>Utkastet er tomt</h4>
+              <p>Trykk «Legg til» på en markert rad eller en fotnote for å bygge teksten. Ingenting tas med av seg selv.</p>
             </div>
           ) : (
             <>
+              <ol className="tl11-picks">
+                {picks.map((pick, i) => (
+                  <li key={`${pick.kind}-${pick.tableId}-${pick.index}`} className={`tl11-pick tl11-pick-${pick.kind}`}>
+                    <span className="tl11-pick-label">{describePick(pick, guidelineTables)}</span>
+                    <span className="tl11-pick-actions">
+                      <button onClick={() => setPicks((p) => movePick(p, i, -1))} disabled={i === 0} title="Flytt opp">↑</button>
+                      <button onClick={() => setPicks((p) => movePick(p, i, 1))} disabled={i === picks.length - 1} title="Flytt ned">↓</button>
+                      <button className="tl11-pick-del" onClick={() => removePick(i)} title="Fjern">×</button>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+
               <div className="tl11-preview-head">
                 <h4>Generert tekst</h4>
                 <button className="copy-btn" onClick={handleCopy}>
@@ -607,8 +499,8 @@ export default function TableLookup11() {
               <details className="tl11-template">
                 <summary>Malen</summary>
                 <p className="tl11-template-note">
-                  Teksten består av verdiene du har oppgitt og den ordrette teksten fra radene du
-                  har krysset av. Ingenting er omskrevet eller utledet.
+                  Innledningen bygges av verdiene du har oppgitt; felter du ikke har fylt ut
+                  utelates. Resten er ordrett fra det du har lagt til.
                 </p>
 
                 {savedNames.length > 0 && (
@@ -616,7 +508,7 @@ export default function TableLookup11() {
                     <strong>Lagrede maler:</strong>
                     {savedNames.map((name) => (
                       <span key={name} className="tl11-saved-item">
-                        <button onClick={() => { setTouchedTemplate(true); setBlocks(savedTemplates[name]); }}>{name}</button>
+                        <button onClick={() => setBlocks(savedTemplates[name])}>{name}</button>
                         <button className="tl11-saved-del" onClick={() => handleDeleteTemplate(name)} title="Slett">×</button>
                       </span>
                     ))}
@@ -625,12 +517,12 @@ export default function TableLookup11() {
 
                 <VariablePalette
                   variables={TEMPLATE_VARIABLES}
-                  onInsert={(varId) => handleTemplateChange([...blocks, { type: 'var', varId }])}
+                  onInsert={(varId) => setBlocks([...blocks, { type: 'var', varId }])}
                 />
 
                 <TemplateEditor
                   blocks={blocks}
-                  onChange={handleTemplateChange}
+                  onChange={setBlocks}
                   variables={TEMPLATE_VARIABLES}
                   conditions={TEMPLATE_CONDITIONS}
                   resolvePreview={(id) => resolveVar(id, ctx)}
@@ -638,17 +530,10 @@ export default function TableLookup11() {
                 />
 
                 <div className="tl11-template-actions">
-                  <input
-                    type="text"
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="Navn på mal…"
-                  />
+                  <input type="text" value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)} placeholder="Navn på mal…" />
                   <button onClick={handleSaveTemplate} disabled={!newTemplateName.trim()}>Lagre mal</button>
-                  <button onClick={() => {
-                    setTouchedTemplate(false);
-                    setBlocks(mode === 'withPatient' ? TEMPLATE_WITH_PATIENT : TEMPLATE_TABLE_ONLY);
-                  }}>Tilbakestill mal</button>
+                  <button onClick={() => setBlocks(DEFAULT_TEMPLATE)}>Tilbakestill mal</button>
                 </div>
               </details>
             </>
@@ -663,7 +548,7 @@ export default function TableLookup11() {
 //  Tabellen, gjengitt som i handlingsprogrammet
 // ================================================================
 
-function GuidelineTableView({ table, role, matches, selected, onToggleRow }) {
+function GuidelineTableView({ table, role, matches, picks, onAdd, onRemove }) {
   const matchSet = useMemo(() => new Set(matches), [matches]);
   const spans = useMemo(() => computeSpans(table.rows, table.mergeCount), [table]);
   const recColSet = useMemo(() => new Set((table.recCols || []).map((rc) => rc.idx)), [table]);
@@ -674,33 +559,33 @@ function GuidelineTableView({ table, role, matches, selected, onToggleRow }) {
       <h4 className="tl11-table-title">
         {role && <span className="tl11-role-badge">{role}</span>}
         {table.title}
+        <span className="tl11-rev-badge">rev. {table.revision}</span>
       </h4>
 
       <div className="tl11-table-scroll">
         <table className="lookup-table tl11-table">
           <thead>
             <tr>
-              {hasMatch && <th className="tl11-pick-col">Med i tekst</th>}
+              {hasMatch && <th className="tl11-add-col">Til utkast</th>}
               {table.columns.map((c, i) => <th key={i}>{c}</th>)}
             </tr>
           </thead>
           <tbody>
             {table.rows.map((row, rowIdx) => {
               const isHit = matchSet.has(rowIdx);
-              const isPicked = isHit && selected.has(rowKey(table.id, rowIdx));
+              const added = hasPick(picks, 'row', table.id, rowIdx);
               return (
                 <tr key={rowIdx} className={isHit ? 'lookup-row-hit' : ''}>
                   {hasMatch && (
-                    <td className="tl11-pick-cell">
+                    <td className="tl11-add-cell">
                       {isHit && (
-                        <label className="tl11-pick">
-                          <input
-                            type="checkbox"
-                            checked={isPicked}
-                            onChange={() => onToggleRow(table.id, rowIdx)}
-                            aria-label={`Ta med ${buildRowPath(row, table)} i teksten`}
-                          />
-                        </label>
+                        added ? (
+                          <button className="tl11-added" onClick={() => onRemove('row', table.id, rowIdx)}
+                            title="Fjern fra utkastet">✓ Lagt til</button>
+                        ) : (
+                          <button className="tl11-add" onClick={() => onAdd('row', table.id, rowIdx)}
+                            title={`Legg ${buildRowPath(row, table)} til i utkastet`}>Legg til</button>
+                        )
                       )}
                     </td>
                   )}
@@ -731,9 +616,27 @@ function GuidelineTableView({ table, role, matches, selected, onToggleRow }) {
 
       {table.footnotes?.length > 0 && (
         <div className="tl11-footnotes">
-          {table.footnotes.map((f, i) => <p key={i}>{f}</p>)}
+          <span className="tl11-footnotes-head">Fotnoter — legg til de som gjelder pasienten</span>
+          <ul>
+            {table.footnotes.map((note, i) => {
+              const added = hasPick(picks, 'footnote', table.id, i);
+              return (
+                <li key={i}>
+                  {added ? (
+                    <button className="tl11-added" onClick={() => onRemove('footnote', table.id, i)}
+                      title="Fjern fra utkastet">✓ Lagt til</button>
+                  ) : (
+                    <button className="tl11-add" onClick={() => onAdd('footnote', table.id, i)}>Legg til</button>
+                  )}
+                  <span>{note}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
+
+      {table.appNote && <p className="tl11-appnote">Merknad fra verktøyet (ikke NBCG-tekst): {table.appNote}</p>}
     </div>
   );
 }

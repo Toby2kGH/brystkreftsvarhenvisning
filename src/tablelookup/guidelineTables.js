@@ -48,6 +48,7 @@ export const tableGeneTest = {
     'Anbefalinger for primæropererte pasienter med HR+HER2- pT1-2pN0 status eller postmenopausale pasienter med pT1-2pN1 status hvor svar på anbefalt genekspresjonstest foreligger',
   shortTitle: 'Genekspresjonstest foreligger',
   source: 'NBCG Handlingsprogram — tabell «genekspresjonstest foreligger» (rev. 12.24)',
+  revision: '12.24',
   // Hvilken type tabell: 'primary' = hovedoppslag, 'addon' = tilleggsbehandling
   kind: 'primary',
   // Antall venstre-kolonner som kan slås sammen (rowSpan): gruppe, N-status, genekspresjonstest
@@ -235,6 +236,7 @@ export const tableNoGeneTest = {
     'Anbefalinger for adjuvant systemisk behandling etter primærkirurgi dersom det ikke er indikasjon for genekspresjonstest eller slik test ikke er utført (19.11.25)',
   shortTitle: 'Genekspresjonstest ikke utført',
   source: 'NBCG Handlingsprogram — tabell «ikke genekspresjonstest» (rev. 19.11.25)',
+  revision: '19.11.25',
   kind: 'primary',
   // Venstre-kolonner som kan slås sammen: hovedgruppe, subgruppering
   mergeCount: 2,
@@ -501,6 +503,7 @@ export const tableCDK46 = {
   title: 'Oversikt anbefaling om bruk av CDK4/6 hemmer i kombinasjon med endokrin behandling (19.11.25)',
   shortTitle: 'CDK4/6-hemmer (tillegg, HR+)',
   source: 'NBCG Handlingsprogram — tabell «adjuvant CDK4/6-hemmer» (rev. 19.11.25)',
+  revision: '19.11.25',
   kind: 'addon',
   // Relevant som tillegg for HR-positiv, HER2-negativ sykdom
   appliesToBioGroups: ['HR+HER2-'],
@@ -536,8 +539,12 @@ export const tableCDK46 = {
   ],
   footnotes: [
     '* Ingen behandlingsindikasjon ved pN1mic (mikrometastase). #GES = genekspresjon.',
-    'Tabellen er en tilleggsvurdering for HR+HER2- sykdom og kommer i tillegg til primæranbefalingen. Cellene angir betingelsene (grad/GES) ordrett — vurder disse opp mot pasienten.',
   ],
+  // Redaksjonell merknad om hvordan verktøyet behandler tabellen — IKKE fra
+  // PDF-en, og derfor holdt utenfor `footnotes`, som kun skal være ordrett
+  // NBCG-tekst som kan siteres i et svarbrev.
+  appNote:
+    'Tabellen er en tilleggsvurdering for HR+HER2- sykdom og kommer i tillegg til primæranbefalingen. Cellene angir betingelsene (grad/GES) ordrett — vurder disse opp mot pasienten.',
 };
 
 // ================================================================
