@@ -161,3 +161,108 @@ describe('flere tabeller samtidig', () => {
     expect(text).toContain(tableGeneTest.source);
   });
 });
+
+// ================================================================
+//  Ordnet utvalg (versjon 1.1)
+// ================================================================
+
+import {
+  pickKey,
+  hasPick,
+  formatFootnoteBlock,
+  buildPickedText,
+  describePick,
+  movePick,
+} from '../src/tablelookup/lookupText.js';
+import { guidelineTables } from '../src/tablelookup/guidelineTables.js';
+
+describe('buildPickedText — legen bestemmer innhold og rekkefølge', () => {
+  const rowA = { kind: 'row', tableId: 'nogenetest', index: 13 };
+  const rowB = { kind: 'row', tableId: 'cdk46', index: 4 };
+  const note = { kind: 'footnote', tableId: 'nogenetest', index: 0 };
+
+  it('gir tom tekst når ingenting er lagt til', () => {
+    expect(buildPickedText([], guidelineTables)).toBe('');
+  });
+
+  it('følger legens rekkefølge, ikke tabellenes', () => {
+    const forward = buildPickedText([rowA, rowB], guidelineTables);
+    const reversed = buildPickedText([rowB, rowA], guidelineTables);
+    expect(forward).not.toBe(reversed);
+    expect(forward.indexOf('Genekspresjonstest ikke utført')).toBeLessThan(forward.indexOf('CDK4/6-hemmer'));
+    expect(reversed.indexOf('CDK4/6-hemmer')).toBeLessThan(reversed.indexOf('Genekspresjonstest ikke utført'));
+  });
+
+  it('lar fotnoter flettes inn mellom rader', () => {
+    const text = buildPickedText([rowA, note, rowB], guidelineTables);
+    const noteAt = text.indexOf('Fotnote —');
+    expect(noteAt).toBeGreaterThan(text.indexOf('Genekspresjonstest ikke utført —'));
+    expect(noteAt).toBeLessThan(text.indexOf('CDK4/6-hemmer'));
+  });
+
+  it('tar bare med det som faktisk er lagt til', () => {
+    const text = buildPickedText([rowB], guidelineTables);
+    expect(text).toContain('CDK4/6-hemmer');
+    expect(text).not.toContain('Genekspresjonstest ikke utført');
+  });
+
+  it('hopper over ukjente tabeller og rader i stedet for å krasje', () => {
+    expect(buildPickedText([{ kind: 'row', tableId: 'finnesikke', index: 0 }], guidelineTables)).toBe('');
+    expect(buildPickedText([{ kind: 'row', tableId: 'cdk46', index: 999 }], guidelineTables)).toBe('');
+    expect(buildPickedText([{ kind: 'footnote', tableId: 'cdk46', index: 99 }], guidelineTables)).toBe('');
+  });
+
+  it('gjengir fotnoten ordrett og merker hvilken tabell den hører til', () => {
+    const table = guidelineTables.find((t) => t.id === 'nogenetest');
+    const block = formatFootnoteBlock(table, 0);
+    expect(block).toContain(table.footnotes[0]);
+    expect(block).toContain(table.shortTitle);
+    expect(block).toContain(`rev. ${table.revision}`);
+  });
+});
+
+describe('hjelpere for plukklisten', () => {
+  it('hasPick kjenner igjen det som alt er lagt til', () => {
+    const picks = [{ kind: 'row', tableId: 'cdk46', index: 4 }];
+    expect(hasPick(picks, 'row', 'cdk46', 4)).toBe(true);
+    expect(hasPick(picks, 'footnote', 'cdk46', 4)).toBe(false);
+    expect(hasPick(picks, 'row', 'cdk46', 5)).toBe(false);
+  });
+
+  it('pickKey skiller rad og fotnote med samme indeks', () => {
+    expect(pickKey({ kind: 'row', tableId: 'cdk46', index: 0 }))
+      .not.toBe(pickKey({ kind: 'footnote', tableId: 'cdk46', index: 0 }));
+  });
+
+  it('describePick gir en lesbar etikett for begge typer', () => {
+    expect(describePick({ kind: 'row', tableId: 'cdk46', index: 4 }, guidelineTables)).toContain('T2N1');
+    expect(describePick({ kind: 'footnote', tableId: 'cdk46', index: 0 }, guidelineTables)).toMatch(/^Fotnote/);
+  });
+
+  it('movePick bytter plass og lar endene være i fred', () => {
+    const picks = [{ kind: 'row', tableId: 'a', index: 0 }, { kind: 'row', tableId: 'b', index: 1 }];
+    expect(movePick(picks, 0, 1)[0].tableId).toBe('b');
+    expect(movePick(picks, 0, -1)).toBe(picks);
+    expect(movePick(picks, 1, 1)).toBe(picks);
+  });
+});
+
+describe('fotnotene er ordrett NBCG-tekst', () => {
+  it('ingen app-forfattet merknad ligger i footnotes', () => {
+    for (const table of guidelineTables) {
+      for (const note of table.footnotes) {
+        expect(note).not.toContain('verktøyet');
+        expect(note).not.toContain('Tabellen er en tilleggsvurdering');
+      }
+      // Den redaksjonelle merknaden skal ligge i sitt eget felt, ikke blant fotnotene
+      if (table.appNote) expect(table.footnotes).not.toContain(table.appNote);
+    }
+  });
+
+  it('hver tabell oppgir sin egen revisjon strukturert', () => {
+    for (const table of guidelineTables) {
+      expect(table.revision).toBeTruthy();
+      expect(table.source).toContain(table.revision);
+    }
+  });
+});
