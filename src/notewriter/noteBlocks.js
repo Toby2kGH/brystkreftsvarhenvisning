@@ -16,7 +16,14 @@ const nextKey = (prefix) => `${prefix}-${++counter}`;
 export function addSentence(blocks, option) {
   if (!option) return blocks;
   if (blocks.some((b) => b.kind === 'sentence' && b.optionId === option.id)) return blocks;
-  return [...blocks, { key: nextKey('s'), kind: 'sentence', optionId: option.id, text: option.text }];
+  // Indikasjoner lagrer kjernen («EC90 ×4 etterfulgt av taxan»); ledeteksten
+  // settes på først ved sammensetning, så den følger oppsettet legen har valgt.
+  return [...blocks, {
+    key: nextKey('s'),
+    kind: 'sentence',
+    optionId: option.id,
+    text: option.core ?? option.text,
+  }];
 }
 
 /** Fjern blokken som hører til denne avkryssingen. Fri tekst røres aldri. */
