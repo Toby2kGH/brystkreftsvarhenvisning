@@ -51,7 +51,8 @@ export const SENTENCE_GROUPS = [
       { id: 'kjemo-taxan-12uker', label: 'Taxan ×12 uker', core: 'taxan over 12 uker', source: 'regelmotor' },
       { id: 'kjemo-dosedense', label: 'Dose-dense EC90 q2w → taxan', core: 'dose-dense EC90 hver 2. uke etterfulgt av docetaxel q2w eller paklitaxel ukentlig', source: 'regelmotor' },
       { id: 'kjemo-capecitabin', label: 'Capecitabin ×6–8 (CREATE-X)', core: 'capecitabin 1250 mg/m² ×2 daglig dag 1–14, hver 3. uke × 6–8 kurer (CREATE-X)', source: 'regelmotor' },
-      { id: 'kjemo-ingen', label: 'Ingen kjemoterapi', core: 'ikke kjemoterapi', source: 'regelmotor' },
+      { id: 'kjemo-ingen', label: 'Ingen kjemoterapi',
+        sentence: 'Det er ikke indikasjon for kjemoterapi.', source: 'regelmotor' },
     ],
   },
   {
@@ -60,6 +61,7 @@ export const SENTENCE_GROUPS = [
     kind: 'indikasjon',
     select: 'multi',
     lead: 'Videre er det indikasjon for',
+    firstLead: 'I henhold til retningslinjer er det indikasjon for {intent} behandling med',
     options: [
       { id: 'immun-keynote-neo', label: 'Pembrolizumab neoadjuvant (KEYNOTE-522)',
         core: 'pembrolizumab med karboplatin og paklitaxel × 12 uker, deretter pembrolizumab med EC90 ×4 (KEYNOTE-522)', source: 'regelmotor' },
@@ -73,6 +75,7 @@ export const SENTENCE_GROUPS = [
     kind: 'indikasjon',
     select: 'multi',
     lead: 'Videre er det indikasjon for HER2-rettet behandling med',
+    firstLead: 'I henhold til retningslinjer er det indikasjon for HER2-rettet behandling med',
     options: [
       { id: 'her2-trastuzumab', label: 'Trastuzumab i 1 år',
         core: 'trastuzumab hver 3. uke i totalt 1 år, med oppstart samtidig med taxanbehandlingen', source: 'regelmotor' },
@@ -88,6 +91,7 @@ export const SENTENCE_GROUPS = [
     kind: 'indikasjon',
     select: 'multi',
     lead: 'Videre indikasjon for {intent} endokrin behandling:',
+    firstLead: 'I henhold til retningslinjer er det indikasjon for {intent} endokrin behandling:',
     options: [
       { id: 'endo-ai-5', label: 'Aromatasehemmer i 5 år',
         core: 'aromatasehemmer (letrozol/anastrozol) i 5 år', source: 'regelmotor' },
@@ -102,7 +106,7 @@ export const SENTENCE_GROUPS = [
       { id: 'endo-neo', label: 'Neoadjuvant endokrin behandling',
         core: 'aromatasehemmer, for premenopausale med tillegg av goserelin, til maksimal respons over 6–12 måneder', source: 'regelmotor' },
       { id: 'endo-ingen', label: 'Ingen endokrin behandling',
-        core: 'ikke endokrin behandling, da tumor ikke er hormonreseptorpositiv', source: 'regelmotor' },
+        sentence: 'Det er ikke indikasjon for endokrin behandling, da tumor ikke er hormonreseptorpositiv.', source: 'regelmotor' },
     ],
   },
   {
@@ -117,7 +121,7 @@ export const SENTENCE_GROUPS = [
       { id: 'cdk-ribo', label: 'Ribociclib 400 mg daglig i 3 år (NATALEE)',
         core: 'ribociclib 400 mg daglig i 3 år (NATALEE)', source: 'regelmotor' },
       { id: 'cdk-ingen', label: 'Ingen CDK4/6-hemmer',
-        core: 'ikke CDK4/6-hemmer', source: 'regelmotor' },
+        sentence: 'Det er ikke indikasjon for CDK4/6-hemmer.', source: 'regelmotor' },
     ],
   },
   {
@@ -135,7 +139,7 @@ export const SENTENCE_GROUPS = [
       { id: 'bis-postmeno', label: 'Ved postmenopausal status',
         core: 'zoledronsyre ved postmenopausal status, naturlig eller indusert', source: 'regelmotor' },
       { id: 'bis-ingen', label: 'Ingen bisfosfonat',
-        core: 'ikke zoledronsyre', source: 'regelmotor' },
+        sentence: 'Det er ikke indikasjon for zoledronsyre.', source: 'regelmotor' },
     ],
   },
   {
@@ -148,9 +152,9 @@ export const SENTENCE_GROUPS = [
       { id: 'parp-olaparib', label: 'Olaparib 300 mg ×2 i 1 år (OlympiA)',
         core: 'olaparib (Lynparza) 300 mg ×2 daglig i 1 år, med oppstart innen 12 uker etter avsluttet kjemoterapi og i kombinasjon med endokrin behandling ved HR-positiv sykdom', source: 'regelmotor' },
       { id: 'parp-olaparib-vurder', label: 'Olaparib vurderes',
-        core: 'olaparib etter individuell risikovurdering', source: 'regelmotor' },
+        sentence: 'Olaparib vurderes etter individuell risikovurdering.', source: 'regelmotor' },
       { id: 'parp-ingen', label: 'Ingen indikasjon for olaparib',
-        core: 'ikke olaparib, da det ikke foreligger patogen germline BRCA1/2-mutasjon', source: 'regelmotor' },
+        sentence: 'Det er ikke indikasjon for olaparib, da det ikke foreligger patogen germline BRCA1/2-mutasjon.', source: 'regelmotor' },
     ],
   },
   {
@@ -164,7 +168,8 @@ export const SENTENCE_GROUPS = [
       { id: 'str-bryst', label: 'Hele brystet med boost', core: 'hele brystet med boost mot tumorleiet', source: 'regelmotor' },
       { id: 'str-bryst-regional', label: 'Hele brystet + regionale lymfeknuter', core: 'hele brystet og regionale lymfeknuter', source: 'regelmotor' },
       { id: 'str-brystvegg', label: 'Brystvegg + regionale lymfeknuter', core: 'brystvegg og regionale lymfeknuter', source: 'regelmotor' },
-      { id: 'str-ingen', label: 'Ingen strålebehandling', core: 'ingen områder, da det ikke er indikasjon for strålebehandling', source: 'regelmotor' },
+      { id: 'str-ingen', label: 'Ingen strålebehandling',
+        sentence: 'Det er ikke indikasjon for postoperativ strålebehandling.', source: 'regelmotor' },
     ],
   },
 
@@ -253,7 +258,7 @@ export const SENTENCE_GROUPS = [
 export const ALL_OPTIONS = SENTENCE_GROUPS.flatMap((g) =>
   g.options.map((o) => ({
     ...o, groupId: g.id, groupHeading: g.heading, groupKind: g.kind,
-    groupLead: g.lead, listPrefix: g.listPrefix,
+    groupLead: g.lead, groupFirstLead: g.firstLead, listPrefix: g.listPrefix,
   })),
 );
 
@@ -265,10 +270,23 @@ export function findGroup(groupId) {
   return SENTENCE_GROUPS.find((g) => g.id === groupId) || null;
 }
 
-/** Forhåndsvisning av én setning, slik den vil lese i svaret. */
-export function previewText(option, intent = '') {
+/**
+ * Forhåndsvisning av én setning, slik den vil lese i svaret.
+ *
+ * Tar imot både et rått alternativ fra `group.options` og et beriket fra
+ * ALL_OPTIONS. Gruppen kan sendes med når alternativet er rått — uten den
+ * ville ledeteksten mangle og hele setninger bli «undefined».
+ */
+export function previewText(option, intent = '', group = null) {
   if (!option) return '';
-  if (option.groupKind === 'setning') return option.text;
-  const lead = (option.groupLead || '').replace(/\{intent\}/g, intent || 'adjuvant').replace(/\s+/g, ' ').trim();
-  return `${lead} ${option.core}.`;
+  // En egen setning overstyrer ledeteksten. Negasjoner kan ikke bære en
+  // bekreftende ledetekst: «indikasjon for … ikke kjemoterapi» er ikke norsk.
+  if (option.sentence) return option.sentence;
+  const kind = option.groupKind ?? group?.kind;
+  if (kind === 'setning') return option.text ?? '';
+  const raw = option.groupLead ?? group?.lead ?? '';
+  const lead = raw.replace(/\{intent\}/g, intent || 'adjuvant').replace(/\s+/g, ' ').trim();
+  const core = option.core ?? option.text ?? '';
+  if (!core) return '';
+  return lead ? `${lead} ${core}.` : `${core}.`;
 }

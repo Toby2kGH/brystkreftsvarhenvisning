@@ -22,7 +22,7 @@ export function addSentence(blocks, option) {
     key: nextKey('s'),
     kind: 'sentence',
     optionId: option.id,
-    text: option.core ?? option.text,
+    text: option.sentence ?? option.core ?? option.text,
   }];
 }
 

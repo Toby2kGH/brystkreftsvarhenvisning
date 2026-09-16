@@ -20,7 +20,7 @@ import {
   selectedOptionIds,
   joinBlocks,
 } from '../src/notewriter/noteBlocks.js';
-import { SENTENCE_GROUPS, ALL_OPTIONS, findOption, findGroup, SOURCE_LABELS } from '../src/notewriter/sentenceBank.js';
+import { SENTENCE_GROUPS, ALL_OPTIONS, findOption, findGroup, previewText, SOURCE_LABELS } from '../src/notewriter/sentenceBank.js';
 
 const chemo = findOption('kjemo-ec90-taxan');
 const endo = findOption('endo-ai-5');
@@ -148,7 +148,7 @@ describe('setningsbanken — form og kilder', () => {
       expect(option.id).toBeTruthy();
       expect(option.label).toBeTruthy();
       // «TC ×6» er en legitim, kort kjerne
-      expect((option.core ?? option.text ?? '').trim().length).toBeGreaterThanOrEqual(5);
+      expect((option.sentence ?? option.core ?? option.text ?? '').trim().length).toBeGreaterThanOrEqual(5);
       expect(Object.keys(SOURCE_LABELS)).toContain(option.source);
     }
   });
@@ -160,7 +160,8 @@ describe('setningsbanken — form og kilder', () => {
 
   it('hele setninger slutter med punktum; indikasjoner er tekstbiter uten', () => {
     for (const option of ALL_OPTIONS) {
-      if (option.groupKind === 'setning') expect(option.text.endsWith('.')).toBe(true);
+      if (option.sentence) expect(option.sentence.endsWith('.')).toBe(true);
+      else if (option.groupKind === 'setning') expect(option.text.endsWith('.')).toBe(true);
       else expect(option.core.endsWith('.')).toBe(false);
     }
   });
@@ -304,5 +305,126 @@ describe('buildTreatmentSection — to oppsett', () => {
   it('gir tomt avsnitt når ingenting er valgt', () => {
     expect(buildTreatmentSection([], 'adjuvant', 'samlet')).toEqual([]);
     expect(buildTreatmentSection([], 'adjuvant', 'perGruppe')).toEqual([]);
+  });
+});
+
+describe('previewText — det menyen viser er det svaret faktisk får', () => {
+  it('virker for rå alternativer fra group.options, slik komponenten bruker dem', () => {
+    // Denne feilen slapp gjennom én gang: komponenten itererer group.options,
+    // som mangler groupKind/groupLead, og forhåndsvisningen ble «undefined.»
+    for (const group of SENTENCE_GROUPS) {
+      for (const option of group.options) {
+        const text = previewText(option, 'adjuvant', group);
+        expect(text).toBeTruthy();
+        expect(text).not.toContain('undefined');
+        expect(text.endsWith('.')).toBe(true);
+      }
+    }
+  });
+
+  it('viser hele setninger uendret', () => {
+    const group = findGroup('utredning');
+    expect(previewText(group.options[0], 'adjuvant', group)).toBe('Det bestilles MR mamma og metastasescreening.');
+  });
+
+  it('setter gruppens ledetekst foran indikasjoner', () => {
+    const group = findGroup('endokrin');
+    expect(previewText(group.options[0], 'adjuvant', group))
+      .toBe('Videre indikasjon for adjuvant endokrin behandling: aromatasehemmer (letrozol/anastrozol) i 5 år.');
+  });
+
+  it('følger behandlingsintensjonen', () => {
+    const group = findGroup('kjemoterapi');
+    expect(previewText(group.options[0], 'neoadjuvant', group)).toContain('neoadjuvant behandling med');
+  });
+
+  it('virker også for berikede alternativer uten gruppe', () => {
+    expect(previewText(findOption('utr-mr'))).toBe('Det bestilles MR mamma og metastasescreening.');
+    expect(previewText(findOption('kjemo-ec90'), 'adjuvant')).toContain('indikasjon for adjuvant behandling med EC90 ×4.');
+  });
+
+  it('tåler tomt alternativ', () => {
+    expect(previewText(null)).toBe('');
+    expect(previewText(undefined, 'adjuvant')).toBe('');
+  });
+});
+
+describe('negasjoner får sin egen setning', () => {
+  const negations = ALL_OPTIONS.filter((o) => o.sentence);
+
+  it('finnes, og bærer aldri en bekreftende ledetekst', () => {
+    expect(negations.length).toBeGreaterThanOrEqual(6);
+    for (const option of negations) {
+      const text = previewText(option, 'adjuvant');
+      // Feilen var en bekreftende ledetekst rett foran negasjonen — «for ikke
+      // kjemoterapi», «mot ingen områder». «Det er ikke indikasjon for …» er riktig.
+      expect(text).not.toContain('mot ingen områder');
+      expect(text).not.toContain('i form av ikke');
+      expect(text).not.toContain('behandling med ikke');
+    }
+  });
+
+  it('formuleres som «Det er ikke indikasjon for …»', () => {
+    expect(previewText(findOption('kjemo-ingen'))).toBe('Det er ikke indikasjon for kjemoterapi.');
+    expect(previewText(findOption('str-ingen'))).toBe('Det er ikke indikasjon for postoperativ strålebehandling.');
+  });
+
+  it('står som eget punkt i den nummererte listen', () => {
+    const items = [findOption('kjemo-ec90-taxan'), findOption('str-ingen')].map((o) => ({
+      core: o.core, sentence: o.sentence, groupId: o.groupId, lead: o.groupLead, listPrefix: o.listPrefix,
+    }));
+    const [text] = buildTreatmentSection(items, 'adjuvant', 'samlet');
+    expect(text).toContain('1. EC90 ×4 etterfulgt av taxan.');
+    expect(text).toContain('2. Det er ikke indikasjon for postoperativ strålebehandling.');
+  });
+
+  it('slås ikke sammen med gruppen i per-gruppe-oppsettet', () => {
+    const items = [findOption('endo-ai-5'), findOption('endo-ingen')].map((o) => ({
+      core: o.core, sentence: o.sentence, groupId: o.groupId, lead: o.groupLead,
+    }));
+    const sections = buildTreatmentSection(items, 'adjuvant', 'perGruppe');
+    expect(sections).toHaveLength(2);
+    expect(sections[1]).toBe('Det er ikke indikasjon for endokrin behandling, da tumor ikke er hormonreseptorpositiv.');
+  });
+});
+
+describe('ingen forhåndsvisning er ugrammatisk', () => {
+  it('hele katalogen leser som norsk', () => {
+    for (const group of SENTENCE_GROUPS) {
+      for (const option of group.options) {
+        const text = previewText(option, 'adjuvant', group);
+        expect(text).not.toMatch(/\b(med|for|av|mot|:)\s+ikke\s/);
+        expect(text).not.toMatch(/\bmot ingen\b/);
+        expect(text).not.toMatch(/\s{2,}/);
+        expect(text).not.toMatch(/\.\./);
+      }
+    }
+  });
+});
+
+describe('«Videre» forutsetter at noe kom før', () => {
+  const mk = (ids) => ids.map((id) => {
+    const o = findOption(id);
+    return { core: o.core, sentence: o.sentence, groupId: o.groupId,
+             lead: o.groupLead, firstLead: o.groupFirstLead, listPrefix: o.listPrefix };
+  });
+
+  it('åpner aldri svaret med «Videre»', () => {
+    for (const id of ['immun-keynote-neo', 'her2-trastuzumab', 'endo-ai-5']) {
+      const [first] = buildTreatmentSection(mk([id]), 'adjuvant', 'perGruppe');
+      expect(first.startsWith('Videre')).toBe(false);
+      expect(first).toMatch(/^I henhold til retningslinjer/);
+    }
+  });
+
+  it('beholder «Videre» når gruppen ikke står først', () => {
+    const sections = buildTreatmentSection(mk(['kjemo-ec90-taxan', 'endo-ai-5']), 'adjuvant', 'perGruppe');
+    expect(sections[0]).toMatch(/^I henhold til retningslinjer/);
+    expect(sections[1]).toMatch(/^Videre indikasjon for/);
+  });
+
+  it('gjelder ikke grupper som alltid åpner med «Det er indikasjon for»', () => {
+    const [first] = buildTreatmentSection(mk(['cdk-abema']), 'adjuvant', 'perGruppe');
+    expect(first).toMatch(/^Det er indikasjon for CDK4\/6-hemmer/);
   });
 });

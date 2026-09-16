@@ -130,6 +130,8 @@ export function buildTreatmentSection(items, intent, mode) {
       ? `I henhold til retningslinjer er det indikasjon for ${intentWord} behandling:`
       : 'I henhold til retningslinjer er det indikasjon for følgende behandling:';
     const lines = items.map((it, i) => {
+      // Punkter med egen setning står som de er — typisk negasjoner.
+      if (it.sentence) return `${i + 1}. ${it.sentence}`;
       // I listeform står punktet alene, så noen grupper trenger sitt eget ord
       // med — «hele brystet» blir meningsløst uten «strålebehandling mot».
       const body = it.listPrefix ? `${it.listPrefix} ${it.core}` : it.core;
@@ -139,20 +141,28 @@ export function buildTreatmentSection(items, intent, mode) {
   }
 
   // perGruppe — hver gruppe får sin egen ledetekst, i den rekkefølgen de kom
+  // Egne setninger slås ikke sammen med gruppen — de står som egne avsnitt.
+  const standalone = items.filter((it) => it.sentence).map((it) => it.sentence);
+
   const order = [];
   const byGroup = new Map();
   for (const item of items) {
+    if (item.sentence) continue;
     if (!byGroup.has(item.groupId)) {
-      byGroup.set(item.groupId, { lead: item.lead, cores: [] });
+      byGroup.set(item.groupId, { lead: item.lead, firstLead: item.firstLead, cores: [] });
       order.push(item.groupId);
     }
     byGroup.get(item.groupId).cores.push(item.core);
   }
 
-  return order.map((groupId) => {
-    const { lead, cores } = byGroup.get(groupId);
+  const grouped = order.map((groupId, i) => {
+    const group = byGroup.get(groupId);
+    const { cores } = group;
+    // «Videre …» forutsetter at noe kom før. Første avsnitt åpner svaret.
+    const lead = i === 0 && group.firstLead ? group.firstLead : group.lead;
     const body = cores.map(lowerFirst).join('. ');
     const resolved = (lead || 'Det er indikasjon for {intent}').replace(/\{intent\}/g, intentWord).replace(/\s+/g, ' ').trim();
     return `${resolved} ${body}.`;
   });
+  return [...grouped, ...standalone];
 }

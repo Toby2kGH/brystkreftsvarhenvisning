@@ -92,7 +92,9 @@ export default function JournalNoteWriter() {
       if (option?.groupKind === 'indikasjon') {
         treatments.push({
           core: block.text, groupId: option.groupId,
-          lead: option.groupLead, listPrefix: option.listPrefix,
+          lead: option.groupLead, firstLead: option.groupFirstLead, listPrefix: option.listPrefix,
+          // Redigerer legen en negasjon, er den redigerte teksten setningen
+          sentence: option.sentence ? block.text : undefined,
         });
       } else if ((block.text || '').trim()) {
         rest.push(block.text.trim());
@@ -292,7 +294,7 @@ export default function JournalNoteWriter() {
                     />
                     <span className="note-option-body">
                       <span className="note-option-label">{option.label}</span>
-                      <span className="note-option-text">{previewText(option, patient.intent)}</span>
+                      <span className="note-option-text">{previewText(option, patient.intent, group)}</span>
                       <span className={`note-source note-source-${option.source}`}>
                         {SOURCE_LABELS[option.source]}
                       </span>
