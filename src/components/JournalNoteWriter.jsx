@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { SENTENCE_GROUPS, SOURCE_LABELS, findOption } from '../notewriter/sentenceBank.js';
+import React, { useState, useMemo } from 'react';
+import { SENTENCE_GROUPS, SOURCE_LABELS, findOption, previewText } from '../notewriter/sentenceBank.js';
 import {
   addSentence,
   removeByOption,
@@ -9,9 +9,8 @@ import {
   removeBlock,
   moveBlock,
   hasOption,
-  joinBlocks,
 } from '../notewriter/noteBlocks.js';
-import { buildIntro } from '../tablelookup/introText.js';
+import { buildOpening, buildTreatmentSection } from '../notewriter/referralText.js';
 import { copyText } from '../textgen/templateEngine.js';
 import { SCOPE_NOTE } from '../guidelineVersion.js';
 
@@ -22,11 +21,13 @@ import { SCOPE_NOTE } from '../guidelineVersion.js';
 //  pasientkarakteristika, får en innledning bygget av dem, og krysser av
 //  hvilke standardsetninger som skal med.
 //
+//  Registeret følger den opprinnelige «klinisk svar»-malen: man svarer med
+//  hva det er indikasjon for, ikke med hva som gis.
+//
 //  MDR-grensen ligger i ett punkt: pasientopplysningene styrer KUN
-//  innledningen. De filtrerer aldri menyen, sorterer den ikke, markerer
-//  ingenting som passende og forhåndsvelger ingen behandling. Bare de to
-//  gruppene som gjengir det legen selv har tastet — tumorbiologi og
-//  behandlingsintensjon — settes inn automatisk.
+//  åpningslinjen og hvilket ord ledeteksten bruker (adjuvant/neoadjuvant). De
+//  filtrerer aldri menyen, sorterer den ikke, markerer ingenting som passende
+//  og forhåndsvelger ingen behandling. Hver eneste avkryssing starter tom.
 // ================================================================
 
 const NBCG_URL = 'https://nbcg.no/retningslinjer-2/retningslinjer/';
@@ -52,39 +53,19 @@ const EMPTY_PATIENT = {
   her2: '',
   ki67: '',
   grade: '',
+  geneTest: 'none',
+  geneScore: '',
 };
 
 export default function JournalNoteWriter() {
   const [patient, setPatient] = useState(EMPTY_PATIENT);
   const [blocks, setBlocks] = useState([]);
   const [copied, setCopied] = useState(false);
-  // Husker hvilke transkripsjonsverdier vi alt har satt inn, så en setning
-  // legen har fjernet ikke kommer snikende tilbake.
-  const autoApplied = useRef({});
+  const [mode, setMode] = useState('samlet'); // 'samlet' | 'perGruppe'
 
   const update = (field, value) => setPatient((p) => ({ ...p, [field]: value }));
 
-  const intro = useMemo(
-    () => buildIntro(
-      { bioGroup: patient.bioGroup, tStage: patient.tStage, nStage: patient.nStage, menopausal: patient.menopausal },
-      patient,
-    ),
-    [patient],
-  );
-
-  // Transkripsjonsgruppene settes inn automatisk — de gjentar bare det legen
-  // selv har valgt i feltene til venstre. Ingen behandlingsgruppe røres her.
-  useEffect(() => {
-    for (const group of SENTENCE_GROUPS) {
-      if (!group.transcription) continue;
-      const value = patient[group.transcription];
-      if (!value || autoApplied.current[group.id] === value) continue;
-      autoApplied.current[group.id] = value;
-      const option = group.options.find((o) => o.value === value);
-      const ids = group.options.map((o) => o.id);
-      setBlocks((prev) => replaceGroupSelection(prev, ids, option));
-    }
-  }, [patient.bioGroup, patient.intent]);
+  const intro = useMemo(() => buildOpening(patient), [patient]);
 
   function toggle(group, option) {
     setBlocks((prev) => {
@@ -99,10 +80,33 @@ export default function JournalNoteWriter() {
   function handleReset() {
     setPatient(EMPTY_PATIENT);
     setBlocks([]);
-    autoApplied.current = {};
   }
 
-  const noteText = useMemo(() => joinBlocks(blocks, intro), [blocks, intro]);
+  // Behandlingsindikasjonene settes sammen etter valgt oppsett; egne setninger
+  // og fri tekst står som de er, slik originalen gjør.
+  const noteText = useMemo(() => {
+    const treatments = [];
+    const rest = [];
+    for (const block of blocks) {
+      const option = block.kind === 'sentence' ? findOption(block.optionId) : null;
+      if (option?.groupKind === 'indikasjon') {
+        treatments.push({
+          core: block.text, groupId: option.groupId,
+          lead: option.groupLead, firstLead: option.groupFirstLead, listPrefix: option.listPrefix,
+          // Redigerer legen en negasjon, er den redigerte teksten setningen
+          sentence: option.sentence ? block.text : undefined,
+        });
+      } else if ((block.text || '').trim()) {
+        rest.push(block.text.trim());
+      }
+    }
+    const sections = [
+      intro,
+      ...buildTreatmentSection(treatments, patient.intent, mode),
+      ...rest,
+    ];
+    return sections.filter(Boolean).join('\n\n');
+  }, [blocks, intro, patient.intent, mode]);
 
   function handleCopy() {
     copyText(noteText, () => {
@@ -234,6 +238,24 @@ export default function JournalNoteWriter() {
             </label>
           </div>
 
+          <div className="note-field-row">
+            <label className="note-field">
+              Genekspresjonstest
+              <select value={patient.geneTest} onChange={(e) => update('geneTest', e.target.value)}>
+                <option value="none">Ikke utført</option>
+                <option value="prosigna">Prosigna</option>
+                <option value="oncotypedx">OncotypeDX</option>
+              </select>
+            </label>
+            {patient.geneTest !== 'none' && (
+              <label className="note-field">
+                Score
+                <input type="number" min="0" max="100" value={patient.geneScore}
+                  onChange={(e) => update('geneScore', e.target.value)} placeholder="0–100" />
+              </label>
+            )}
+          </div>
+
           <label className="note-field">
             HER2 (IHC/ISH)
             <input type="text" value={patient.her2}
@@ -257,12 +279,8 @@ export default function JournalNoteWriter() {
           </div>
 
           {SENTENCE_GROUPS.map((group) => (
-            <fieldset key={group.id} className={`note-group${group.transcription ? ' note-group-transcription' : ''}`}>
+            <fieldset key={group.id} className="note-group">
               <legend>{group.heading}</legend>
-              {group.transcription && (
-                <p className="note-group-note">Settes inn fra opplysningene dine — kan fjernes.</p>
-              )}
-              {group.note && <p className="note-group-note">{group.note}</p>}
 
               {group.options.map((option) => {
                 const checked = hasOption(blocks, option.id);
@@ -276,7 +294,7 @@ export default function JournalNoteWriter() {
                     />
                     <span className="note-option-body">
                       <span className="note-option-label">{option.label}</span>
-                      <span className="note-option-text">{option.text}</span>
+                      <span className="note-option-text">{previewText(option, patient.intent, group)}</span>
                       <span className={`note-source note-source-${option.source}`}>
                         {SOURCE_LABELS[option.source]}
                       </span>
@@ -299,6 +317,13 @@ export default function JournalNoteWriter() {
             <p className="note-col-desc">Skriv rett i feltene. Det du endrer blir stående.</p>
           </div>
 
+          <div className="note-mode">
+            <button className={`note-mode-btn ${mode === 'samlet' ? 'active' : ''}`}
+              onClick={() => setMode('samlet')}>Nummerert liste</button>
+            <button className={`note-mode-btn ${mode === 'perGruppe' ? 'active' : ''}`}
+              onClick={() => setMode('perGruppe')}>Ledetekst per gruppe</button>
+          </div>
+
           <div className="note-actions">
             <button className="copy-btn" onClick={handleCopy} disabled={!noteText}>
               {copied ? 'Kopiert!' : 'Kopier hele notatet'}
@@ -308,12 +333,17 @@ export default function JournalNoteWriter() {
             </button>
           </div>
 
-          {intro && (
-            <div className="note-block note-block-intro">
-              <span className="note-block-tag">Innledning</span>
-              <p>{intro}</p>
-            </div>
+          {noteText && (
+            <>
+              <h4 className="note-preview-head">Slik blir svaret</h4>
+              <pre className="note-preview-text">{noteText}</pre>
+            </>
           )}
+
+          <h4 className="note-blocks-head">Setningene i svaret</h4>
+          <p className="note-blocks-desc">
+            Rediger enkeltsetninger her. Ledeteksten settes på når svaret settes sammen.
+          </p>
 
           {!blocks.length ? (
             <div className="note-empty">
